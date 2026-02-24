@@ -1,4 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -50,29 +51,52 @@ public class NBClip : IPlayable
         return frame /(count - 1.0);
     }
 
-    public bool Render(RenderTargetBitmap bitmap, int frame)
+    public Control? Build(NBStage stage, int frame, bool includeStageBackground)
     {
-        if (Builder == null) return false;
+        if (Builder == null) return null;
+
+        var content = BuildCore(stage, frame);
+        if (content == null) return null;
+
+        if (includeStageBackground == false) return content;
+
+        var panel = new Panel();
+        panel.Width = stage.Width;
+        panel.Height = stage.Height;
+
+        if (includeStageBackground == true && stage.Background != null)
+        {
+            panel.Background = stage.Background;
+        }
+
+        panel.Children.Add(content);
+
+        DrawingHelper.Layout(panel, stage.Width, stage.Height);
+
+        return panel;
+    }
+
+    private Control? BuildCore(NBStage stage, int frame)
+    {
+        if (Builder == null) return null;
 
         var context = new NBBuildContext
         {
             frame = frame,
-            width = bitmap.PixelSize.Width,
-            height = bitmap.PixelSize.Height,
-            dpi = bitmap.Dpi,
+            width = stage.Width,
+            height = stage.Height,
+            dpi = new Vector(stage.Dpi, stage.Dpi),
             progress = CalculateProgress(frame, DurationFrames)
         };
 
         var content = Builder(context, this);
-        if(content == null) return false;
+        if (content == null) return null;
 
         content.Measure(new Size(context.width, context.height));
         content.Arrange(new Rect(0, 0, context.width, context.height));
         content.UpdateLayout();
-        
-        bitmap.Render(content);
 
-        return true;
+        return content;
     }
 
     internal bool NeedRenderInTrack(int frame)

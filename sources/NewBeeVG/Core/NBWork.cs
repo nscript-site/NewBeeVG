@@ -1,4 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 
 namespace NewBeeVG;
 
@@ -18,19 +19,32 @@ public class NBWork : IPlayable
         return max;
     }
 
-    public bool Render(RenderTargetBitmap bitmap, int frame)
-    {
-        foreach (var track in Tracks)
-        {             
-            if (track.IsVisible == false) continue;
-            track.Render(bitmap, frame);
-        }
-        return true;
-    }
-
     public RenderTargetBitmap CreateBitmap()
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(Stage.Width, Stage.Height), new Vector(Stage.Dpi, Stage.Dpi));
         return bitmap;
+    }
+
+    public Control? Build(NBStage stage, int frame, bool includeStageBackground)
+    {
+        var panel = new Panel();
+        panel.Width = stage.Width;
+        panel.Height = stage.Height;
+
+        if (includeStageBackground == true && stage.Background != null)
+        {
+            panel.Background = stage.Background;
+        }
+
+        foreach (var track in Tracks)
+        {
+            if (track.IsVisible == false) continue;
+            var ctrl = track.Build(stage, frame, false);
+            if (ctrl != null) panel.Children.Add(ctrl);
+        }
+
+        DrawingHelper.Layout(panel, stage.Width, stage.Height);
+
+        return panel;
     }
 }

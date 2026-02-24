@@ -1,4 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -26,14 +27,27 @@ public class NBTrack : IPlayable
         return max;
     }
 
-    public bool Render(RenderTargetBitmap bitmap, int frame)
+    public Control? Build(NBStage stage, int frame, bool includeStageBackground)
     {
+        var panel = new Panel();
+        panel.Width = stage.Width;
+        panel.Height = stage.Height;
+        
+        if(includeStageBackground == true && stage.Background != null)
+        {
+            panel.Background = stage.Background;
+        }
+
         foreach (var clip in Clips)
         {
             if (clip.IsVisible == false || clip.NeedRenderInTrack(frame) == false) continue;
-            clip.Render(bitmap, frame - clip.StartFrame??0);
+            var ctrl = clip.Build(stage, frame - clip.StartFrame ?? 0, false);
+            if(ctrl != null) panel.Children.Add(ctrl);
         }
-        return true;
+
+        DrawingHelper.Layout(panel, stage.Width, stage.Height);
+
+        return panel;
     }
 
 }

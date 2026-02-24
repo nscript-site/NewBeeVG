@@ -2,13 +2,14 @@
 
 public static class Methods
 {
-    public static NBStage stage(int width = 1080, int height = 1920, int dpi = 96)
+    public static NBStage stage(int width = 1080, int height = 1920, int dpi = 96, IBrush? bg = null)
     {
         return new NBStage
         {
             Width = width,
             Height = height,
-            Dpi = dpi
+            Dpi = dpi,
+            Background = bg,
         };
     }
 

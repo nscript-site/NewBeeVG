@@ -1,12 +1,11 @@
-﻿
-var clip1 = clip(
+﻿var clip1 = clip(
     name: "clip1",
     frames: 30,
     builder: (ctx, clip) =>
     {
         var easing = Easing.SineInOut;
         double v = easing(ctx.progress) * 2 * Math.PI;
-        var r = 200;
+        var r = 900;
         var x = r * Math.Sin(v);
         var y = r * Math.Cos(v);
         return
@@ -35,5 +34,16 @@ var clip2 = clip(
     }
 );
 
-run(stage(), [clip1, clip2]);
+var logo = clip(
+    name: "logo",
+    start: 0,
+    frames: 60,
+    builder: (ctx, clip) =>
+    {
+        return
+            TextBlock("NewBee VG Demo").Align(1, -1).FontSize(40).Margin(20);
+    }
+);
+
+run(stage(bg: Brushes.White), [clip1, clip2, logo]);
 

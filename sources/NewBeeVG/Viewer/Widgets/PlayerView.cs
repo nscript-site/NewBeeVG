@@ -17,12 +17,13 @@ public class PlayerView : BaseView
     protected override void Build(out Control content)
     {
         Image = new Image();
-        VGrid("40,*", [
+        VGrid("30,*", [
             HStack([
                 TextBlock(()=>Playable?.FullName??String.Empty),
                 TextBlock(()=>$"{Math.Min(Frames,CurrentFrame + 1)}/{Frames}"),
             ]),
             Border(Image).Background(Brushes.Gray)
+                .BorderBrush(Brushes.Gray).BorderThickness(1)
         ])
         .Return(out content);
     }
@@ -64,7 +65,8 @@ public class PlayerView : BaseView
                 var bitmap = Work.CreateBitmap();
 
                 this.InvokeByUIThread(() => {
-                    if (Playable.Render(bitmap, CurrentFrame))
+
+                    if (Playable.Render(bitmap, Work.Stage, CurrentFrame))
                     {
                         Bitmap = bitmap;
                         Image.Source = Bitmap;

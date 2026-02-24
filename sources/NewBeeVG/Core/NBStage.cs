@@ -6,4 +6,5 @@ public class NBStage
     public int Height { get; set; }
     public int Dpi { get; set; } = 96;
     public double FrameRate { get; set; } = 25;
+    public IBrush? Background { get; set; }
 }
