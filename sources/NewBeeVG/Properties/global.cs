@@ -10,3 +10,5 @@ global using static NewBeeVG.Methods;
 global using NStyles.MeterialIcons;
 global using System.Collections.Generic;
 global using System;
+global using NewBeeVG.Viewer.Widgets;
+global using NewBeeVG.Viewer;

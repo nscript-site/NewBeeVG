@@ -9,6 +9,6 @@
     <File Path="Directory.Packages.props" />
     <File Path="LICENSE" />
   </Folder>
-  <Project Path="demo/NewBeeVG.Demo/NewBeeVG.Demo.csproj" Id="2e50356a-7516-4be7-829c-fa6fd6718637" />
+  <Project Path="sources/NewBeeVG.Demo/NewBeeVG.Demo.csproj" Id="2e50356a-7516-4be7-829c-fa6fd6718637" />
   <Project Path="sources/NewBeeVG/NewBeeVG.csproj" Id="7f4c6079-1bb3-4f02-8bcb-510197500b46" />
 </Solution>

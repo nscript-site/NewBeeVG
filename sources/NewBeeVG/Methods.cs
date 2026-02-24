@@ -1,6 +1,4 @@
-﻿using NewBeeVG.Core;
-
-namespace NewBeeVG;
+﻿namespace NewBeeVG;
 
 public static class Methods
 {
@@ -46,6 +44,7 @@ public static class Methods
 
     public static void run(NBStage stage, NBClip[] clips)
     {
+        NBWorkspace.Current = NBWorkspace.Create(stage, clips);
         start();
     }
 }
