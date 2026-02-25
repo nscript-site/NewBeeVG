@@ -1,7 +1,7 @@
 ﻿namespace NewBeeVG;
 
 /// <summary>
-/// 缓动函数工具类（精简版）
+/// 缓动函数工具类（精简版），doubao 写的，未检查
 /// 所有函数接收 0~1 的进度值，返回 0~1 的缓动后进度
 /// </summary>
 public static class Easing

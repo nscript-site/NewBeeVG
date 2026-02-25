@@ -1,37 +1,31 @@
-﻿using Avalonia.Media.Imaging;
-using SkiaSharp;
-
-namespace NewBeeVG;
-
-public struct NBBuildContext
-{
-    public int frame;
-    public int width;
-    public int height;
-    public double progress;
-    public Vector dpi;
-}
+﻿namespace NewBeeVG;
 
 /// <summary>
 /// 视频片段
 /// </summary>
 public class NBClip : IPlayable
 {
+    /// <summary>
+    /// 如果为 null, 则表示自动衔接在前一个 clip 之后
+    /// </summary>
     public int? StartFrame { get; internal set; }
 
-    public int DurationFrames { get; set { field = Math.Max(1, value); } } = 1;
+    /// <summary>
+    /// duration frames 如果 <= 0, 则表示持续到最后一帧
+    /// </summary>
+    public int DurationFrames { get; set; }
+
+    public Func<NBDrawContext, NBClip, Control?>? Builder { get; internal set; }
 
     public string Name { get; init; }
 
     public bool IsVisible { get; set; } = true;
 
-    public Func<NBBuildContext, NBClip, Control?>? Builder { get; internal set; }
-
-    public NBClip(string name = "clip", Func<NBBuildContext, NBClip, Control?>? builder = null, int duration = 1, int? start = null)
+    public NBClip(string name = "clip", Func<NBDrawContext, NBClip, Control?>? builder = null, int duration = 1, int? start = null)
     {
         Name = name;
         Builder = builder;
-        DurationFrames = Math.Max(1,duration);
+        DurationFrames = duration;
         StartFrame = start;
     }
 
@@ -80,7 +74,7 @@ public class NBClip : IPlayable
     {
         if (Builder == null) return null;
 
-        var context = new NBBuildContext
+        var context = new NBDrawContext
         {
             frame = frame,
             width = stage.Width,
@@ -103,7 +97,7 @@ public class NBClip : IPlayable
     {
         if (Builder == null) return false;
         
-        if (StartFrame == null) return true;
+        if (StartFrame == null || DurationFrames <= 0) return true;
         else return frame >= StartFrame && frame < StartFrame + DurationFrames;
     }
 }

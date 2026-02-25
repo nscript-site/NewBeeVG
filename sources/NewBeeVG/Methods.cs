@@ -23,7 +23,7 @@ public static class Methods
         return new NBWork();
     }
 
-    public static NBClip clip(string name = "clip", Func<NBBuildContext, NBClip, Control?>? builder = null, int frames = 1, int? start = null)
+    public static NBClip clip(string name = "clip", Func<NBDrawContext, NBClip, Control?>? builder = null, int frames = 1, int? start = null)
     {
         return new NBClip(name, builder, frames, start);
     }

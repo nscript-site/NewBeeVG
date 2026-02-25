@@ -37,13 +37,24 @@ var clip2 = clip(
 var logo = clip(
     name: "logo",
     start: 0,
-    frames: 60,
+    frames: -1,
     builder: (ctx, clip) =>
     {
         return
-            TextBlock("NewBee VG Demo").Align(1, -1).FontSize(40).Margin(20);
+            TextBlock("Demo").Align(1, -1).FontSize(40).Margin(20);
     }
 );
 
-run(stage(bg: Brushes.White), [clip1, clip2, logo]);
+var logo2 = clip(
+    name: "logo2",
+    start: 0,
+    frames: -1,
+    builder: (ctx, clip) =>
+    {
+        return
+            TextBlock("NewBee VG").Align(-1, -1).FontSize(40).Margin(20);
+    }
+);
+
+run(stage(bg: Brushes.White), [clip1, clip2, logo, logo2]);
 

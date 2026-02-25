@@ -1,7 +1,4 @@
-﻿using Avalonia.Media.Imaging;
-using SkiaSharp;
-
-namespace NewBeeVG;
+﻿namespace NewBeeVG;
 
 public class NBTrack : IPlayable
 {
