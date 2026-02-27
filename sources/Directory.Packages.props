@@ -18,5 +18,9 @@
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.1" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
     <PackageVersion Include="MSTest" Version="4.0.1" />
+
+    <PackageVersion Include="FFmpeg.AutoGen" Version="4.3.0.1" />
+    <PackageVersion Include="FFmpeg.Nightly" Version="20200831.1.0" />
+    <PackageVersion Include="Geb.Image" Version="6.0.8" />
   </ItemGroup>
 </Project>
