@@ -1,4 +1,6 @@
-﻿namespace NewBeeVG;
+﻿using SkiaSharp;
+
+namespace NewBeeVG;
 
 public static class Methods
 {
@@ -26,6 +28,11 @@ public static class Methods
     public static NBClip clip(string name = "clip", Func<NBDrawContext, NBClip, Control?>? builder = null, int frames = 1, int? start = null)
     {
         return new NBClip(name, builder, frames, start);
+    }
+
+    public static NBSkiaClip skclip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int frames = 1, int? start = null)
+    {
+        return new NBSkiaClip(name, builder, frames, start);
     }
 
     public static NBTrack track()

@@ -34,6 +34,22 @@ var clip2 = clip(
     }
 );
 
+var clip3 = skclip(
+    name: "skclip",
+    frames:10,
+    builder: (ctx, clip, canvas) =>
+        {
+            var paint = new SKPaint
+            {
+                Style = SKPaintStyle.Fill,
+                Color = SKColors.Red.WithAlpha((byte)(ctx.progress * 255)),
+                IsAntialias = true,
+            };
+            var radius = 100 + 200 * ctx.progress;
+            canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
+        }
+    );
+
 var logo = clip(
     name: "logo",
     start: 0,
@@ -56,5 +72,5 @@ var logo2 = clip(
     }
 );
 
-run(stage(bg: Brushes.White), [clip1, clip2, logo, logo2]);
+run(stage(bg: Brushes.White), [clip1, clip2, clip3, logo, logo2]);
 

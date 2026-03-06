@@ -15,7 +15,7 @@ public class NBClip : IPlayable
     /// </summary>
     public int DurationFrames { get; set; }
 
-    public Func<NBDrawContext, NBClip, Control?>? Builder { get; internal set; }
+    internal Func<NBDrawContext, NBClip, Control?>? ControlBuilder { get; set; }
 
     public string Name { get; init; }
 
@@ -24,7 +24,7 @@ public class NBClip : IPlayable
     public NBClip(string name = "clip", Func<NBDrawContext, NBClip, Control?>? builder = null, int duration = 1, int? start = null)
     {
         Name = name;
-        Builder = builder;
+        ControlBuilder = builder;
         DurationFrames = duration;
         StartFrame = start;
     }
@@ -45,9 +45,9 @@ public class NBClip : IPlayable
         return frame /(count - 1.0);
     }
 
-    public Control? Build(NBStage stage, int frame, bool includeStageBackground)
+    public virtual Control? Build(NBStage stage, int frame, bool includeStageBackground)
     {
-        if (Builder == null) return null;
+        if (ControlBuilder == null) return null;
 
         var content = BuildCore(stage, frame);
         if (content == null) return null;
@@ -72,7 +72,7 @@ public class NBClip : IPlayable
 
     private Control? BuildCore(NBStage stage, int frame)
     {
-        if (Builder == null) return null;
+        if (ControlBuilder == null) return null;
 
         var context = new NBDrawContext
         {
@@ -83,7 +83,7 @@ public class NBClip : IPlayable
             progress = CalculateProgress(frame, DurationFrames)
         };
 
-        var content = Builder(context, this);
+        var content = ControlBuilder(context, this);
         if (content == null) return null;
 
         content.Measure(new Size(context.width, context.height));
@@ -95,7 +95,7 @@ public class NBClip : IPlayable
 
     internal bool NeedRenderInTrack(int frame)
     {
-        if (Builder == null) return false;
+        if (ControlBuilder == null) return false;
         
         if (StartFrame == null || DurationFrames <= 0) return true;
         else return frame >= StartFrame && frame < StartFrame + DurationFrames;
