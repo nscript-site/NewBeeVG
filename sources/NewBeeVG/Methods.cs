@@ -20,7 +20,7 @@ public static class Methods
         return new NBWorkspace();
     }
 
-    public static NBWork project()
+    public static NBWork work()
     {
         return new NBWork();
     }
@@ -30,10 +30,20 @@ public static class Methods
         return new NBClip(name, builder, frames, start);
     }
 
-    public static NBSkiaClip skclip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int frames = 1, int? start = null)
+    public static NBSkiaClip skclip(string name = "skclip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int frames = 1, int? start = null)
     {
         return new NBSkiaClip(name, builder, frames, start);
     }
+
+    public static NBMaskedSkiaClip skclip_withmask(string name = "skclip_withmask", 
+        Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
+        Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder = null,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        int frames = 1, int? start = null)
+    {
+        return new NBMaskedSkiaClip(name, builder, maskBuilder, blend, frames, start);
+    }
+
 
     public static NBTrack track()
     {
