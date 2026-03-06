@@ -48,7 +48,7 @@ var clip3 = skclip(
         var radius = 100 + 200 * ctx.progress;
         canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
     }
-    );
+);
 
 var clip4 = skclip_withmask(
     name: "skclip2",
@@ -68,7 +68,7 @@ var clip4 = skclip_withmask(
         var radius = 100 + 200 * ctx.progress;
         canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
     }
-    );
+);
 
 var clip5 = skclip_withmask(
     name: "skclip3",
@@ -89,8 +89,7 @@ var clip5 = skclip_withmask(
         var radius = 100 + 200 * ctx.progress;
         canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
     }
-    );
-
+);
 
 var logo = clip(
     name: "logo",

@@ -31,6 +31,8 @@ public class NBClip : IPlayable
 
     public string FullName => $"[Clip] {Name}";
 
+    public virtual void Prepare() { }
+
     public int Measure()
     {
         return DurationFrames; 

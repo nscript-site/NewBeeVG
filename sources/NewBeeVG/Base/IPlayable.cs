@@ -16,6 +16,11 @@ public interface IPlayable
 
     Control? Build(NBStage stage, int frame, bool includeStageBackground);
 
+    /// <summary>
+    /// 准备。有些 playable 需要准备工作。
+    /// </summary>
+    void Prepare();
+
     int Measure();
 
     string FullName { get; }

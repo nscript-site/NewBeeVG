@@ -19,6 +19,8 @@ public class NBWork : IPlayable
         return max;
     }
 
+    public virtual void Prepare() { }
+
     public RenderTargetBitmap CreateBitmap()
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(Stage.Width, Stage.Height), new Vector(Stage.Dpi, Stage.Dpi));

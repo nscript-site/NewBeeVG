@@ -24,6 +24,8 @@ public class NBTrack : IPlayable
         return max;
     }
 
+    public virtual void Prepare() { }
+
     public Control? Build(NBStage stage, int frame, bool includeStageBackground)
     {
         var panel = new Panel();
