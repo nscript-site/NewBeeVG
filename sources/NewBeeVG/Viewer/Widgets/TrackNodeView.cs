@@ -8,7 +8,7 @@ public class TrackNodeView : BaseView
 
     protected override void Build(out Control content)
     {
-        TextButton($"{TrackNode.Name}").Align(null)
+        TextButton($"{TrackNode.Name}").Align(null).Width(120)
             .OnClick(() => OnTrackClicked?.Invoke(TrackNode))
             .Return(out content);
     }

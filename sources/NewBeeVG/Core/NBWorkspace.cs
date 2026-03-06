@@ -7,7 +7,7 @@ public class NBWorkspace
     public string Name { get; set; } = "workspace";
     public List<NBWork> Works { get; set; } = new List<NBWork>();
 
-    public static NBWorkspace Create(NBStage stage, NBClip[] clips)
+    public static NBWorkspace Create(NBStage stage, IList<NBClip> clips)
     {
         var track = new NBTrack();
         track.Clips.AddRange(clips);

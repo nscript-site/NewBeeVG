@@ -8,7 +8,7 @@ public class ClipNodeView : BaseView
 
     protected override void Build(out Control content)
     {
-        TextButton($"{ClipNode.Name}").Align(null)
+        TextButton($"{ClipNode.Name}").Align(null).Width(120)
             .OnClick(() => OnClipClicked?.Invoke(ClipNode))
             .Return(out content);
     }

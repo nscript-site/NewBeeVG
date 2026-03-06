@@ -177,6 +177,52 @@ public static class Easing
     #endregion
 
     /// <summary>
+    /// 获取所有缓动函数的名称和对应的委托
+    /// </summary>
+    /// <returns>包含函数名和委托的元组列表</returns>
+    public static List<Tuple<string, Func<double, double>>> All()
+    {
+        // 按分类添加所有缓动函数，名称与方法名保持一致（便于外部识别）
+        var easingFunctions = new List<Tuple<string, Func<double, double>>>
+        {
+            // 基础缓动
+            Tuple.Create(nameof(Linear), (Func<double, double>)Linear),
+            
+            // 二次缓动
+            Tuple.Create(nameof(QuadIn), (Func<double, double>)QuadIn),
+            Tuple.Create(nameof(QuadOut), (Func<double, double>)QuadOut),
+            Tuple.Create(nameof(QuadInOut), (Func<double, double>)QuadInOut),
+            
+            // 三次缓动
+            Tuple.Create(nameof(CubicIn), (Func<double, double>)CubicIn),
+            Tuple.Create(nameof(CubicOut), (Func<double, double>)CubicOut),
+            Tuple.Create(nameof(CubicInOut), (Func<double, double>)CubicInOut),
+            
+            // 正弦缓动
+            Tuple.Create(nameof(SineIn), (Func<double, double>)SineIn),
+            Tuple.Create(nameof(SineOut), (Func<double, double>)SineOut),
+            Tuple.Create(nameof(SineInOut), (Func<double, double>)SineInOut),
+            
+            // 指数缓动
+            Tuple.Create(nameof(ExpoIn), (Func<double, double>)ExpoIn),
+            Tuple.Create(nameof(ExpoOut), (Func<double, double>)ExpoOut),
+            Tuple.Create(nameof(ExpoInOut), (Func<double, double>)ExpoInOut),
+            
+            // 回弹缓动
+            Tuple.Create(nameof(BackIn), (Func<double, double>)BackIn),
+            Tuple.Create(nameof(BackOut), (Func<double, double>)BackOut),
+            Tuple.Create(nameof(BackInOut), (Func<double, double>)BackInOut),
+            
+            // 弹性缓动
+            Tuple.Create(nameof(ElasticIn), (Func<double, double>)ElasticIn),
+            Tuple.Create(nameof(ElasticOut), (Func<double, double>)ElasticOut),
+            Tuple.Create(nameof(ElasticInOut), (Func<double, double>)ElasticInOut)
+        };
+
+        return easingFunctions;
+    }
+
+    /// <summary>
     /// 辅助方法：限制进度在 0~1 之间（简化重载）
     /// </summary>
     private static double Clamp(double progress)

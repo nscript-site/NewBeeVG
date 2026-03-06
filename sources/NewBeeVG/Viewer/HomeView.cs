@@ -8,12 +8,13 @@ public class HomeView : BaseView
     {
         Player = new PlayerView();
 
-        HGrid("100,*", [
+        HGrid("140,10,*", [
                 new WorkNodeView
                 {
                     WorkNode = NBWorkspace.Current?.Works.FirstOrDefault()??new NBWork(),
                     OnPlayableClicked = LoadPlayable,
-                },
+                }.Scrollable(),
+                null,
                 Player,
             ]).Return(out content);
     }

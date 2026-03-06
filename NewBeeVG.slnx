@@ -13,5 +13,6 @@
     <File Path="sources/Directory.Packages.props" />
   </Folder>
   <Project Path="sources/NewBeeVG.Demo/NewBeeVG.Demo.csproj" Id="2e50356a-7516-4be7-829c-fa6fd6718637" />
+  <Project Path="sources/NewBeeVG.Tools/NewBeeVG.Tools.csproj" Id="43db84a3-7495-483b-95b0-5de09420a42e" />
   <Project Path="sources/NewBeeVG/NewBeeVG.csproj" Id="7f4c6079-1bb3-4f02-8bcb-510197500b46" />
 </Solution>
