@@ -7,7 +7,6 @@
 
 using NewBeeUI;
 using NewBeeVG;
-using System;
 using Avalonia.Media;
 using Avalonia.Markup.Declarative;
 using static NewBeeUI.BaseView;

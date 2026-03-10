@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <PublishAot>false</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+    <Using Include="Avalonia.Media" />
+    <Using Include="NewBeeVG" />
+    <Using Include="SkiaSharp" />
+    <Using Include="NewBeeVG.Methods" Static="True" />
+  </ItemGroup>
+</Project>
