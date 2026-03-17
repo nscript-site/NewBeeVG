@@ -216,3 +216,5 @@ src/Web/Avalonia.Web.Blazor/Interop/Typescript/*.js
 dist
 *.slnf
 OpenHarmony.Avalonia
+python-3.12.8-embed-amd64
+__pycache__

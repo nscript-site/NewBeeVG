@@ -10,5 +10,10 @@
     <Using Include="NewBeeVG" />
     <Using Include="SkiaSharp" />
     <Using Include="NewBeeVG.Methods" Static="True" />
+    <Using Include="Python.Runtime" />
+    <Using Include="System.Runtime.CompilerServices" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="pythonnet" Version="3.0.5" />
   </ItemGroup>
 </Project>
