@@ -1,5 +1,4 @@
 #!/usr/bin/env dotnet
-#:project ../../sources/NewBeeVG/NewBeeVG.csproj
 
 void InitPython([CallerFilePath] string filePath = "")
 {

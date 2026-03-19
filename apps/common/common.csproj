@@ -4,10 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <SingleFileAppLibrary>true</SingleFileAppLibrary>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- <ItemGroup>
     <ProjectReference Include="..\..\..\sources\NewBeeVG\NewBeeVG.csproj" />
-  </ItemGroup>
+  </ItemGroup> -->
 
 </Project>

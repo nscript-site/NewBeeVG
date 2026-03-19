@@ -1,9 +1,7 @@
 #!/usr/bin/env dotnet
 
 // 简单的 NewBeeVG 使用例子
-
-#:property PublishAot=false
-#:project ../../sources/NewBeeVG/NewBeeVG.csproj
+// #:project ../../sources/NewBeeVG/NewBeeVG.csproj
 
 using NewBeeUI;
 using NewBeeVG;

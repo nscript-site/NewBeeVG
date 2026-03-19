@@ -1,6 +1,6 @@
 #!/usr/bin/env dotnet
 
-#:project ../../sources/NewBeeVG/NewBeeVG.csproj
+// #:project ../../sources/NewBeeVG/NewBeeVG.csproj
 
 // 所有缓动函数的例子
 var erasings = Easing.All();
