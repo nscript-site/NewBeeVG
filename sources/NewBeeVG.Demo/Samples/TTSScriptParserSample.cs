@@ -1,0 +1,22 @@
+﻿using NewBeeVG.Internal;
+using System.Collections.Generic;
+using System.Data;
+
+namespace NewBeeVG.Demo.Samples;
+
+internal class TTSScriptParserSample
+{
+    public static void Run()
+    {
+        var codes = TTSScriptParser.BuildCode("./Notes/n0001.md");
+        Console.WriteLine(codes);
+    }
+
+    public static void RunCode()
+    {
+        var tts_1 = ttsClip(@"2026年1月，阿里巴巴Qwen团队发布了Qwen3-TTS，一个真正好用的开源文本转语音模型。如果你想了解它的技术细节、硬件要求，以及怎么用它来做实际的事情，这篇文章就是为你准备的。", voice: "Ryan", instructions: "沉稳的中年男性播音员，音色低沉浑厚，富有磁性，语速平稳，吐字清晰，适合用于新闻播报或纪录片解说。");
+        var tts_2 = ttsClip(@"简单说，Qwen3-TTS就是一个真正能跨语言工作的文本转语音模型。它是开源的（Apache 2.0许可），基于500多万小时的语音数据训练，有两个版本可选：1.7B版本：功能完整，质量最好，但需要更多GPU（6-8GB VRAM）0.6B版本：轻量级选项，质量也不错，硬件要求低（4-6GB VRAM）", voice: "Ryan", instructions: "沉稳的中年男性播音员，音色低沉浑厚，富有磁性，语速平稳，吐字清晰，适合用于新闻播报或纪录片解说。");
+        var tts_3 = ttsClip(@"两个版本都能在Hugging Face和GitHub上找到。1.7B占4.54GB，0.6B占2.52GB。", voice: "Ryan", instructions: "沉稳的中年男性播音员，音色低沉浑厚，富有磁性，语速平稳，吐字清晰，适合用于新闻播报或纪录片解说。");
+        run(stage(bg: Brushes.Black), [tts_1, tts_2, tts_3]);
+    }
+}

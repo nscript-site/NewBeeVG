@@ -1,4 +1,8 @@
-﻿namespace NewBeeVG;
+﻿using System.Reflection.Emit;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace NewBeeVG;
 
 /// <summary>
 /// 视频片段
@@ -101,5 +105,20 @@ public class NBClip : IPlayable
         
         if (StartFrame == null || DurationFrames <= 0) return true;
         else return frame >= StartFrame && frame < StartFrame + DurationFrames;
+    }
+
+    protected DirectoryInfo GetOrCreateCacheDir()
+    {
+        DirectoryInfo dir = new DirectoryInfo("./cache");
+        if (dir.Exists == false) dir.Create();
+        return dir;
+    }
+
+    public static string ComputeMd5(string input)
+    {
+        var data = Encoding.UTF8.GetBytes(input);
+        using var md5 = MD5.Create();                // or MD5.HashData in newer APIs
+        var hash = md5.ComputeHash(data);
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 }

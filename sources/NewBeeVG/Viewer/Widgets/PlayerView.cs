@@ -1,4 +1,6 @@
 ﻿using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+using System.Diagnostics;
 
 namespace NewBeeVG.Viewer.Widgets;
 
@@ -55,32 +57,59 @@ public class PlayerView : BaseView
 
     private void PlaySimple()
     {
+        // Run the playback loop on a background thread.
         Task.Run(() =>
         {
+            const int targetMs = 40; // target frame interval in ms (40ms => 25 FPS)
+            var sw = Stopwatch.StartNew();
             Playing = true;
-            while (Playing)
+
+            try
             {
-                if (Playable == null || Work == null) break;
+                while (Playing)
+                {
+                    if (Playable == null || Work == null) break;
 
-                var bitmap = Work.CreateBitmap();
+                    var frameStart = sw.ElapsedMilliseconds;
 
-                this.InvokeByUIThread(() => {
-
-                    if (Playable.Render(bitmap, Work.Stage, CurrentFrame))
+                    // Perform creation + rendering on UI thread and wait until it's done.
+                    Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        Bitmap = bitmap;
-                        Image.Source = Bitmap;
+                        // Create bitmap and render on UI thread to avoid cross-thread issues.
+                        var bitmap = Work!.CreateBitmap();
+
+                        if (Playable!.Render(bitmap, Work.Stage, CurrentFrame))
+                        {
+                            Bitmap = bitmap;
+                            Image.Source = Bitmap;
+                        }
+
+                        this.UpdateState();
+                    }).GetAwaiter().GetResult(); // BLOCK until UI work finishes
+
+                    CurrentFrame++;
+
+                    if (CurrentFrame >= Frames)
+                        break;
+
+                    var elapsed = (int)(sw.ElapsedMilliseconds - frameStart);
+                    var remaining = targetMs - elapsed;
+                    if (remaining > 0)
+                    {
+                        Thread.Sleep(remaining);
                     }
-
-                    this.UpdateState();
-                });
-
-                Thread.Sleep(1000/25);
-                CurrentFrame++;
-                if (CurrentFrame >= Frames)
-                    break;
+                    // else: no sleep, we are running behind — skip waiting to catch up
+                }
             }
-            Playing = false;
+            catch (Exception ex)
+            {
+                // avoid crashing background thread — log if desired
+                Console.WriteLine($"PlayerView.PlaySimple exception: {ex.Message}");
+            }
+            finally
+            {
+                Playing = false;
+            }
         });
     }
 }

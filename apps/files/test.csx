@@ -1,16 +1,9 @@
-
-#:project ../common/common.csproj
-
-using MyVGLib;
-
 using C = (string Name, string IP);
 using D = System.Collections.Generic.Dictionary<string, object>;
 
 var d = new D(){
     ["a"] = 3
 };
-
-
 
 void Print(C c)
 {
@@ -19,7 +12,3 @@ void Print(C c)
 }
 
 Print(new C("Name","IP"));
-
-var cls = new Class1(){ Name  = "11"  };
-
-Console.WriteLine("hello, world!");
