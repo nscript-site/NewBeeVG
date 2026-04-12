@@ -2,12 +2,6 @@
   <Folder Name="/nbmedia/">
     <Project Path="sources/NewBeeMedia/NewBeeMedia.csproj" Id="12464c5c-1d74-4ac0-af52-dcf9a8949734" />
   </Folder>
-  <Folder Name="/nbui/">
-    <Project Path="../NewBeeUI/demo/NewBeeUI.Demo.DesktopAppSimulator/NewBeeUI.Demo.DesktopAppSimulator.csproj" />
-    <Project Path="../NewBeeUI/demo/NewBeeUI.Demo/NewBeeUI.Demo.csproj" />
-    <Project Path="../NewBeeUI/nbui/NewBeeUI/NewBeeUI.csproj" />
-    <Project Path="../NewBeeUI/nstyles/source/NStyles/NStyles.csproj" />
-  </Folder>
   <Folder Name="/_Solution Items/">
     <File Path="LICENSE" />
     <File Path="sources/Directory.Packages.props" />

@@ -11,12 +11,9 @@
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Fonts.Inter" />
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" />
+    <!--<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" />-->
     <PackageReference Include="NAudio" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\NewBeeUI\nbui\NewBeeUI\NewBeeUI.csproj" />
-    <ProjectReference Include="..\..\..\NewBeeUI\nstyles\source\NStyles\NStyles.csproj" />
+    <PackageReference Include="newbeeui" />
   </ItemGroup>
 
 </Project>

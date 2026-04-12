@@ -1,5 +1,5 @@
-﻿//ClipSample.Run();
+﻿ClipSample.Run();
 
 //TTSScriptParserSample.Run();
 
-TTSScriptParserSample.RunCode();
+//TTSScriptParserSample.RunCode();

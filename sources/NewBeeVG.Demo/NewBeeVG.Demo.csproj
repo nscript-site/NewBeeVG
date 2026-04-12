@@ -29,12 +29,10 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
 
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" />
+    <!--<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" />-->
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\NewBeeUI\nbui\NewBeeUI\NewBeeUI.csproj" />
-    <ProjectReference Include="..\..\..\NewBeeUI\nstyles\source\NStyles\NStyles.csproj" />
     <ProjectReference Include="..\..\sources\NewBeeVG\NewBeeVG.csproj" />
   </ItemGroup>
 
