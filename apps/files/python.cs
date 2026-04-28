@@ -1,12 +1,17 @@
 #!/usr/bin/env dotnet
 
+using System.Runtime.InteropServices;
+
 void InitPython([CallerFilePath] string filePath = "")
 {
     Console.WriteLine($"Caller File Path: {filePath}");
 
     FileInfo file = new FileInfo(filePath);
     var dir = file.Directory?.FullName??"./";
-    var dllDirInfo = new DirectoryInfo(Path.Combine(dir,  @"../_lib/python-3.12.8-embed-amd64/"));
+    
+    var dllDir = @"../_lib/python-3.12.8-embed-amd64/";
+
+    var dllDirInfo = new DirectoryInfo(Path.Combine(dir, dllDir));
 
     string pythonHomePath = dllDirInfo.FullName;
     string pythonDllPath = $"{pythonHomePath}python312.dll";
@@ -25,7 +30,26 @@ void InitPython([CallerFilePath] string filePath = "")
     PythonEngine.Initialize();
 }
 
-InitPython();
+// InitPython();
+
+void InitPythonFromMacOSXVenv()
+{
+    string pythonDllPath = $"/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/Python";
+    Runtime.PythonDLL = pythonDllPath;
+    Environment.SetEnvironmentVariable("PYTHONNET_PYDLL", pythonDllPath);
+    PythonEngine.Initialize();
+}
+
+if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+{
+    Console.WriteLine("Running on macOS, initializing Python from venv...");
+    InitPythonFromMacOSXVenv();
+}
+else
+{
+    Console.WriteLine("Running on non-macOS platform, initializing Python from embedded distribution...");
+    InitPython();
+}
 
 using (Py.GIL())
 {

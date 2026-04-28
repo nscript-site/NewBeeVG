@@ -3,6 +3,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <AvaloniaVersion>12.0.0</AvaloniaVersion>
+    <NewBeeUIVersion>12.0.0.1</NewBeeUIVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Avalonia packages -->
@@ -18,7 +19,7 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.1" />
     <PackageVersion Include="NAudio" Version="2.3.0" />
-    <PackageVersion Include="newbeeui" Version="12.0.0" />
+    <PackageVersion Include="newbeeui" Version="$(NewBeeUIVersion)" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
     <PackageVersion Include="MSTest" Version="4.0.1" />
     <PackageVersion Include="FFmpeg.AutoGen" Version="4.3.0.1" />
