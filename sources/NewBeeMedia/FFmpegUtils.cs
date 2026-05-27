@@ -9,7 +9,7 @@ public unsafe class FFmpegUtils
     /// 查找 ffmpeg 库所在目录
     /// </summary>
     /// <returns></returns>
-    public static String ScanFFmpegLibraryPath()
+    public static String? ScanFFmpegLibraryPath()
     {
         String domainBaseDir = AppDomain.CurrentDomain.BaseDirectory;
         if (domainBaseDir == null) domainBaseDir = "./";
@@ -32,7 +32,7 @@ public unsafe class FFmpegUtils
     {
         foreach (var item in dirs)
         {
-            String path = TryFindFFmpegLibraryPath(item);
+            var path = TryFindFFmpegLibraryPath(item);
             if (path != null) return path;
         }
         return null;
@@ -83,7 +83,7 @@ public unsafe class FFmpegUtils
 
     public static bool Initialize(string? ffmpegLibraryPath = null)
     {
-        String path = ffmpegLibraryPath ?? ScanFFmpegLibraryPath();
+        var path = ffmpegLibraryPath ?? ScanFFmpegLibraryPath();
         if (path == null)
             throw new Exception("Can not find ffmpeg library.");
 
@@ -101,8 +101,6 @@ public unsafe class FFmpegUtils
             {
                 // Get the temporary path where FFmpeg binaries are located
                 var ffmpegPath = Path.GetFullPath(overridePath);
-
-                var registrationIds = 0;
 
                 FFLibrary.Load(ffmpegPath);
                 m_LibrariesPath = ffmpegPath;

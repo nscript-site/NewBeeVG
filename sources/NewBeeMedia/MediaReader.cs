@@ -16,7 +16,7 @@ public unsafe class MediaReader : IDisposable
         get { return new ReadOnlyCollection<BaseDecoder>(_streams.Values); }
     }
 
-    public AudioStreamDecoder AudioStream
+    public AudioStreamDecoder? AudioStream
     {
         get
         {

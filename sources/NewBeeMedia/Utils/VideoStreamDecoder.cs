@@ -7,7 +7,7 @@ public unsafe class VideoStreamDecoder : BaseDecoder
     #region Fields
 
     private AVFrame* m_avFrame = null;
-    private SwsContextHolder m_sws = null;
+    private SwsContextHolder? m_sws = null;
     private AVPacket* m_avPacket = null;
 
     #endregion
@@ -234,7 +234,7 @@ public unsafe class VideoStreamDecoder : BaseDecoder
     /// <param name="width">图片宽度</param>
     /// <param name="height">图片高度</param>
     /// <returns>下一帧</returns>
-    public ImageBgr24 NextFrameBgr24(int width, int height)
+    public ImageBgr24? NextFrameBgr24(int width, int height)
     {
         try
         {
@@ -248,7 +248,7 @@ public unsafe class VideoStreamDecoder : BaseDecoder
         return CurrentFrameBgr24(width, height);
     }
 
-    public ImageBgra32 NextFrameBgra32(int width, int height)
+    public ImageBgra32? NextFrameBgra32(int width, int height)
     {
         try
         {
@@ -262,12 +262,12 @@ public unsafe class VideoStreamDecoder : BaseDecoder
         return CurrentFrameBgra32(width, height);
     }
 
-    public ImageBgr24 NextFrameBgr24()
+    public ImageBgr24? NextFrameBgr24()
     {
         return NextFrameBgr24(Width, Height);
     }
 
-    public ImageBgra32 NextFrameBgra32()
+    public ImageBgra32? NextFrameBgra32()
     {
         return NextFrameBgra32(Width, Height);
     }

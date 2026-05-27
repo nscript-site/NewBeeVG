@@ -14,7 +14,7 @@ public unsafe class MediaTranscoder
     AVFormatContext* ofmt_ctx = null;
     StreamContext* stream_ctx = null;
 
-    public int OpenInputFile(String filename)
+    private int OpenInputFile(String filename)
     {
         int ret;
         uint i;
@@ -84,7 +84,7 @@ public unsafe class MediaTranscoder
         return 0;
     }
 
-    public int OpenOutputFile(String filename)
+    private int OpenOutputFile(String filename)
     {
         AVStream* out_stream;
         AVStream* in_stream;
@@ -223,7 +223,13 @@ public unsafe class MediaTranscoder
         return 0;
     }
 
-    public int Transcode(String inputFilePath, String outputFilePath, Action<ImageBgr24, double> onFrameImage = null, Action<double> onProgressing = null)
+    public static bool Transcode(String inputFilePath, String outputFilePath, Action<ImageBgr24, double>? onFrameImage = null, Action<double>? onProgress = null)
+    {
+        MediaTranscoder transcoder = new MediaTranscoder();
+        return transcoder.TranscodeInternal(inputFilePath, outputFilePath, onFrameImage, onProgress) == 0;
+    }
+
+    private int TranscodeInternal(String inputFilePath, String outputFilePath, Action<ImageBgr24, double>? onFrameImage = null, Action<double>? onProgress = null)
     {
         _progressing = 0;
         int ret;
@@ -238,6 +244,8 @@ public unsafe class MediaTranscoder
             goto end;
         if ((ret = OpenOutputFile(outputFilePath)) < 0)
             goto end;
+
+        int frameIndex = 0;
 
         /* read all packets */
         while (true)
@@ -259,9 +267,8 @@ public unsafe class MediaTranscoder
                 }
 
                 var tbase = ifmt_ctx->streams[stream_index]->time_base;
-                Console.WriteLine($"input pts:{packet.pts * tbase.num / (double)tbase.den}");
 
-                tbase = stream_ctx[stream_index].dec_ctx->time_base;
+                // tbase = stream_ctx[stream_index].dec_ctx->time_base;
 
                 long pts1 = packet.pts;
 
@@ -299,12 +306,18 @@ public unsafe class MediaTranscoder
 
                 if (got_frame != 0)
                 {
-                    double duration = (double)(ifmt_ctx->duration / (double)ffmpeg.AV_TIME_BASE);
-                    double current = frame->pts * tbase.num / (double)tbase.den;
+                    frameIndex++;
 
-                    _progressing = Math.Max(_progressing, current / duration);
-                    _progressing = Math.Min(_progressing, 1);
-                    if (onProgressing != null) onProgressing(_progressing);
+                    const int progressStep = 100;
+                    double current = frameIndex * tbase.num / (double)tbase.den;
+                    if (frameIndex % progressStep == 0)
+                    {
+                        double duration = (double)(ifmt_ctx->duration / (double)ffmpeg.AV_TIME_BASE);
+
+                        _progressing = Math.Max(_progressing, current / duration);
+                        _progressing = Math.Min(_progressing, 1);
+                        if (onProgress != null) onProgress(_progressing);
+                    }
 
                     using (ImageBgr24 imgFrame = ReadFrame(frame))
                     {
@@ -395,7 +408,7 @@ public unsafe class MediaTranscoder
         ffmpeg.avformat_free_context(ofmt_ctx);
 
         _progressing = 1;
-        if (onProgressing != null) onProgressing(_progressing);
+        if (onProgress != null) onProgress(_progressing);
 
         if (ret < 0)
             ffmpeg.av_log(null, ffmpeg.AV_LOG_ERROR, $"Error occurred: {ret}\n");
@@ -406,7 +419,7 @@ public unsafe class MediaTranscoder
     int FlushEncoder(uint stream_index)
     {
         int ret;
-        int got_frame;
+        int got_frame = 0;
 
         if (0 == (stream_ctx[stream_index].enc_ctx->codec->capabilities &
                     ffmpeg.AV_CODEC_CAP_DELAY))
@@ -415,7 +428,7 @@ public unsafe class MediaTranscoder
         while (true)
         {
             ffmpeg.av_log(null, ffmpeg.AV_LOG_INFO, $"Flushing stream #{stream_index} encoder\n");
-            ret = WriteFrame(null, stream_index, &got_frame);
+            ret = WriteFrame(null, stream_index, ref got_frame);
             if (ret < 0)
                 break;
             if (got_frame == 0)
@@ -429,19 +442,15 @@ public unsafe class MediaTranscoder
         int get_frame = 0;
         while(get_frame == 0)
         {
-            int ret = WriteFrame(filt_frame, stream_index, &get_frame);
+            int ret = WriteFrame(filt_frame, stream_index, ref get_frame);
             if (ret < 0) return ret;
         }
         return 0;
     }
 
-    int WriteFrame(AVFrame* frame, uint stream_index, int* got_frame)
+    int WriteFrame(AVFrame* frame, uint stream_index, ref int get_frame)
     {
         int ret;
-        int got_frame_local;
-
-        if (got_frame == null)
-            got_frame = &got_frame_local;
 
         AVPacket enc_pkt = new AVPacket();
         //ffmpeg.av_init_packet(&enc_pkt);
@@ -462,8 +471,6 @@ public unsafe class MediaTranscoder
 
         if (ret < 0)
             return ret;
-        if (0 == (*got_frame))
-            return 0;
 
         /* prepare packet for muxing */
         enc_pkt.stream_index = (int)stream_index;
@@ -489,24 +496,27 @@ public unsafe class MediaTranscoder
 
         /* mux encoded frame */
         ret = ffmpeg.av_interleaved_write_frame(ofmt_ctx, &enc_pkt);
+
+        get_frame = 1;
+
         return ret;
     }
 
-    private Byte[] m_buff;
+    private Byte[]? m_buff;
 
-    public unsafe ImageBgr24 ReadFrame(AVFrame* frame)
+    private unsafe ImageBgr24 ReadFrame(AVFrame* frame)
     {
         ImageBgr24 image = new ImageBgr24(frame->width, frame->height);
         ReadFrame(frame, (Byte*)image.Start, image.Width * 3, AVPixelFormat.AV_PIX_FMT_BGR24, frame->width, frame->height);
         return image;
     }
 
-    public unsafe void WriteFrame(ImageBgr24 image, AVFrame* frame)
+    private unsafe void WriteFrame(ImageBgr24 image, AVFrame* frame)
     {
         WriteFrame(frame, (Byte*)image.Start, image.Width * 3, AVPixelFormat.AV_PIX_FMT_BGR24, image.Width, image.Height);
     }
 
-    public unsafe bool ReadFrame(AVFrame* frame, byte* frameData, int stride, AVPixelFormat frameFmt, int width, int height)
+    private unsafe bool ReadFrame(AVFrame* frame, byte* frameData, int stride, AVPixelFormat frameFmt, int width, int height)
     {
         if (frame == null || frame->data[0] == null) return false;
 
@@ -538,7 +548,7 @@ public unsafe class MediaTranscoder
         return true;
     }
 
-    public unsafe bool WriteFrame(AVFrame* frame, byte* frameData, int stride, AVPixelFormat frameFmt, int width, int height)
+    private unsafe bool WriteFrame(AVFrame* frame, byte* frameData, int stride, AVPixelFormat frameFmt, int width, int height)
     {
         if (frame == null || frame->data[0] == null) return false;
 
@@ -557,7 +567,7 @@ public unsafe class MediaTranscoder
         return true;
     }
 
-    private SwsContextHolder m_sws;
+    private SwsContextHolder? m_sws;
     private SwsContextHolder GetSwsContextHolder(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, AVPixelFormat dstFmt, SwsFlags flags)
     {
         if (m_sws == null)
