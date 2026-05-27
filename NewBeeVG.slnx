@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/nbmedia/">
+    <Project Path="sources/NewBeeMedia.Demo/NewBeeMedia.Demo.csproj" Id="a0f6b81d-3a8d-4410-b7b1-a84fe74f5cc6" />
     <Project Path="sources/NewBeeMedia/NewBeeMedia.csproj" Id="12464c5c-1d74-4ac0-af52-dcf9a8949734" />
   </Folder>
   <Folder Name="/_Solution Items/">
