@@ -1,6 +1,5 @@
 ﻿namespace NewBeeMedia;
 
-using FFmpeg.AutoGen;
 using System.Runtime.CompilerServices;
 
 public unsafe class FFmpegUtils
@@ -287,6 +286,55 @@ public unsafe class FFmpegUtils
             }
             ctx = null;
         }
+    }
+
+    /// <summary>
+    /// 估算视频/音频流的帧率。
+    /// 
+    /// 优先级：
+    /// 1. 使用 `av_guess_frame_rate()` 尝试推断实际帧率
+    /// 2. 如果失败，使用流的 `avg_frame_rate`（平均帧率）
+    /// 3. 如果仍失败，使用 `r_frame_rate`（标称帧率）
+    /// </summary>
+    /// <param name="fmtContext">输入媒体格式上下文</param>
+    /// <param name="stream">目标媒体流</param>
+    /// <returns>推断得到的帧率</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AVRational GuessFrameRate(AVFormatContext* fmtContext, AVStream* stream)
+    {
+        // 先尝试让 FFmpeg 根据容器和流信息推断实际帧率
+        AVRational fps = ffmpeg.av_guess_frame_rate(fmtContext, stream, null);
+
+        // 如果推断失败，则退回到流的平均帧率
+        if (fps.den == 0)
+            fps = stream->avg_frame_rate;
+
+        // 如果平均帧率也不可用，再退回到流的标称帧率
+        if (fps.den == 0)
+            fps = stream->r_frame_rate;
+
+        return fps;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double GuessFrameRateValue(AVFormatContext* fmtContext, AVStream* stream)
+    {
+        AVRational fps = GuessFrameRate(fmtContext, stream);
+        return fps.den != 0 ? fps.num / (double)fps.den : 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static AVRational GetFrameInterval(AVFormatContext* fmtContext, AVStream* stream)
+    {
+        AVRational fps = GuessFrameRate(fmtContext, stream);
+        return fps.den != 0 ? new AVRational { num = 1, den = fps.num / fps.den } : new AVRational { num = 0, den = 1 };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double GetFrameIntervalValue(AVFormatContext* fmtContext, AVStream* stream)
+    {
+        AVRational interval = GetFrameInterval(fmtContext, stream);
+        return interval.den != 0 ? interval.num / (double)interval.den : 0;
     }
 
     #endregion

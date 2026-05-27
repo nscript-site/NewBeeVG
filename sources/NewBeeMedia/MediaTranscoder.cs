@@ -63,6 +63,9 @@ public unsafe class MediaTranscoder
                 ffmpeg.av_log(null, ffmpeg.AV_LOG_ERROR, $"Failed to copy decoder parameters to input decoder context for stream #{i}\n");
                 return ret;
             }
+            
+            codec_ctx->pkt_timebase = stream->time_base;
+
             /* Reencode video & audio and remux subtitles etc. */
             if (codec_ctx->codec_type == AVMediaType.AVMEDIA_TYPE_VIDEO
                     || codec_ctx->codec_type == AVMediaType.AVMEDIA_TYPE_AUDIO)
@@ -238,7 +241,6 @@ public unsafe class MediaTranscoder
         AVMediaType type;
         int stream_index;
         uint i;
-        int got_frame = 0;
 
         if ((ret = OpenInputFile(inputFilePath)) < 0)
             goto end;
@@ -246,12 +248,18 @@ public unsafe class MediaTranscoder
             goto end;
 
         int frameIndex = 0;
+        int videoPts = 0;
 
         /* read all packets */
         while (true)
         {
+            int got_frame = 0;
+
             if ((ret = ffmpeg.av_read_frame(ifmt_ctx, &packet)) < 0)
+            {
+                if (ret == ffmpeg.AVERROR_EOF) ret = 0;
                 break;
+            }
             stream_index = packet.stream_index;
             type = ifmt_ctx->streams[packet.stream_index]->codecpar->codec_type;
             ffmpeg.av_log(null, ffmpeg.AV_LOG_DEBUG, $"Demuxer gave frame of stream_index {stream_index}\n");
@@ -266,14 +274,12 @@ public unsafe class MediaTranscoder
                     break;
                 }
 
-                var tbase = ifmt_ctx->streams[stream_index]->time_base;
-
-                // tbase = stream_ctx[stream_index].dec_ctx->time_base;
+                AVStream* stream = ifmt_ctx->streams[stream_index];
 
                 long pts1 = packet.pts;
 
                 ffmpeg.av_packet_rescale_ts(&packet,
-                                    ifmt_ctx->streams[stream_index]->time_base,
+                                    stream->time_base,
                                     stream_ctx[stream_index].dec_ctx->time_base);
 
                 long pts2 = packet.pts;
@@ -309,7 +315,8 @@ public unsafe class MediaTranscoder
                     frameIndex++;
 
                     const int progressStep = 100;
-                    double current = frameIndex * tbase.num / (double)tbase.den;
+                    double frameInterval = FFmpegUtils.GetFrameIntervalValue(ifmt_ctx, stream);
+                    double current = frameIndex * frameInterval;
                     if (frameIndex % progressStep == 0)
                     {
                         double duration = (double)(ifmt_ctx->duration / (double)ffmpeg.AV_TIME_BASE);
@@ -332,7 +339,8 @@ public unsafe class MediaTranscoder
                         pNewFrame->width = frame->width;
                         pNewFrame->height = frame->height;
                         pNewFrame->format = (int)frame->format;
-                        pNewFrame->pts = frame->pts;
+
+                        pNewFrame->pts = videoPts++;
 
                         if (ffmpeg.av_frame_get_buffer(pNewFrame, 32) < 0)
                         {
@@ -344,7 +352,8 @@ public unsafe class MediaTranscoder
 
                         WriteFrame(imgFrame, pNewFrame);
 
-                        ret = WriteFrame(pNewFrame, (uint)stream_index);
+                        bool wrotePacket = false;
+                        ret = WriteFrame(pNewFrame, (uint)stream_index, ref wrotePacket) ? 0 : -1;
 
                         ffmpeg.av_frame_free(&pNewFrame);
                     }
@@ -379,8 +388,7 @@ public unsafe class MediaTranscoder
         for (i = 0; i < ofmt_ctx->nb_streams; i++)
         {
             /* flush encoder */
-            ret = FlushEncoder(i);
-            if (ret < 0)
+            if (FlushEncoder(i) == false)
             {
                 ffmpeg.av_log(null, ffmpeg.AV_LOG_ERROR, "Flushing encoder failed\n");
                 goto end;
@@ -416,90 +424,76 @@ public unsafe class MediaTranscoder
         return ret != 0 ? 1 : 0;
     }
 
-    int FlushEncoder(uint stream_index)
+    bool FlushEncoder(uint stream_index)
     {
-        int ret;
-        int got_frame = 0;
-
-        if (0 == (stream_ctx[stream_index].enc_ctx->codec->capabilities &
-                    ffmpeg.AV_CODEC_CAP_DELAY))
-            return 0;
-
-        while (true)
-        {
-            ffmpeg.av_log(null, ffmpeg.AV_LOG_INFO, $"Flushing stream #{stream_index} encoder\n");
-            ret = WriteFrame(null, stream_index, ref got_frame);
-            if (ret < 0)
-                break;
-            if (got_frame == 0)
-                return 0;
-        }
-        return ret;
-    }
-
-    int WriteFrame(AVFrame* filt_frame, uint stream_index)
-    {
-        int get_frame = 0;
-        while(get_frame == 0)
-        {
-            int ret = WriteFrame(filt_frame, stream_index, ref get_frame);
-            if (ret < 0) return ret;
-        }
-        return 0;
-    }
-
-    int WriteFrame(AVFrame* frame, uint stream_index, ref int get_frame)
-    {
-        int ret;
+        if ((stream_ctx[stream_index].enc_ctx->codec->capabilities & ffmpeg.AV_CODEC_CAP_DELAY) == 0)
+            return true;
 
         AVPacket enc_pkt = new AVPacket();
-        //ffmpeg.av_init_packet(&enc_pkt);
-        ret = ffmpeg.avcodec_send_frame(stream_ctx[stream_index].enc_ctx, frame);
+
+        int ret = ffmpeg.avcodec_send_frame(stream_ctx[stream_index].enc_ctx, null);
         if (ret < 0)
-            return ret;
+            return false;
 
         while (true)
         {
             ret = ffmpeg.avcodec_receive_packet(stream_ctx[stream_index].enc_ctx, &enc_pkt);
             if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
-                return 0;
+                break;
             if (ret < 0)
-                return ret;
+            {
+                ffmpeg.av_packet_unref(&enc_pkt);
+                return false;
+            }
 
-            break;
+            enc_pkt.stream_index = (int)stream_index;
+
+            ffmpeg.av_packet_rescale_ts(&enc_pkt,
+                stream_ctx[stream_index].enc_ctx->time_base,
+                ofmt_ctx->streams[stream_index]->time_base);
+
+            ret = ffmpeg.av_interleaved_write_frame(ofmt_ctx, &enc_pkt);
+            ffmpeg.av_packet_unref(&enc_pkt);
+
+            if (ret < 0)
+                return false;
         }
 
-        if (ret < 0)
-            return ret;
+        ffmpeg.av_packet_unref(&enc_pkt);
+        return true;
+    }
 
-        /* prepare packet for muxing */
+    bool WriteFrame(AVFrame* frame, uint stream_index, ref bool wrotePacket)
+    {
+        wrotePacket = false;
+
+        AVPacket enc_pkt = new AVPacket();
+
+        int ret = ffmpeg.avcodec_send_frame(stream_ctx[stream_index].enc_ctx, frame);
+        if (ret < 0)
+            return false;
+
+        ret = ffmpeg.avcodec_receive_packet(stream_ctx[stream_index].enc_ctx, &enc_pkt);
+        if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+            return true;
+
+        if (ret < 0)
+            return false;
+
         enc_pkt.stream_index = (int)stream_index;
 
-        var tbase = ofmt_ctx->streams[stream_index]->time_base;
-        var enc_base = stream_ctx[stream_index].enc_ctx->time_base;
-        var dec_base = stream_ctx[stream_index].dec_ctx->time_base;
-        var sbase = new AVRational { den = tbase.den * enc_base.den * dec_base.num, num = tbase.num * enc_base.num * dec_base.den };
-
-        // long pts0 = filt_frame->pts;
-        long pts1 = enc_pkt.pts;
-
         ffmpeg.av_packet_rescale_ts(&enc_pkt,
-                            dec_base,
-                            ofmt_ctx->streams[stream_index]->time_base);
+            stream_ctx[stream_index].enc_ctx->time_base,
+            ofmt_ctx->streams[stream_index]->time_base);
 
-        long pts2 = enc_pkt.pts;
-
-
-        ffmpeg.av_log(null, ffmpeg.AV_LOG_DEBUG, "Muxing frame\n");
-
-        //Console.WriteLine($"out pts:{enc_pkt.pts * tbase.num / (double)tbase.den}");
-
-        /* mux encoded frame */
         ret = ffmpeg.av_interleaved_write_frame(ofmt_ctx, &enc_pkt);
+        ffmpeg.av_packet_unref(&enc_pkt);
 
-        get_frame = 1;
+        if (ret < 0)
+            return false;
 
-        return ret;
+        wrotePacket = true;
+        return true;
     }
 
     private Byte[]? m_buff;
