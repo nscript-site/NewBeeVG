@@ -1,6 +1,6 @@
 ﻿namespace NewBeeMedia;
 
-public unsafe class MediaWriter : MediaHandler
+public unsafe class MediaWriter : MediaHandler, IDisposable
 {
     [UnmanagedFunctionPointer(CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
     public delegate int AvInterruptCb(void* ctx);
@@ -70,6 +70,7 @@ public unsafe class MediaWriter : MediaHandler
     public long SizeBytes;
 
     public int Timeout = 5000;
+    private bool disposedValue;
 
     public MediaWriter(string fileName, AVCodecID audioCodec, DateTime created) : base()
     {
@@ -238,7 +239,7 @@ public unsafe class MediaWriter : MediaHandler
         _closing = true;
 
         Task.Run(() => DoClose());
-            _recordingClosed.WaitOne();
+        _recordingClosed.WaitOne();
     }
 
     private void DoClose()
@@ -934,5 +935,35 @@ public unsafe class MediaWriter : MediaHandler
         Throw("SWR_INIT", ffmpeg.swr_init(_swrContext));
 
         _convHandle = GCHandle.Alloc(_convOut, GCHandleType.Pinned);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposedValue)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+            }
+
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            Close();
+            disposedValue = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    ~MediaWriter()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: false);
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
