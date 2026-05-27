@@ -100,16 +100,35 @@ public unsafe abstract class BaseDecoder
         m_file = file;
         m_avStream = stream;
 
-        m_pCodecCtx = m_avStream->codec;
+        m_pCodecCtx = ffmpeg.avcodec_alloc_context3(null);
+
+        AVCodecContext* ctx = ffmpeg.avcodec_alloc_context3(null);
+        if (ctx == null)
+            throw new DecoderException("Cannot allocate codec context.");
+
+        try
+        {
+            if (ffmpeg.avcodec_parameters_to_context(ctx, m_avStream->codecpar) < 0)
+                throw new DecoderException("Error copying codec parameters.");
+
+            AVCodec* avCodec = ffmpeg.avcodec_find_decoder(ctx->codec_id);
+            if (avCodec == null)
+                throw new DecoderException("No decoder found");
+
+            if (ffmpeg.avcodec_open2(ctx, avCodec, null) < 0)
+            {
+                throw new DecoderException("Error opening codec");
+            }
+
+            m_pCodecCtx = ctx;
+        }
+        catch
+        {
+            ffmpeg.avcodec_free_context(&ctx);
+            throw;
+        }
+
         m_fmtCtx = file._fmtCxt;
-
-        // Open the decoding codec
-        AVCodec* avCodec = ffmpeg.avcodec_find_decoder(m_pCodecCtx->codec_id);
-        if (avCodec == null)
-            throw new DecoderException("No decoder found");
-
-        if (ffmpeg.avcodec_open2(m_pCodecCtx, avCodec, null) < 0)
-            throw new DecoderException("Error opening codec");
 
         m_codecOpen = true;
     }

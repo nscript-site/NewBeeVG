@@ -289,7 +289,6 @@ public unsafe class MediaWriter : MediaHandler
 
             if (_videoCodecContext != null)
             {
-                ffmpeg.avcodec_close(_videoCodecContext);
                 fixed (AVCodecContext** c = &_videoCodecContext)
                 {
                     ffmpeg.avcodec_free_context(c);
@@ -298,7 +297,6 @@ public unsafe class MediaWriter : MediaHandler
 
             if (_audioCodecContext != null)
             {
-                ffmpeg.avcodec_close(_audioCodecContext);
                 fixed (AVCodecContext** c = &_audioCodecContext)
                 {
                     ffmpeg.avcodec_free_context(c);
@@ -311,10 +309,9 @@ public unsafe class MediaWriter : MediaHandler
                 for (var i = j - 1; i >= 0; i--)
                 {
                     var stream = _formatContext->streams[i];
-                    if (stream != null && stream->codec != null && stream->codec->codec != null)
+                    if (stream != null)
                     {
                         stream->discard = AVDiscard.AVDISCARD_ALL;
-                        ffmpeg.av_freep(&stream);
                     }
                 }
             }
@@ -322,10 +319,7 @@ public unsafe class MediaWriter : MediaHandler
             _videoStream = null;
             _audioStream = null;
 
-            fixed (AVFormatContext** pinprt = &_formatContext)
-            {
-                ffmpeg.av_freep(pinprt);
-            }
+            ffmpeg.avformat_free_context(_formatContext);
             _formatContext = null;
         }
 
@@ -409,7 +403,7 @@ public unsafe class MediaWriter : MediaHandler
         {
             _pConvertContext = ffmpeg.sws_getCachedContext(_pConvertContext, _videoCodecContext->width,
                 _videoCodecContext->height, pfmt, _videoCodecContext->width, _videoCodecContext->height,
-                _videoCodecContext->pix_fmt, ffmpeg.SWS_FAST_BILINEAR, null, null, null);
+                _videoCodecContext->pix_fmt, (int)SwsFlags.SWS_FAST_BILINEAR, null, null, null);
         }
 
         if (Log("SWS_SCALE",
@@ -431,7 +425,7 @@ public unsafe class MediaWriter : MediaHandler
         }
 
         var packet = new AVPacket();
-        ffmpeg.av_init_packet(&packet);
+        //ffmpeg.av_init_packet(&packet);
 
         packet.data = null;
         packet.size = 0;
@@ -475,7 +469,7 @@ public unsafe class MediaWriter : MediaHandler
             {
                 _lastPacket = DateTime.UtcNow;
                 var packet = new AVPacket();
-                ffmpeg.av_init_packet(&packet);
+                // ffmpeg.av_init_packet(&packet);
 
                 var ret = ffmpeg.avcodec_send_frame(_videoCodecContext, null);
                 while (ret >= 0)
@@ -504,7 +498,7 @@ public unsafe class MediaWriter : MediaHandler
             {
                 _lastPacket = DateTime.UtcNow;
                 var packet = new AVPacket();
-                ffmpeg.av_init_packet(&packet);
+                //ffmpeg.av_init_packet(&packet);
 
                 var ret = ffmpeg.avcodec_send_frame(_audioCodecContext, null);
                 while (ret >= 0)
@@ -556,7 +550,7 @@ public unsafe class MediaWriter : MediaHandler
             var pts = offsetByHz <= 0 ? _lastAudioPts : offsetByHz;
             while (remaining >= srcSize)
             {
-                ffmpeg.av_init_packet(&packet);
+                //ffmpeg.av_init_packet(&packet);
 
                 var ptr = _convHandle.AddrOfPinnedObject().ToPointer();
                 var convOutPointerLocal = (byte*)ptr;
@@ -590,12 +584,12 @@ public unsafe class MediaWriter : MediaHandler
                 _lastAudioPts = _audioFrame->pts + 1;
 
                 //Console.WriteLine($"pts-{pts},_audioFrame->pts-{_audioFrame->pts}");
-                var dstSamplesSize = ffmpeg.av_samples_get_buffer_size(null, _audioCodecContext->channels,
+                var dstSamplesSize = ffmpeg.av_samples_get_buffer_size(null, _audioCodecContext->ch_layout.nb_channels,
                     _audioCodecContext->frame_size,
                     _audioCodecContext->sample_fmt, 0);
 
                 if (Log("FILL_AUDIO",
-                    ffmpeg.avcodec_fill_audio_frame(_audioFrame, _audioCodecContext->channels,
+                    ffmpeg.avcodec_fill_audio_frame(_audioFrame, _audioCodecContext->ch_layout.nb_channels,
                         _audioCodecContext->sample_fmt, convOutPointerLocal, dstSamplesSize, 0)))
                 {
                     ffmpeg.av_packet_unref(&packet);
@@ -644,7 +638,7 @@ public unsafe class MediaWriter : MediaHandler
                     }
                 }
                 ffmpeg.av_packet_unref(&packet);
-                pts+= cursor/(_audioCodecContext->channels*4);
+                pts+= cursor/(_audioCodecContext->ch_layout.nb_channels * 4);
             }
         }
 
@@ -653,23 +647,30 @@ public unsafe class MediaWriter : MediaHandler
         _audioBufferSizeCurrent = remaining;
     }
 
-    private void OpenVideo()
+    private unsafe void OpenVideo()
     {
         _maxLevel = -1;
 
         ffmpeg.avcodec_parameters_from_context(_videoStream->codecpar, _videoCodecContext);
 
         _videoFrame = ffmpeg.av_frame_alloc();
-        if (ffmpeg.avpicture_alloc((AVPicture*)_videoFrame, _videoCodecContext->pix_fmt, _videoCodecContext->width,
-                _videoCodecContext->height) < 0)
-        {
-            ffmpeg.avpicture_free((AVPicture*)_videoFrame);
-            throw new Exception("Cannot allocate video picture.");
-        }
+
+        if (_videoFrame == null)
+            throw new Exception("Cannot allocate video frame.");
 
         _videoFrame->width = _videoCodecContext->width;
         _videoFrame->height = _videoCodecContext->height;
         _videoFrame->format = (int)_videoCodecContext->pix_fmt;
+
+        fixed(AVFrame** pFrame = &_videoFrame)
+        {
+            if (ffmpeg.av_frame_get_buffer(_videoFrame, 32) < 0)
+            {
+                ffmpeg.av_frame_free(pFrame);
+                _videoFrame = null;
+                throw new Exception("Cannot allocate video picture.");
+            }
+        }
     }
 
     private void GetVideoCodec(AVCodecID baseCodec)
@@ -895,8 +896,7 @@ public unsafe class MediaWriter : MediaHandler
 
         _audioCodecContext->sample_rate = sampleRate;
 
-        _audioCodecContext->channel_layout = (ulong)ffmpeg.av_get_default_channel_layout(1);
-        _audioCodecContext->channels = ffmpeg.av_get_channel_layout_nb_channels(_audioCodecContext->channel_layout);
+        ffmpeg.av_channel_layout_default(&_audioCodecContext->ch_layout, 1);
 
         _audioStream->time_base.num = _audioCodecContext->time_base.num = 1;
         _audioStream->time_base.den = _audioCodecContext->time_base.den = sampleRate;
@@ -912,15 +912,24 @@ public unsafe class MediaWriter : MediaHandler
             _audioCodecContext->strict_std_compliance = -2;
         }
 
-        _swrContext = ffmpeg.swr_alloc_set_opts(null,
-            ffmpeg.av_get_default_channel_layout(_audioCodecContext->channels),
-            _audioCodecContext->sample_fmt,
-            _audioCodecContext->sample_rate,
-            ffmpeg.av_get_default_channel_layout(_audioCodecContext->channels),
-            AVSampleFormat.AV_SAMPLE_FMT_S16,
-            _audioCodecContext->sample_rate,
-            0,
-            null);
+        AVChannelLayout chLayout = default;
+        ffmpeg.av_channel_layout_default(&chLayout, 1);
+
+        fixed(SwrContext** pCxt = &_swrContext)
+        {
+            ffmpeg.swr_alloc_set_opts2(
+                pCxt,
+                &chLayout,
+                _audioCodecContext->sample_fmt,
+                _audioCodecContext->sample_rate,
+                &chLayout,
+                AVSampleFormat.AV_SAMPLE_FMT_S16,
+                _audioCodecContext->sample_rate,
+                0,
+                null);
+        }
+
+        ffmpeg.av_channel_layout_uninit(&chLayout);
 
         Throw("SWR_INIT", ffmpeg.swr_init(_swrContext));
 

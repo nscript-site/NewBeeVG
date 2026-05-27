@@ -120,7 +120,7 @@ public unsafe class VideoStreamDecoder : BaseDecoder
         }
     }
 
-    private SwsContextHolder GetSwsContextHolder(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, AVPixelFormat dstFmt, int flags)
+    private SwsContextHolder GetSwsContextHolder(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, AVPixelFormat dstFmt, SwsFlags flags)
     {
         if (m_sws == null)
         {
@@ -194,7 +194,7 @@ public unsafe class VideoStreamDecoder : BaseDecoder
     {
         if (m_avFrame == null || m_avFrame->data[0] == null) return false;
 
-        SwsContextHolder sws = GetSwsContextHolder(this.Width, this.Height, this.PixelFormat, width, height, frameFmt, ffmpeg.SWS_BILINEAR);
+        SwsContextHolder sws = GetSwsContextHolder(this.Width, this.Height, this.PixelFormat, width, height, frameFmt, SwsFlags.SWS_BILINEAR);
         byte*[] dstData = { frameData };
         int[] dstLinesize = { stride };
         

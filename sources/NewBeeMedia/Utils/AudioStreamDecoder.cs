@@ -40,7 +40,7 @@ public unsafe class AudioStreamDecoder : BaseDecoder
     /// </summary>
     public int Channels
     {
-        get { return m_pCodecCtx->channels; }
+        get { return m_pCodecCtx->ch_layout.nb_channels; }
     }
 
     /// <summary>

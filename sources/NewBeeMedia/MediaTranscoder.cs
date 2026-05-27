@@ -34,7 +34,7 @@ public unsafe class MediaTranscoder
             return ret;
         }
 
-        stream_ctx = (StreamContext*)ffmpeg.av_mallocz_array(ifmt_ctx->nb_streams, (ulong)sizeof(StreamContext));
+        stream_ctx = (StreamContext*)ffmpeg.av_calloc(ifmt_ctx->nb_streams, (ulong)sizeof(StreamContext));
         if (stream_ctx == null)
             return ffmpeg.AVERROR(ffmpeg.ENOMEM);
 
@@ -152,9 +152,12 @@ public unsafe class MediaTranscoder
                 else
                 {
                     enc_ctx->sample_rate = dec_ctx->sample_rate;
-                    enc_ctx->channel_layout = dec_ctx->channel_layout;
-                    enc_ctx->channels = ffmpeg.av_get_channel_layout_nb_channels(enc_ctx->channel_layout);
-                    /* take first format from list of supported formats */
+
+                    if (dec_ctx->ch_layout.nb_channels > 0)
+                        ffmpeg.av_channel_layout_copy(&enc_ctx->ch_layout, &dec_ctx->ch_layout);
+                    else
+                        ffmpeg.av_channel_layout_default(&enc_ctx->ch_layout, dec_ctx->ch_layout.nb_channels);
+
                     enc_ctx->sample_fmt = encoder->sample_fmts[0];
                     enc_ctx->time_base = new AVRational { num = 1, den = enc_ctx->sample_rate };
                 }
@@ -229,7 +232,7 @@ public unsafe class MediaTranscoder
         AVMediaType type;
         int stream_index;
         uint i;
-        int got_frame;
+        int got_frame = 0;
 
         if ((ret = OpenInputFile(inputFilePath)) < 0)
             goto end;
@@ -268,25 +271,31 @@ public unsafe class MediaTranscoder
 
                 long pts2 = packet.pts;
 
-                while (true)
-                {
-                    ret = ffmpeg.avcodec_decode_video2(stream_ctx[stream_index].dec_ctx, frame, &got_frame, &packet);
-                    if (ret < 0 || got_frame != 0) break;
-                }
-
+                ret = ffmpeg.avcodec_send_packet(stream_ctx[stream_index].dec_ctx, &packet);
                 if (ret < 0)
                 {
                     ffmpeg.av_frame_free(&frame);
-                    ffmpeg.av_log(null, ffmpeg.AV_LOG_ERROR, "Decoding failed\n");
-                    break;
+                    ffmpeg.av_log(null, ffmpeg.AV_LOG_ERROR, "Sending packet failed\n");
+                    goto end;
                 }
 
-                // AVRational inStreamTimeBase = ifmt_ctx->streams[stream_index]->time_base;
-                // AVRational outStreamTimeBase = ofmt_ctx->streams[stream_index]->time_base;
-                // AVRational inStreamTimeBase2 = stream_ctx[stream_index].dec_ctx->time_base;
-                // AVRational outStreamTimeBase2 = stream_ctx[stream_index].enc_ctx->time_base;
-                // Console.WriteLine($"InTimeBase: {inStreamTimeBase2.num / (double)inStreamTimeBase2.den}");
-                // Console.WriteLine($"OutTimeBase: {outStreamTimeBase2.num / (double)outStreamTimeBase2.den}");
+                while (true)
+                {
+                    ret = ffmpeg.avcodec_receive_frame(stream_ctx[stream_index].dec_ctx, frame);
+                    if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+                        break;
+
+                    if (ret < 0)
+                    {
+                        ffmpeg.av_frame_free(&frame);
+                        ffmpeg.av_log(null, ffmpeg.AV_LOG_ERROR, "Decoding failed\n");
+                        goto end;
+                    }
+
+                    // 收到一帧后直接处理
+                    got_frame = 1;
+                    break;
+                }
 
                 if (got_frame != 0)
                 {
@@ -303,21 +312,27 @@ public unsafe class MediaTranscoder
                             onFrameImage(imgFrame, current);
 
                         AVFrame* pNewFrame = ffmpeg.av_frame_alloc();
-                        if (ffmpeg.avpicture_alloc((AVPicture*)pNewFrame, (AVPixelFormat)frame->format, frame->width,
-                                frame->height) < 0)
-                        {
-                            ffmpeg.avpicture_free((AVPicture*)pNewFrame);
-                            throw new Exception("Cannot allocate video picture.");
-                        }
+
+                        if (pNewFrame == null)
+                            throw new Exception("Cannot allocate video frame.");
 
                         pNewFrame->width = frame->width;
                         pNewFrame->height = frame->height;
                         pNewFrame->format = (int)frame->format;
                         pNewFrame->pts = frame->pts;
 
+                        if (ffmpeg.av_frame_get_buffer(pNewFrame, 32) < 0)
+                        {
+                            ffmpeg.av_frame_free(&pNewFrame);
+                            throw new Exception("Cannot allocate video picture.");
+                        }
+
+                        ffmpeg.av_frame_make_writable(pNewFrame);
+
                         WriteFrame(imgFrame, pNewFrame);
 
                         ret = WriteFrame(pNewFrame, (uint)stream_index);
+
                         ffmpeg.av_frame_free(&pNewFrame);
                     }
 
@@ -424,26 +439,25 @@ public unsafe class MediaTranscoder
     {
         int ret;
         int got_frame_local;
-        AVPacket enc_pkt;
 
         if (got_frame == null)
             got_frame = &got_frame_local;
 
-        // ffmpeg.av_log(null, ffmpeg.AV_LOG_INFO, "Encoding frame\n");
-        /* encode filtered frame */
-        enc_pkt.data = null;
-        enc_pkt.size = 0;
-        ffmpeg.av_init_packet(&enc_pkt);
+        AVPacket enc_pkt = new AVPacket();
+        //ffmpeg.av_init_packet(&enc_pkt);
+        ret = ffmpeg.avcodec_send_frame(stream_ctx[stream_index].enc_ctx, frame);
+        if (ret < 0)
+            return ret;
+
         while (true)
         {
-            if (ifmt_ctx->streams[stream_index]->codecpar->codec_type == AVMediaType.AVMEDIA_TYPE_VIDEO)
-                ret = ffmpeg.avcodec_encode_video2(stream_ctx[stream_index].enc_ctx, &enc_pkt,
-                    frame, got_frame);
-            else
-                ret = ffmpeg.avcodec_encode_audio2(stream_ctx[stream_index].enc_ctx, &enc_pkt,
-                    frame, got_frame);
+            ret = ffmpeg.avcodec_receive_packet(stream_ctx[stream_index].enc_ctx, &enc_pkt);
+            if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF)
+                return 0;
+            if (ret < 0)
+                return ret;
 
-            if (ret <= 0 || *got_frame != 0) break;
+            break;
         }
 
         if (ret < 0)
@@ -504,7 +518,7 @@ public unsafe class MediaTranscoder
 
         fixed (Byte* pBuff = m_buff)
         {
-            SwsContextHolder sws = GetSwsContextHolder(frame->width, frame->height, (AVPixelFormat)frame->format, width, height, frameFmt, ffmpeg.SWS_BILINEAR);
+            SwsContextHolder sws = GetSwsContextHolder(frame->width, frame->height, (AVPixelFormat)frame->format, width, height, frameFmt, SwsFlags.SWS_BILINEAR);
             byte*[] dstData = { pBuff };
             int[] dstLinesize = new int[ffmpeg.AV_NUM_DATA_POINTERS];
             dstLinesize[0] = buffStride;
@@ -528,7 +542,7 @@ public unsafe class MediaTranscoder
     {
         if (frame == null || frame->data[0] == null) return false;
 
-        SwsContextHolder sws = GetSwsContextHolder(width, height, frameFmt, frame->width, frame->height, (AVPixelFormat)frame->format, ffmpeg.SWS_BILINEAR);
+        SwsContextHolder sws = GetSwsContextHolder(width, height, frameFmt, frame->width, frame->height, (AVPixelFormat)frame->format, SwsFlags.SWS_BILINEAR);
 
         byte*[] srcData = { frameData };
         int[] srcLinesize = { stride };
@@ -544,7 +558,7 @@ public unsafe class MediaTranscoder
     }
 
     private SwsContextHolder m_sws;
-    private SwsContextHolder GetSwsContextHolder(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, AVPixelFormat dstFmt, int flags)
+    private SwsContextHolder GetSwsContextHolder(int srcW, int srcH, AVPixelFormat srcFmt, int dstW, int dstH, AVPixelFormat dstFmt, SwsFlags flags)
     {
         if (m_sws == null)
         {

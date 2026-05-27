@@ -16,7 +16,6 @@ public unsafe class MediaFilter : IDisposable
         AVFilter* buffersink = ffmpeg.avfilter_get_by_name("ffbuffersink");
         AVFilterInOut* outputs = ffmpeg.avfilter_inout_alloc();
         AVFilterInOut* inputs = ffmpeg.avfilter_inout_alloc();
-        AVBufferSinkParams* buffersink_params;
         pFilter = ffmpeg.avfilter_graph_alloc();
         return ret;
     }

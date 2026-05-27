@@ -8,7 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FFmpeg.AutoGen" />
-    <PackageReference Include="FFmpeg.Nightly" />
+    <PackageReference Include="FFmpeg.AutoGen.Abstractions" />
+    <PackageReference Include="FFmpeg.AutoGen.Bindings.DynamicallyLoaded" />
+    <PackageReference Include="FFmpeg.LGPL" />
     <PackageReference Include="Geb.Image" />
     <!--<PackageReference Include="System.Drawing.Common" />-->
   </ItemGroup>

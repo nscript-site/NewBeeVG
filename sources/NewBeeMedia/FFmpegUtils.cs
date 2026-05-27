@@ -1,60 +1,10 @@
 ﻿namespace NewBeeMedia;
 
 using FFmpeg.AutoGen;
-
-public enum FFmpegLoadMode
-{
-    FullFeatures, MinimumFeatures, AudioOnly, VideoOnly
-}
+using System.Runtime.CompilerServices;
 
 public unsafe class FFmpegUtils
 {
-    /// <summary>
-    /// Gets the individual library flag identifiers.
-    /// </summary>
-    public static IReadOnlyDictionary<string, int> LibraryFlags { get; } = FFLibrary.All.ToDictionary(k => k.Name, v => v.FlagId);
-
-    /// <summary>
-    /// The full features. Tries to load everything.
-    /// </summary>
-    public static int FullFeatures { get; } =
-        FFLibrary.LibAVCodec.FlagId |
-        FFLibrary.LibAVDevice.FlagId |
-        FFLibrary.LibPostProc.FlagId |
-        FFLibrary.LibAVFilter.FlagId |
-        FFLibrary.LibAVFormat.FlagId |
-        FFLibrary.LibAVUtil.FlagId |
-        FFLibrary.LibSWResample.FlagId |
-        FFLibrary.LibSWScale.FlagId;
-
-    /// <summary>
-    /// Loads everything except for AVDevice and AVFilter.
-    /// </summary>
-    public static int MinimumFeatures { get; } =
-        FFLibrary.LibAVCodec.FlagId |
-        FFLibrary.LibAVFormat.FlagId |
-        FFLibrary.LibAVUtil.FlagId |
-        FFLibrary.LibSWResample.FlagId |
-        FFLibrary.LibSWScale.FlagId;
-
-    /// <summary>
-    /// Loads the minimum set for Audio-only programs.
-    /// </summary>
-    public static int AudioOnly { get; } =
-        FFLibrary.LibAVCodec.FlagId |
-        FFLibrary.LibAVFormat.FlagId |
-        FFLibrary.LibAVUtil.FlagId |
-        FFLibrary.LibSWResample.FlagId;
-
-    /// <summary>
-    /// Loads the minimum set for Video-only programs.
-    /// </summary>
-    public static int VideoOnly { get; } =
-        FFLibrary.LibAVCodec.FlagId |
-        FFLibrary.LibAVFormat.FlagId |
-        FFLibrary.LibAVUtil.FlagId |
-        FFLibrary.LibSWScale.FlagId;
-
     /// <summary>
     /// 查找 ffmpeg 库所在目录
     /// </summary>
@@ -78,7 +28,7 @@ public unsafe class FFmpegUtils
         return ScanFFmpegLibraryPath(scanDirs);
     }
 
-    private static String ScanFFmpegLibraryPath(String[] dirs)
+    private static String? ScanFFmpegLibraryPath(String[] dirs)
     {
         foreach (var item in dirs)
         {
@@ -88,7 +38,7 @@ public unsafe class FFmpegUtils
         return null;
     }
 
-    private static String TryFindFFmpegLibraryPath(String dir)
+    private static String? TryFindFFmpegLibraryPath(String dir)
     {
         DirectoryInfo dirInfo = new DirectoryInfo(dir);
         if (dirInfo.Exists == false) return null;
@@ -104,12 +54,8 @@ public unsafe class FFmpegUtils
     private static readonly List<string> FFmpegLogBuffer = new List<string>(1024);
 
     private static readonly object SyncLock = new object();
-    //private static readonly List<OptionMetadata> EmptyOptionMetaList = new List<OptionMetadata>(0);
-    //private static readonly av_log_set_callback_callback FFmpegLogCallback = OnFFmpegMessageLogged;
-    //private static readonly ILoggingHandler LoggingHandler = new FFLoggingHandler();
     private static bool m_IsInitialized;
     private static string m_LibrariesPath = string.Empty;
-    private static int m_LibraryIdentifiers;
 
     #endregion
 
@@ -131,59 +77,20 @@ public unsafe class FFmpegUtils
         get { lock (SyncLock) { return m_LibrariesPath; } }
     }
 
-    /// <summary>
-    /// Gets the bitwise FFmpeg library identifiers that were loaded.
-    /// </summary>
-    public static int LibraryIdentifiers
-    {
-        get { lock (SyncLock) { return m_LibraryIdentifiers; } }
-    }
-
     #endregion
 
     #region FFmpeg Registration
 
-    public static bool Initialize(FFmpegLoadMode mode = FFmpegLoadMode.FullFeatures)
+    public static bool Initialize(string? ffmpegLibraryPath = null)
     {
-        String path = ScanFFmpegLibraryPath();
+        String path = ffmpegLibraryPath ?? ScanFFmpegLibraryPath();
         if (path == null)
             throw new Exception("Can not find ffmpeg library.");
 
-        int id = FullFeatures;
-        switch(mode)
-        {
-            case FFmpegLoadMode.VideoOnly:
-                id = VideoOnly;
-                break;
-            case FFmpegLoadMode.AudioOnly:
-                id = VideoOnly;
-                break;
-            case FFmpegLoadMode.MinimumFeatures:
-                id = MinimumFeatures;
-                break;
-            case FFmpegLoadMode.FullFeatures:
-            default:
-                id = FullFeatures;
-                break;
-        }
-
-        return Initialize(path, id);
+        return InitializeCore(path);
     }
 
-    /// <summary>
-    /// Registers FFmpeg library and initializes its components.
-    /// It only needs to be called once but calling it more than once
-    /// has no effect. Returns the path that FFmpeg was registered from.
-    /// This method is thread-safe.
-    /// </summary>
-    /// <param name="overridePath">The override path.</param>
-    /// <param name="libIdentifiers">The bit-wise flag identifiers corresponding to the libraries.</param>
-    /// <returns>
-    /// Returns true if it was a new initialization and it succeeded. False if there was no need to initialize
-    /// as there is already a valid initialization.
-    /// </returns>
-    /// <exception cref="FileNotFoundException">When ffmpeg libraries are not found.</exception>
-    private static bool Initialize(string overridePath, int libIdentifiers)
+    private static bool InitializeCore(string overridePath)
     {
         lock (SyncLock)
         {
@@ -197,37 +104,13 @@ public unsafe class FFmpegUtils
 
                 var registrationIds = 0;
 
-                // Load FFmpeg binaries by Library ID
-                foreach (var lib in FFLibrary.All)
-                {
-                    var loadResult = lib.Load(ffmpegPath);
-                    if (loadResult == false || lib.IsLoaded == false) Console.WriteLine($"ffmpeg lib load failed: {lib.Name}.{lib.Version}");
-                    if ((lib.FlagId & libIdentifiers) != 0 && loadResult)
-                        registrationIds |= lib.FlagId;
-                }
-
-                // Check if libraries were loaded correctly
-                if (FFLibrary.All.All(lib => lib.IsLoaded == false))
-                    throw new FileNotFoundException($"Unable to load FFmpeg binaries from folder '{ffmpegPath}'.");
-
-                // Additional library initialization
-                if (FFLibrary.LibAVDevice.IsLoaded)
-                    ffmpeg.avdevice_register_all();
-
-                // Set logging levels and callbacks
-                ffmpeg.av_log_set_flags(ffmpeg.AV_LOG_SKIP_REPEATED);
-                //ffmpeg.av_log_set_level(Library.FFmpegLogLevel);
-                //ffmpeg.av_log_set_callback(FFmpegLogCallback);
-
-                // set the static environment properties
+                FFLibrary.Load(ffmpegPath);
                 m_LibrariesPath = ffmpegPath;
-                m_LibraryIdentifiers = registrationIds;
                 m_IsInitialized = true;
             }
             catch
             {
                 m_LibrariesPath = string.Empty;
-                m_LibraryIdentifiers = 0;
                 m_IsInitialized = false;
 
                 // rethrow the exception with the original stack trace.
@@ -292,30 +175,6 @@ public unsafe class FFmpegUtils
         var message = PtrToStringUTF8(buffer);
         return message;
     }
-
-    /// <summary>
-    /// Retrieves the options information associated with the given AVClass.
-    /// </summary>
-    /// <param name="avClass">The av class.</param>
-    /// <returns>A list of option metadata.</returns>
-    //public static unsafe List<OptionMetadata> RetrieveOptions(AVClass* avClass)
-    //{
-    //    // see: https://github.com/FFmpeg/FFmpeg/blob/e0f32286861ddf7666ba92297686fa216d65968e/tools/enum_options.c
-    //    var result = new List<OptionMetadata>(128);
-    //    if (avClass == null) return result;
-
-    //    var option = avClass->option;
-
-    //    while (option != null)
-    //    {
-    //        if (option->type != AVOptionType.AV_OPT_TYPE_CONST)
-    //            result.Add(new OptionMetadata(option));
-
-    //        option = ffmpeg.av_opt_next(avClass, option);
-    //    }
-
-    //    return result;
-    //}
 
     /// <summary>
     /// Retrieves the codecs.
@@ -391,84 +250,46 @@ public unsafe class FFmpegUtils
         return codecNames;
     }
 
-    /// <summary>
-    /// Retrieves the global format options.
-    /// </summary>
-    /// <returns>The collection of option infos.</returns>
-    //public static unsafe List<OptionMetadata> RetrieveGlobalFormatOptions() =>
-    //    RetrieveOptions(ffmpeg.avformat_get_class());
-
-    /// <summary>
-    /// Retrieves the global codec options.
-    /// </summary>
-    /// <returns>The collection of option infos.</returns>
-    //public static unsafe List<OptionMetadata> RetrieveGlobalCodecOptions() =>
-    //    RetrieveOptions(ffmpeg.avcodec_get_class());
-
-    /// <summary>
-    /// Retrieves the input format options.
-    /// </summary>
-    /// <param name="formatName">Name of the format.</param>
-    /// <returns>The collection of option infos.</returns>
-    //public static unsafe List<OptionMetadata> RetrieveInputFormatOptions(string formatName)
-    //{
-    //    var item = ffmpeg.av_find_input_format(formatName);
-    //    return item == null ? EmptyOptionMetaList : RetrieveOptions(item->priv_class);
-    //}
-
-    /// <summary>
-    /// Retrieves the codec options.
-    /// </summary>
-    /// <param name="codec">The codec.</param>
-    /// <returns>The collection of option infos.</returns>
-    //public static unsafe List<OptionMetadata> RetrieveCodecOptions(AVCodec* codec) =>
-    //    RetrieveOptions(codec->priv_class);
-
-    /// <summary>
-    /// Log message callback from ffmpeg library.
-    /// </summary>
-    /// <param name="p0">The p0.</param>
-    /// <param name="level">The level.</param>
-    /// <param name="format">The format.</param>
-    /// <param name="vl">The vl.</param>
-    //private static unsafe void OnFFmpegMessageLogged(void* p0, int level, string format, byte* vl)
-    //{
-    //    const int lineSize = 1024;
-    //    lock (FFmpegLogBufferSyncLock)
-    //    {
-    //        if (level > ffmpeg.av_log_get_level()) return;
-    //        var lineBuffer = stackalloc byte[lineSize];
-    //        var printPrefix = 1;
-    //        ffmpeg.av_log_format_line(p0, level, format, vl, lineBuffer, lineSize, &printPrefix);
-    //        var line = Utilities.PtrToStringUTF8(lineBuffer);
-    //        FFmpegLogBuffer.Add(line);
-
-    //        var messageType = MediaLogMessageType.Debug;
-    //        if (FFmpegLogLevels.ContainsKey(level))
-    //            messageType = FFmpegLogLevels[level];
-
-    //        if (!line.EndsWith("\n", StringComparison.Ordinal)) return;
-    //        line = string.Join(string.Empty, FFmpegLogBuffer);
-    //        line = line.TrimEnd();
-    //        FFmpegLogBuffer.Clear();
-    //        Logging.Log(LoggingHandler, messageType, Aspects.FFmpegLog, line);
-    //    }
-    //}
-
     #endregion
 
-    #region Supporting Classes
+    #region util methods
 
-    /// <summary>
-    /// Handles FFmpeg library messages.
-    /// </summary>
-    /// <seealso cref="ILoggingHandler" />
-    //internal class FFLoggingHandler : ILoggingHandler
-    //{
-    //    /// <inheritdoc />
-    //    void ILoggingHandler.HandleLogMessage(LoggingMessage message) =>
-    //        MediaEngine.RaiseFFmpegMessageLogged(message);
-    //}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FreeFrame(ref AVFrame* frame)
+    {
+        if (frame != null)
+        {
+            fixed (AVFrame** p = &frame)
+            {
+                ffmpeg.av_frame_free(p);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FreeCodecContext(ref AVCodecContext* ctx)
+    {
+        if (ctx != null)
+        {
+            fixed (AVCodecContext** p = &ctx)
+            {
+                ffmpeg.avcodec_free_context(p);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FreeFormatContext(ref AVFormatContext* ctx)
+    {
+        if (ctx != null)
+        {
+            fixed (AVFormatContext** p = &ctx)
+            {
+                ffmpeg.avformat_free_context(ctx);
+            }
+            ctx = null;
+        }
+    }
 
     #endregion
 }

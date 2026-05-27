@@ -101,7 +101,7 @@ public unsafe class MediaReader : IDisposable
         {
             AVStream* stream = _fmtCxt->streams[i];
             
-            switch (stream->codec->codec_type)
+            switch (stream->codecpar->codec_type)
             {
                 case AVMediaType.AVMEDIA_TYPE_VIDEO:
                     _streams.Add(i, new VideoStreamDecoder(this, i, stream));
