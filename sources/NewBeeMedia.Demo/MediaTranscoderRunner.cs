@@ -1,4 +1,4 @@
-﻿using Geb.Image;
+﻿using SkiaSharp;
 
 namespace NewBeeMedia.Demo;
 
@@ -14,10 +14,7 @@ internal class MediaTranscoderRunner
         {
             var ok = MediaTranscoder.Transcode(filePath, outputFilePath,
                 // 对每帧图像进行处理的回调，这里我们在图像上绘制一个红色圆形
-                (img,t) => 
-                {
-                    img.FillCircle(100,100, Bgr24.RED, 50);
-                },
+                ProcessFrame,
                 p => { Console.WriteLine($"\t{p:P2}"); });
 
             Console.WriteLine(ok
@@ -28,5 +25,17 @@ internal class MediaTranscoderRunner
         {
             Console.WriteLine($"Error during transcoding: {ex.Message}");
         }
+    }
+
+    private static void ProcessFrame(SKBitmap img, double timestamp)
+    {
+        using var canvas = new SKCanvas(img);
+        using var paint = new SKPaint
+        {
+            IsAntialias = true,
+            Color = SKColors.Red,
+            Style = SKPaintStyle.Fill
+        };
+        canvas.DrawRect(new SKRect(100, 100, 200, 200), paint);
     }
 }

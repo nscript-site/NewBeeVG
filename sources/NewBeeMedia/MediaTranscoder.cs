@@ -1,4 +1,6 @@
-﻿namespace NewBeeMedia;
+﻿using SkiaSharp;
+
+namespace NewBeeMedia;
 
 public unsafe class MediaTranscoder
 {
@@ -226,13 +228,13 @@ public unsafe class MediaTranscoder
         return 0;
     }
 
-    public static bool Transcode(String inputFilePath, String outputFilePath, Action<ImageBgr24, double>? onFrameImage = null, Action<double>? onProgress = null)
+    public static bool Transcode(String inputFilePath, String outputFilePath, Action<SKBitmap, double>? onFrameImage = null, Action<double>? onProgress = null)
     {
         MediaTranscoder transcoder = new MediaTranscoder();
         return transcoder.TranscodeInternal(inputFilePath, outputFilePath, onFrameImage, onProgress) == 0;
     }
 
-    private int TranscodeInternal(String inputFilePath, String outputFilePath, Action<ImageBgr24, double>? onFrameImage = null, Action<double>? onProgress = null)
+    private int TranscodeInternal(String inputFilePath, String outputFilePath, Action<SKBitmap, double>? onFrameImage = null, Action<double>? onProgress = null)
     {
         _progressing = 0;
         int ret;
@@ -326,36 +328,39 @@ public unsafe class MediaTranscoder
                         if (onProgress != null) onProgress(_progressing);
                     }
 
-                    using (ImageBgr24 imgFrame = ReadFrame(frame))
+                    using (SKBitmap? imgFrame = ReadFrameSKBitmap(frame))
                     {
-                        if (onFrameImage != null)
-                            onFrameImage(imgFrame, current);
-
-                        AVFrame* pNewFrame = ffmpeg.av_frame_alloc();
-
-                        if (pNewFrame == null)
-                            throw new Exception("Cannot allocate video frame.");
-
-                        pNewFrame->width = frame->width;
-                        pNewFrame->height = frame->height;
-                        pNewFrame->format = (int)frame->format;
-
-                        pNewFrame->pts = videoPts++;
-
-                        if (ffmpeg.av_frame_get_buffer(pNewFrame, 32) < 0)
+                        if(imgFrame != null)
                         {
+                            if (onFrameImage != null)
+                                onFrameImage(imgFrame, current);
+
+                            AVFrame* pNewFrame = ffmpeg.av_frame_alloc();
+
+                            if (pNewFrame == null)
+                                throw new Exception("Cannot allocate video frame.");
+
+                            pNewFrame->width = frame->width;
+                            pNewFrame->height = frame->height;
+                            pNewFrame->format = (int)frame->format;
+
+                            pNewFrame->pts = videoPts++;
+
+                            if (ffmpeg.av_frame_get_buffer(pNewFrame, 32) < 0)
+                            {
+                                ffmpeg.av_frame_free(&pNewFrame);
+                                throw new Exception("Cannot allocate video picture.");
+                            }
+
+                            ffmpeg.av_frame_make_writable(pNewFrame);
+
+                            WriteFrame(imgFrame, pNewFrame);
+
+                            bool wrotePacket = false;
+                            ret = WriteFrame(pNewFrame, (uint)stream_index, ref wrotePacket) ? 0 : -1;
+
                             ffmpeg.av_frame_free(&pNewFrame);
-                            throw new Exception("Cannot allocate video picture.");
                         }
-
-                        ffmpeg.av_frame_make_writable(pNewFrame);
-
-                        WriteFrame(imgFrame, pNewFrame);
-
-                        bool wrotePacket = false;
-                        ret = WriteFrame(pNewFrame, (uint)stream_index, ref wrotePacket) ? 0 : -1;
-
-                        ffmpeg.av_frame_free(&pNewFrame);
                     }
 
                     ffmpeg.av_frame_free(&frame);
@@ -510,35 +515,45 @@ public unsafe class MediaTranscoder
         WriteFrame(frame, (Byte*)image.Start, image.Width * 3, AVPixelFormat.AV_PIX_FMT_BGR24, image.Width, image.Height);
     }
 
+    private unsafe void WriteFrame(SKBitmap image, AVFrame* frame)
+    {
+        if (image == null || image.IsEmpty) return;
+
+        var pixels = image.GetPixels();
+        if (pixels == IntPtr.Zero) return;
+
+        WriteFrame(frame, (byte*)pixels.ToPointer(), image.RowBytes, AVPixelFormat.AV_PIX_FMT_BGRA, image.Width, image.Height);
+    }
+
+    private unsafe SKBitmap? ReadFrameSKBitmap(AVFrame* frame)
+    {
+        if (frame == null || frame->data[0] == null) return null;
+
+        var info = new SKImageInfo(frame->width, frame->height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        SKBitmap bitmap = new SKBitmap(info);
+
+        if (bitmap.GetPixels() == IntPtr.Zero)
+        {
+            bitmap.Dispose();
+            return null;
+        }
+
+        ReadFrame(frame, (byte*)bitmap.GetPixels(), bitmap.RowBytes, AVPixelFormat.AV_PIX_FMT_BGRA, frame->width, frame->height);
+        return bitmap;
+    }
+
     private unsafe bool ReadFrame(AVFrame* frame, byte* frameData, int stride, AVPixelFormat frameFmt, int width, int height)
     {
         if (frame == null || frame->data[0] == null) return false;
 
-        int buffStride = (width + 12) * 3;
-        if (m_buff == null || m_buff.Length < buffStride * height) m_buff = new byte[buffStride * height ];
+        var fmt = (AVPixelFormat)frame->format;
+        SwsContextHolder sws = GetSwsContextHolder(width, height, fmt, width, height, frameFmt, SwsFlags.SWS_BILINEAR);
+        byte*[] dstData = { frameData };
+        int[] dstLinesize = { stride };
 
-        //Console.WriteLine($"FW:{frame->width},FH:{frame->height},FS:{frame->linesize[0]},{frame->linesize[1]},{frame->linesize[2]},FMT:{(AVPixelFormat)frame->format}");
-        //Console.WriteLine($"DW:{width},DH:{height},DS:{stride},FMT:{frameFmt}");
-
-        fixed (Byte* pBuff = m_buff)
-        {
-            SwsContextHolder sws = GetSwsContextHolder(frame->width, frame->height, (AVPixelFormat)frame->format, width, height, frameFmt, SwsFlags.SWS_BILINEAR);
-            byte*[] dstData = { pBuff };
-            int[] dstLinesize = new int[ffmpeg.AV_NUM_DATA_POINTERS];
-            dstLinesize[0] = buffStride;
-
-            ffmpeg.sws_scale(sws.Context, frame->data,
-               frame->linesize, 0, frame->height, dstData,
-               dstLinesize);
-
-            for(int h = 0; h < height; h++)
-            {
-                Span<Byte> spanBuff = new Span<byte>(pBuff + h * buffStride, width * 3);
-                Span<Byte> spanDst = new Span<byte>(frameData + h * stride, width * 3);
-                spanBuff.CopyTo(spanDst);
-            }
-        }
-
+        ffmpeg.sws_scale(sws.Context, frame->data,
+           frame->linesize, 0, height, dstData,
+           dstLinesize);
         return true;
     }
 
