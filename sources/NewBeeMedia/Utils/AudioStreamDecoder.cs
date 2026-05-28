@@ -52,22 +52,49 @@ public unsafe class AudioStreamDecoder : BaseDecoder
     }
 
     /// <summary>
-    /// Returns the sample size in bits.
+    /// 返回当前音频采样格式的位深（单位：bit）。
+    /// 
+    /// 说明：
+    /// - `av_get_bytes_per_sample()` 对大多数 FFmpeg 采样格式都有效，
+    ///   包括 packed / planar 形式。
+    /// - 这里返回的是“每个采样点的位数”，不是整帧大小。
     /// </summary>
     public int SampleSize
     {
         get
         {
+            int bytesPerSample = ffmpeg.av_get_bytes_per_sample(m_pCodecCtx->sample_fmt);
+            if (bytesPerSample > 0)
+                return bytesPerSample * 8;
+
             switch (m_pCodecCtx->sample_fmt)
             {
                 case AVSampleFormat.AV_SAMPLE_FMT_U8:
+                case AVSampleFormat.AV_SAMPLE_FMT_U8P:
                     return 8;
+
                 case AVSampleFormat.AV_SAMPLE_FMT_S16:
+                case AVSampleFormat.AV_SAMPLE_FMT_S16P:
                     return 16;
+
                 case AVSampleFormat.AV_SAMPLE_FMT_S32:
+                case AVSampleFormat.AV_SAMPLE_FMT_S32P:
                     return 32;
+
+                case AVSampleFormat.AV_SAMPLE_FMT_FLT:
+                case AVSampleFormat.AV_SAMPLE_FMT_FLTP:
+                    return 32;
+
+                case AVSampleFormat.AV_SAMPLE_FMT_DBL:
+                case AVSampleFormat.AV_SAMPLE_FMT_DBLP:
+                    return 64;
+
+                case AVSampleFormat.AV_SAMPLE_FMT_S64:
+                case AVSampleFormat.AV_SAMPLE_FMT_S64P:
+                    return 64;
+
                 default:
-                    throw new Exception("Unknown sample size.");
+                    throw new NotSupportedException($"Unsupported sample format: {m_pCodecCtx->sample_fmt}");
             }
         }
     }

@@ -1,4 +1,6 @@
 ﻿using Geb.Image;
+using SkiaSharp;
+using System.Drawing;
 
 namespace NewBeeMedia.Demo;
 
@@ -12,11 +14,21 @@ internal class MediaWriterRunner
         try
         {
             using var writer = new MediaWriter(filePath, 640, 480, 30);
-            var img = new ImageBgr24(640, 480);
+            var img = new SKBitmap(640, 480);
             for (int i = 0; i < 100; i++)
             {
-                var c = new Bgr24((byte)(i * 2), (byte)(i * 3), (byte)(i * 4));
-                img.Fill(c);
+                using var canvas = new SKCanvas(img);
+
+                canvas.Clear(SKColors.White);
+
+                using var paint = new SKPaint
+                {
+                    IsAntialias = true,
+                    Color = SKColors.Red,
+                    Style = SKPaintStyle.Fill
+                };
+
+                canvas.DrawCircle(100 + i, 100 + i, 50, paint);
                 writer.WriteFrame(img);
                 Console.WriteLine($"Written frame {i}");
             }

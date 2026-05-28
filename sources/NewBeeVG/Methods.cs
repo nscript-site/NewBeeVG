@@ -195,6 +195,10 @@ public static class Methods
         return new NBMaskedSkiaClip(name, builder, maskBuilder, blend, frames, start);
     }
 
+    public static void init()
+    {
+        NBGlobal.Initialize();
+    }
 
     public static NBTrack track()
     {

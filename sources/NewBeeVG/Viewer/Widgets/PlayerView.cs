@@ -12,19 +12,23 @@ public class PlayerView : BaseView
     private int Frames = 0;
     private int CurrentFrame = 0;
     private RenderTargetBitmap? Bitmap = null;
-    private Image Image = default!;
+    private Image FrameImage = default!;
 
     protected bool Playing { get; set; }
 
     protected override void Build(out Control content)
     {
-        Image = new Image();
+        FrameImage = new Image();
         VGrid("30,*", [
-            HStack([
-                TextBlock(()=>Playable?.FullName??String.Empty),
-                TextBlock(()=>$"{Math.Min(Frames,CurrentFrame + 1)}/{Frames}"),
+            HGrid("*,Auto", [
+                HStack([
+                    TextBlock(()=>Playable?.FullName??String.Empty),
+                    TextBlock(()=>$"{Math.Min(Frames,CurrentFrame + 1)}/{Frames}"),
+                ]),
+                IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:20).Align(1,1)
+                    .OnClick(_ => { Export(); }),
             ]),
-            Border(Image).Background(Brushes.Gray)
+            Border(FrameImage).Background(Brushes.Gray)
                 .BorderBrush(Brushes.Gray).BorderThickness(1)
         ])
         .Return(out content);
@@ -81,7 +85,7 @@ public class PlayerView : BaseView
                         if (Playable!.Render(bitmap, Work.Stage, CurrentFrame))
                         {
                             Bitmap = bitmap;
-                            Image.Source = Bitmap;
+                            FrameImage.Source = Bitmap;
                         }
 
                         this.UpdateState();
@@ -111,5 +115,10 @@ public class PlayerView : BaseView
                 Playing = false;
             }
         });
+    }
+
+    private void Export()
+    {
+
     }
 }

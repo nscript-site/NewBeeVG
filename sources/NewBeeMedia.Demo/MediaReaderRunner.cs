@@ -46,7 +46,7 @@ internal class MediaReaderRunner
             int frame = 0;
             while (vs.ReadFrame())
             {
-                using var img = vs.NextFrameBgr24(vs.Width, vs.Height);
+                using var img = vs.NextFrameSKBitmap(vs.Width, vs.Height);
                 if (img != null)
                 {
                     Console.WriteLine($"\tFrame {frame}: {img.Width}x{img.Height}");

@@ -23,6 +23,7 @@
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.1" />
     <PackageVersion Include="NAudio" Version="2.3.0" />
     <PackageVersion Include="newbeeui" Version="$(NewBeeUIVersion)" />
+    <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
     <PackageVersion Include="MSTest" Version="4.0.1" />
     <PackageVersion Include="FFmpeg.AutoGen" Version="8.1.0" />

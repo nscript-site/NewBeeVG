@@ -1,6 +1,7 @@
 namespace NewBeeMedia;
 
 using Geb.Image;
+using SkiaSharp;
 
 public unsafe class VideoStreamDecoder : BaseDecoder
 {
@@ -139,7 +140,7 @@ public unsafe class VideoStreamDecoder : BaseDecoder
         }
     }
 
-    public unsafe ImageU8 CurrentFrameU8(int width, int height)
+    public unsafe ImageU8? CurrentFrameU8(int width, int height)
     {
         if (m_avFrame == null || m_avFrame->data[0] == null) return null;
 
@@ -181,13 +182,62 @@ public unsafe class VideoStreamDecoder : BaseDecoder
     /// <param name="width">图片宽</param>
     /// <param name="height">图片高</param>
     /// <returns>得到的图片</returns>
-    public unsafe ImageBgra32 CurrentFrameBgra32(int width, int height)
+    public unsafe ImageBgra32? CurrentFrameBgra32(int width, int height)
     {
         if (m_avFrame == null || m_avFrame->data[0] == null) return null;
 
         ImageBgra32 image = new ImageBgra32(width, height);
         WriteToFrame((Byte*)image.Start, image.Width * 4, AVPixelFormat.AV_PIX_FMT_BGRA, width, height);
         return image;
+    }
+
+    /// <summary>
+    /// 将当前帧写入 `SKBitmap`。
+    /// </summary>
+    /// <param name="image">目标 `SKBitmap`</param>
+    /// <returns>true 表示写入成功；false 表示失败</returns>
+    public unsafe bool CurrentFrame(SKBitmap image)
+    {
+        if (m_avFrame == null || m_avFrame->data[0] == null || image == null) return false;
+        if (image.IsEmpty) return false;
+
+        var pixels = image.GetPixels();
+        if (pixels == IntPtr.Zero) return false;
+
+        WriteToFrame((byte*)pixels.ToPointer(), image.RowBytes, AVPixelFormat.AV_PIX_FMT_BGRA, image.Width, image.Height);
+        return true;
+    }
+
+    /// <summary>
+    /// 将当前帧转换为 `SKBitmap`。
+    /// </summary>
+    /// <returns>转换后的 `SKBitmap`；如果当前没有帧则返回 `null`</returns>
+    public SKBitmap? CurrentFrameSKBitmap()
+    {
+        return CurrentFrameSKBitmap(Width, Height);
+    }
+
+    /// <summary>
+    /// 将当前帧转换为 `SKBitmap`。
+    /// </summary>
+    /// <param name="width">目标宽度</param>
+    /// <param name="height">目标高度</param>
+    /// <returns>转换后的 `SKBitmap`；如果当前没有帧则返回 `null`</returns>
+    public unsafe SKBitmap? CurrentFrameSKBitmap(int width, int height)
+    {
+        if (m_avFrame == null || m_avFrame->data[0] == null) return null;
+
+        var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        SKBitmap bitmap = new SKBitmap(info);
+
+        if (bitmap.GetPixels() == IntPtr.Zero)
+        {
+            bitmap.Dispose();
+            return null;
+        }
+
+        WriteToFrame((byte*)bitmap.GetPixels(), bitmap.RowBytes, AVPixelFormat.AV_PIX_FMT_BGRA, width, height);
+        return bitmap;
     }
 
     public unsafe bool WriteToFrame(byte* frameData, int stride, AVPixelFormat frameFmt, int width, int height)
@@ -204,17 +254,17 @@ public unsafe class VideoStreamDecoder : BaseDecoder
         return true;
     }
 
-    public ImageBgr24 CurrentFrameBgr24()
+    public ImageBgr24? CurrentFrameBgr24()
     {
         return CurrentFrameBgr24(Width, Height);
     }
 
-    public ImageBgra32 CurrentFrameBgra32()
+    public ImageBgra32? CurrentFrameBgra32()
     {
         return CurrentFrameBgra32(Width, Height);
     }
 
-    public ImageU8 NextFrameU8(int width, int height)
+    public ImageU8? NextFrameU8(int width, int height)
     {
         try
         {
@@ -270,6 +320,24 @@ public unsafe class VideoStreamDecoder : BaseDecoder
     public ImageBgra32? NextFrameBgra32()
     {
         return NextFrameBgra32(Width, Height);
+    }
+
+    public SKBitmap? NextFrameSKBitmap(int width, int height)
+    {
+        try
+        {
+            ReadFrame();
+        }
+        catch (System.IO.EndOfStreamException)
+        {
+            return null;
+        }
+        return CurrentFrameSKBitmap(width, height);
+    }
+
+    public SKBitmap? NextFrameSKBitmap()
+    {
+        return NextFrameSKBitmap(Width, Height);
     }
 
     protected override void Dispose(bool disposing)

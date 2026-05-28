@@ -16,4 +16,8 @@
     <PackageReference Include="newbeeui" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\NewBeeMedia\NewBeeMedia.csproj" />
+  </ItemGroup>
+
 </Project>

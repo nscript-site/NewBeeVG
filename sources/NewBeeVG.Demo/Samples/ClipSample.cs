@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace NewBeeVG.Demo.Samples;
+﻿namespace NewBeeVG.Demo.Samples;
 
 internal class ClipSample
 {
     public static void Run()
     {
+        init();
+
         var clip1 = clip(
         name: "clip1",
         frames: 30,

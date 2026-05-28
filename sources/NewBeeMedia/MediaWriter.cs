@@ -1,4 +1,6 @@
-﻿namespace NewBeeMedia;
+﻿using SkiaSharp;
+
+namespace NewBeeMedia;
 
 public unsafe class MediaWriter : MediaHandler, IDisposable
 {
@@ -381,6 +383,18 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
     public void WriteFrame(ImageBgra32 frame)
     {
         WriteFrame((byte*)frame.Start, frame.Width * 4, frame.Width, frame.Height, AVPixelFormat.AV_PIX_FMT_BGRA, DateTime.MinValue);
+    }
+
+    public void WriteFrame(SKBitmap frame)
+    {
+        var format = frame.ColorType switch
+        {
+            SKColorType.Bgra8888 => AVPixelFormat.AV_PIX_FMT_BGRA,
+            SKColorType.Rgba8888 => AVPixelFormat.AV_PIX_FMT_RGBA,
+            SKColorType.Gray8 => AVPixelFormat.AV_PIX_FMT_GRAY8,
+            _ => throw new NotSupportedException($"Unsupported SKColorType: {frame.ColorType}")
+        };
+        WriteFrame((byte*)frame.GetPixels(), frame.RowBytes, frame.Width, frame.Height, format, DateTime.MinValue);
     }
 
     protected void WriteFrame(Byte* frameData0, int stride, int width, int height, AVPixelFormat pfmt, DateTime timestamp)

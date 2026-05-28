@@ -12,6 +12,7 @@
     <PackageReference Include="FFmpeg.AutoGen.Bindings.DynamicallyLoaded" />
     <PackageReference Include="FFmpeg.LGPL" />
     <PackageReference Include="Geb.Image" />
+    <PackageReference Include="SkiaSharp" />
     <!--<PackageReference Include="System.Drawing.Common" />-->
   </ItemGroup>
 </Project>

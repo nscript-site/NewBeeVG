@@ -136,19 +136,19 @@ public unsafe class MediaReader : IDisposable
         if (this.AudioStream != null) AudioStream.GuessTimeBase();
     }
 
-    public ImageU8 NextFrameU8()
+    public ImageU8? NextFrameU8()
     {
-        return FrameWidth > 0 ? VideoStream.NextFrameU8(FrameWidth, FrameHeight) : null;
+        return FrameWidth > 0 ? VideoStream!.NextFrameU8(FrameWidth, FrameHeight) : null;
     }
 
-    public ImageBgr24 NextFrameBgr24()
+    public ImageBgr24? NextFrameBgr24()
     {
-        return FrameWidth > 0 ? VideoStream.NextFrameBgr24(FrameWidth, FrameHeight) : null;
+        return FrameWidth > 0 ? VideoStream!.NextFrameBgr24(FrameWidth, FrameHeight) : null;
     }
 
-    public ImageBgra32 NextFrameBgra32()
+    public ImageBgra32? NextFrameBgra32()
     {
-        return FrameWidth > 0 ? VideoStream.NextFrameBgra32(FrameWidth, FrameHeight) : null;
+        return FrameWidth > 0 ? VideoStream!.NextFrameBgra32(FrameWidth, FrameHeight) : null;
     }
 
     internal void EnqueueNextPacket()

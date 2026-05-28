@@ -9,7 +9,7 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        //this.Styles.AddRange(GlobalStyles.BuildStyles());
+        this.Styles.AddRange(GlobalStyles.BuildStyles());
     }
 
     public override void OnFrameworkInitializationCompleted()

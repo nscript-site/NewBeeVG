@@ -83,8 +83,7 @@ public unsafe class FFmpegUtils
     public static bool Initialize(string? ffmpegLibraryPath = null)
     {
         var path = ffmpegLibraryPath ?? ScanFFmpegLibraryPath();
-        if (path == null)
-            throw new Exception("Can not find ffmpeg library.");
+        if (path == null) return false;
 
         return InitializeCore(path);
     }
