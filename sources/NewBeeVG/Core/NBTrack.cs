@@ -1,4 +1,7 @@
-﻿namespace NewBeeVG;
+﻿using Avalonia.Media.Imaging;
+using SkiaSharp;
+
+namespace NewBeeVG;
 
 public class NBTrack : IPlayable
 {
@@ -49,4 +52,9 @@ public class NBTrack : IPlayable
         return panel;
     }
 
+    public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    {
+        var panel = Build(stage, frame, includeStageBackground);
+        return DrawingHelper.Render(panel, stage, includeStageBackground);
+    }
 }

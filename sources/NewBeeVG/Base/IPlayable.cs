@@ -1,4 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -15,6 +16,8 @@ public interface IPlayable
     }
 
     Control? Build(NBStage stage, int frame, bool includeStageBackground);
+
+    SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground);
 
     /// <summary>
     /// 准备。有些 playable 需要准备工作。

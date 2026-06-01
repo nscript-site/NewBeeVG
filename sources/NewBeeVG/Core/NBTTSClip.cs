@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using NewBeeVG.Internal;
+using SkiaSharp;
 using System.Diagnostics;
 
 namespace NewBeeVG;
@@ -47,6 +48,11 @@ public class NBTTSClip : NBClip
     {
         if(frame == 0)
             Play();   
+        return null;
+    }
+
+    public override SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    {
         return null;
     }
 

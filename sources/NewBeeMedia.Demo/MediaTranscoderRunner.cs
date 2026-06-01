@@ -2,11 +2,11 @@
 
 namespace NewBeeMedia.Demo;
 
-internal class MediaTranscoderRunner
+internal class MediaTranscoderRunner : BaseRunner
 {
     public static void Run()
     {
-        var filePath = "D:/测试数据/videos/01.mp4";
+        var filePath = GetFilePath();
         var outputFilePath = $"{filePath}_transcoded.mp4";
         if(File.Exists(outputFilePath)) File.Delete(outputFilePath);
 

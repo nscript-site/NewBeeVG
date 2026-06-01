@@ -1,5 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
-using Avalonia.Threading;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -48,5 +48,11 @@ public class NBWork : IPlayable
         DrawingHelper.Layout(panel, stage.Width, stage.Height);
 
         return panel;
+    }
+
+    public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    {
+        var panel = Build(stage, frame, includeStageBackground);
+        return DrawingHelper.Render(panel, stage, includeStageBackground);
     }
 }

@@ -150,7 +150,7 @@ public class QWenVoices
 
 public static class Methods
 {
-    public static NBStage stage(int width = 1080, int height = 1920, int dpi = 96, IBrush? bg = null)
+    public static NBStage stage(int width = 1080, int height = 1920, int dpi = 96, ISolidColorBrush? bg = null)
     {
         return new NBStage
         {

@@ -1,10 +1,10 @@
 ﻿namespace NewBeeMedia.Demo;
 
-internal class MediaReaderRunner
+internal class MediaReaderRunner : BaseRunner
 {
     public static void Run()
     {
-        string filePath = "D:/测试数据/videos/01.mp4";
+        string filePath = GetFilePath();
         try
         {
             MediaReader reader = new MediaReader(filePath);

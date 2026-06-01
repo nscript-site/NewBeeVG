@@ -1,4 +1,5 @@
-﻿using System.Reflection.Emit;
+﻿using Avalonia.Media.Imaging;
+using SkiaSharp;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -51,6 +52,12 @@ public class NBClip : IPlayable
         return frame /(count - 1.0);
     }
 
+    public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    {
+        var panel = Build(stage, frame, includeStageBackground);
+        return DrawingHelper.Render(panel, stage, includeStageBackground);
+    }
+
     public virtual Control? Build(NBStage stage, int frame, bool includeStageBackground)
     {
         if (ControlBuilder == null) return null;
@@ -80,14 +87,7 @@ public class NBClip : IPlayable
     {
         if (ControlBuilder == null) return null;
 
-        var context = new NBDrawContext
-        {
-            frame = frame,
-            width = stage.Width,
-            height = stage.Height,
-            dpi = new Vector(stage.Dpi, stage.Dpi),
-            progress = CalculateProgress(frame, DurationFrames)
-        };
+        var context = CreateDrawContext(stage, frame);
 
         var content = ControlBuilder(context, this);
         if (content == null) return null;
@@ -97,6 +97,18 @@ public class NBClip : IPlayable
         content.UpdateLayout();
 
         return content;
+    }
+
+    protected NBDrawContext CreateDrawContext(NBStage stage, int frame)
+    {
+        return new NBDrawContext
+        {
+            frame = frame,
+            width = stage.Width,
+            height = stage.Height,
+            dpi = new Vector(stage.Dpi, stage.Dpi),
+            progress = CalculateProgress(frame, DurationFrames)
+        };
     }
 
     internal bool NeedRenderInTrack(int frame)

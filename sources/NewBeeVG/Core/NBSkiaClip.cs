@@ -4,9 +4,12 @@ namespace NewBeeVG;
 
 public class NBSkiaClip : NBClip
 {
+    private readonly Action<NBDrawContext, NBClip, SKCanvas>? _skBuilder;
+
     public NBSkiaClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
         :base(name, ConvertBuilder(builder), duration, start)
     {
+        _skBuilder = builder;
     }
 
     protected static Func<NBDrawContext, NBClip, Control?>? ConvertBuilder(Action<NBDrawContext, NBClip, SKCanvas>? skBuilder)
@@ -20,6 +23,18 @@ public class NBSkiaClip : NBClip
             skBuilder(ctx, clip,canvas);
             return new NBSkiaBitmap() { Bitmap = targetBitmap };
         };
+    }
+
+    public override SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    {
+        if (_skBuilder == null) return null;
+
+        var ctx = this.CreateDrawContext(stage, frame);
+        var targetBitmap = new SKBitmap(ctx.width, ctx.height);
+        DrawingHelper.FillStageBackgroundIfSet(targetBitmap, stage, includeStageBackground);
+        using var canvas = new SKCanvas(targetBitmap);
+        _skBuilder(ctx, this, canvas);
+        return targetBitmap;
     }
 }
 

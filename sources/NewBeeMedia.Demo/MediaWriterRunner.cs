@@ -1,16 +1,13 @@
-﻿using Geb.Image;
-using SkiaSharp;
-using System.Drawing;
+﻿using SkiaSharp;
 
 namespace NewBeeMedia.Demo;
 
-internal class MediaWriterRunner
+internal class MediaWriterRunner : BaseRunner
 {
     public static void Run()
     {
-        var filePath = "D:/测试数据/videos/MediaWriterRunner_test.mp4";
+        var filePath = GetFilePath("MediaWriterRunner_test.mp4");
         if(File.Exists(filePath)) File.Delete(filePath);
-
         try
         {
             using var writer = new MediaWriter(filePath, 640, 480, 30);
