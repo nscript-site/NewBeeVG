@@ -1,5 +1,4 @@
-﻿using Avalonia.Media.Imaging;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -10,9 +9,13 @@ public class NBTrack : IPlayable
     public bool IsVisible { get; set; } = true;
 
     public string FullName => $"[Track] {Name}";
+    
+    private int _frames = -1;
 
     public int Measure()
     {
+        if (_frames >= 0) return _frames;
+
         int max = 0;
 
         for(int i = 0; i < Clips.Count; i++)
@@ -23,7 +26,8 @@ public class NBTrack : IPlayable
 
             max = Math.Max(max, clip.StartFrame.Value + clip.DurationFrames);
         }
-
+        
+        _frames = max;
         return max;
     }
 

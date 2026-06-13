@@ -11,11 +11,15 @@ public class NBWork : IPlayable
 
     public string FullName => $"[Work] {Name}";
 
+    private int _frames = -1;
+
     public int Measure()
     {
+        if(_frames >= 0) return _frames;
         int max = 0;
         foreach (var track in Tracks)
             max = Math.Max(max, track.Measure());
+        _frames = max;
         return max;
     }
 

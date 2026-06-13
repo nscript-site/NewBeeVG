@@ -119,6 +119,7 @@ public class PlayerView : BaseView
 
     private void Export()
     {
-
+        var exportView = new ExportVideoView() { Playable = this.Playable!, Work = this.Work! };
+        exportView.ShowInOverlay(this, true);
     }
 }
