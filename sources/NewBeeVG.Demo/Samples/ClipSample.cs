@@ -127,7 +127,7 @@ internal class ClipSample
             frames: -1,
             builder: (ctx, clip) =>
             {
-                return new NBText() { Text = "Demo" }.Align(1, -1).Margin(20);
+                return TextBlock("Demo").Align(1, -1).Margin(20);
             }
         );
 

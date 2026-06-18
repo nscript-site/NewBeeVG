@@ -32,31 +32,34 @@ public class ExportVideoView : BaseView
 
         var writer = new MediaWriter(DateTime.Now.ToFileTimeUtc() + ".mp4", stage.Width, stage.Height,stage.FrameRate, true);
 
-        Dispatcher.UIThread.InvokeAsync(() =>
+        try
         {
-            try
+            for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
             {
-                for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
+                using var bmp = Playable.Render(stage, CurrentFrame, true);
+                if (bmp == null) break;
+
+                writer.WriteFrame(bmp);
+
+                if (CurrentFrame % 10 == 0)
                 {
-                    using var bmp = Playable.Render(stage, CurrentFrame, true);
-                    if (bmp == null) break;
 
-                    writer.WriteFrame(bmp);
-
-                    if (CurrentFrame % 10 == 0)
+                    Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         Message = $"正在导出视频... {CurrentFrame}/{frames}";
                         this.UpdateState();
-                    }
+                    });
                 }
-
-                writer.Close();
             }
-            finally
+
+            writer.Close();
+        }
+        finally
+        {
+            Dispatcher.UIThread.InvokeAsync(() =>
             {
                 this.RemoveFromOverlay();
-            }
-
-        }).GetAwaiter().GetResult(); // BLOCK until UI work finishes
+            });
+        }
     }
 }

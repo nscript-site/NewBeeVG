@@ -1,8 +1,5 @@
-﻿global using NewBeeUI;
-global using NewBeeVG;
+﻿global using NewBeeVG;
 global using System;
-global using Avalonia.Media;
-global using Avalonia.Markup.Declarative;
-global using static NewBeeUI.BaseView;
-global using static NewBeeVG.Methods;
 global using SkiaSharp;
+global using NewBeeVG.Demo.Samples;
+global using static NewBeeVG.Methods;

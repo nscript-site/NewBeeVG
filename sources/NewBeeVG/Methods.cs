@@ -170,11 +170,6 @@ public static class Methods
         return new NBWork();
     }
 
-    public static NBClip clip(string name = "clip", Func<NBDrawContext, NBClip, SKBitmap?>? builder = null, int frames = 1, int? start = null)
-    {
-        return new NBClip(name, builder, frames, start);
-    }
-
     public static NBLayoutableClip clip(string name = "clip", Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null, int frames = 1, int? start = null)
     {
         return new NBLayoutableClip(name, builder, frames, start);
@@ -323,4 +318,14 @@ public static class Methods
         int maskedChars = str.Length - visibleChars;
         return prefix + new string('*', maskedChars) + str.Substring(maskedChars);
     }
+
+    #region Widgets
+
+    public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null )
+    {
+        var tb = new NBText { Text = text, FontFamily = fontFamily ?? "Arial", FontSize = fontSize, Foreground = color ?? SKColors.Black };
+        return tb;
+    }
+
+    #endregion
 }
