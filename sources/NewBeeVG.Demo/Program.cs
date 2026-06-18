@@ -1,4 +1,6 @@
-﻿ClipSample.Run();
+﻿LayoutSample.Run();
+
+//ClipSample.Run();
 
 //TTSScriptParserSample.Run();
 

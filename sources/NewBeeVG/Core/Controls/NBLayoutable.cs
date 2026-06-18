@@ -4,6 +4,7 @@
  ***********************/
 using Avalonia.Logging;
 using NewBeeVG.Core.Controls.Layout;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -18,7 +19,6 @@ public class NBLayoutable : NBVisual
     public double MinHeight { get; set; } = 0;
     public double MaxHeight { get; set; } = double.PositiveInfinity;
     public Thickness Margin { get; set; } = new Thickness();
-
 
     /// <summary>
     /// Gets or sets a value that determines whether the element should be snapped to pixel
@@ -75,11 +75,26 @@ public class NBLayoutable : NBVisual
 
     private static bool ValidateThickness(Thickness value) => double.IsFinite(value.Left) && double.IsFinite(value.Top) && double.IsFinite(value.Right) && double.IsFinite(value.Bottom);
 
+    public void MeasureInfinity()
+    {
+        this.Measure(Size.Infinity);
+    }
+
+    public void Measure(double width, double height)
+    {
+        this.Measure(new Size(width, height));
+    }
+
+    public void Measure(SKSize availableSize)
+    {
+        this.Measure(new Size(availableSize.Width, availableSize.Height));
+    }
+
     /// <summary>
     /// Carries out a measure of the control.
     /// </summary>
     /// <param name="availableSize">The available size for the control.</param>
-    public void Measure(Size availableSize)
+    internal void Measure(Size availableSize)
     {
         if (double.IsNaN(availableSize.Width) || double.IsNaN(availableSize.Height))
         {
@@ -130,11 +145,21 @@ public class NBLayoutable : NBVisual
         else return null;
     }
 
+    public void Arrange(double left, double top, double width, double height)
+    {
+        Arrange(new Rect(left, top, width, height));
+    }
+
+    public void Arrange(SKRect rect)
+    {
+        this.Arrange(new Rect(rect.Left, rect.Top, rect.Width, rect.Height));
+    }
+
     /// <summary>
     /// Arranges the control and its children.
     /// </summary>
     /// <param name="rect">The control's new bounds.</param>
-    public void Arrange(Rect rect)
+    internal void Arrange(Rect rect)
     {
         if (IsInvalidRect(rect))
         {
@@ -431,7 +456,7 @@ public class NBLayoutable : NBVisual
                 origin = LayoutHelper.RoundLayoutPoint(origin, scale);
             }
 
-            Bounds = new Rect(origin, size);
+            Bounds = new SKRect((float)origin.X, (float)origin.Y, (float)(origin.X + size.Width), (float)(origin.Y + size.Height));
         }
     }
 
@@ -494,5 +519,90 @@ public class NBLayoutable : NBVisual
     private static Size NonNegative(Size size)
     {
         return new Size(Math.Max(size.Width, 0), Math.Max(size.Height, 0));
+    }
+}
+
+public static class NBLayoutable_Extentions
+{
+    public static TCtrl Align<TCtrl>(this TCtrl ctrl, int? hAlign = null, int? vAlign = null) where TCtrl : NBLayoutable
+    {
+        ctrl.HAlign = hAlign;
+        ctrl.VAlign = vAlign;
+        return ctrl;
+    }
+
+    public static TCtrl Size<TCtrl>(this TCtrl ctrl, double width, double height) where TCtrl : NBLayoutable
+    {
+        ctrl.Width = width;
+        ctrl.Height = height;
+        return ctrl;
+    }
+
+    public static TCtrl Height<TCtrl>(this TCtrl ctrl, double height) where TCtrl : NBLayoutable
+    {
+        ctrl.Height = height;
+        return ctrl;
+    }
+
+    public static TCtrl Width<TCtrl>(this TCtrl ctrl, double width) where TCtrl : NBLayoutable
+    {
+        ctrl.Width = width;
+        return ctrl;
+    }
+
+    public static TCtrl MinWidth<TCtrl>(this TCtrl ctrl, double minWidth) where TCtrl : NBLayoutable
+    {
+        ctrl.MinWidth = minWidth;
+        return ctrl;
+    }
+
+    public static TCtrl MaxWidth<TCtrl>(this TCtrl ctrl, double maxWidth) where TCtrl : NBLayoutable
+    {
+        ctrl.MaxWidth = maxWidth;
+        return ctrl;
+    }
+
+    public static TCtrl MinHeight<TCtrl>(this TCtrl ctrl, double minHeight) where TCtrl : NBLayoutable
+    {
+        ctrl.MinHeight = minHeight;
+        return ctrl;
+    }
+
+    public static TCtrl MaxHeight<TCtrl>(this TCtrl ctrl, double maxHeight) where TCtrl : NBLayoutable
+    {
+        ctrl.MaxHeight = maxHeight;
+        return ctrl;
+    }
+
+    public static TCtrl MinSize<TCtrl>(this TCtrl ctrl, double minWidth, double minHeight) where TCtrl : NBLayoutable
+    {
+        ctrl.MinWidth = minWidth;
+        ctrl.MinHeight = minHeight;
+        return ctrl;
+    }
+
+    public static TCtrl MaxSize<TCtrl>(this TCtrl ctrl, double maxWidth, double maxHeight) where TCtrl : NBLayoutable
+    {
+        ctrl.MaxWidth = maxWidth;
+        ctrl.MaxHeight = maxHeight;
+        return ctrl;
+    }
+
+    public static TCtrl Margin<TCtrl>(this TCtrl ctrl, double left, double top, double right, double bottom) where TCtrl : NBLayoutable
+    {
+        ctrl.Margin = new Thickness(left, top, right, bottom);
+        return ctrl;
+    }
+
+    public static TCtrl Margin<TCtrl>(this TCtrl ctrl, double uniformMargin) where TCtrl : NBLayoutable
+    {
+        ctrl.Margin = new Thickness(uniformMargin);
+        return ctrl;
+    }
+
+    public static TCtrl Margin<TCtrl>(this TCtrl ctrl, double horizontal, double vertical) where TCtrl : NBLayoutable
+    {
+        ctrl.Margin = new Thickness(horizontal, vertical);
+        return ctrl;
     }
 }

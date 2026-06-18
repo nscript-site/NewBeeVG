@@ -1,5 +1,5 @@
 ﻿namespace NewBeeVG;
 
-public class NBBox
+public class NBBox : NBDecorator
 {
 }
