@@ -99,39 +99,41 @@ internal class ClipSample
             }
         );
 
-        //var logo = clip(
-        //    name: "logo",
-        //    start: 0,
-        //    frames: -1,
-        //    builder: (ctx, clip) =>
-        //    {
-        //        return
-        //            TextBlock("Demo").Align(1, -1).FontSize(40).Margin(20);
-        //    }
-        //);
-
-        //var logo2 = clip(
-        //    name: "logo2",
-        //    start: 0,
-        //    frames: -1,
-        //    builder: (ctx, clip) =>
-        //    {
-        //        return
-        //            TextBlock("NewBee VG").Align(-1, -1).FontSize(40).Margin(20);
-        //    }
-        //);
-
         var logo = clip(
             name: "logo",
             start: 0,
             frames: -1,
             builder: (ctx, clip) =>
             {
-                return TextBlock("Demo").Align(1, -1).Margin(20);
+                return
+                    TextBlock("Demo").Align(1, -1).Margin(20);
             }
         );
 
+        var logo2 = clip(
+            name: "logo2",
+            start: 0,
+            frames: -1,
+            builder: (ctx, clip) =>
+            {
+                return
+                    TextBlock("NewBee VG").Align(-1, -1).Margin(20);
+            }
+        );
+
+        var footer = clip(
+            name: "footer",
+            start: 0,
+            frames: -1,
+            builder: (ctx, clip) =>
+            {
+                return
+                    TextBlock("This is a long long long long long long long long long long long long long long long long long long long long long long long long long long long long long footer", textAlign: 0).Align(0, 1).Margin(20);
+            }
+        );
+
+
         //run(stage(bg: Brushes.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
-        run(stage(bg: SKColors.Orange), [clip3, clip4, clip5, logo]);
+        run(stage(bg: SKColors.Orange), [clip3, clip4, clip5, logo, logo2, footer]);
     }
 }

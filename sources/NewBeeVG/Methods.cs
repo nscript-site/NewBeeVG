@@ -321,9 +321,16 @@ public static class Methods
 
     #region Widgets
 
-    public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null )
+    public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1 )
     {
         var tb = new NBText { Text = text, FontFamily = fontFamily ?? "Arial", FontSize = fontSize, Foreground = color ?? SKColors.Black };
+        tb.IsWrapText = wrap;
+        tb.TextAlign = textAlign switch
+        {
+            0 => SKTextAlign.Center,
+            <0 => SKTextAlign.Left,
+            >0 => SKTextAlign.Right
+        };
         return tb;
     }
 
