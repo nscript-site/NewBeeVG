@@ -121,7 +121,17 @@ internal class ClipSample
         //    }
         //);
 
+        var logo = clip(
+            name: "logo",
+            start: 0,
+            frames: -1,
+            builder: (ctx, clip) =>
+            {
+                return new NBText() { Text = "Demo" }.Align(1, -1).Margin(20);
+            }
+        );
+
         //run(stage(bg: Brushes.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
-        run(stage(bg: SKColors.Orange), [clip3, clip4, clip5]);
+        run(stage(bg: SKColors.Orange), [clip3, clip4, clip5, logo]);
     }
 }

@@ -38,13 +38,33 @@ public class SKBitmapDrawOperation : ICustomDrawOperation
         var canvas = lease?.SkCanvas;
         if (canvas is { } && _frame is { } && _frame.IsEmpty == false)
         {
+            var dstWidth = _bounds.Width;
+            var dstHeight = _bounds.Height;
+            var srcWidth = _frame.Width;
+            var srcHeight = _frame.Height;
+
+            if (dstWidth <= 0 || dstHeight <= 0 || srcWidth <= 0 || srcHeight <= 0)
+                return;
+
+            var scaleX = dstWidth / srcWidth;
+            var scaleY = dstHeight / srcHeight;
+            var scale = Math.Min(scaleX, scaleY);
+
+            var drawWidth = srcWidth * scale;
+            var drawHeight = srcHeight * scale;
+
+            var left = _bounds.X + (dstWidth - drawWidth) / 2f;
+            var top = _bounds.Y + (dstHeight - drawHeight) / 2f;
+
+            var dstRect = new SKRect((float)left, (float)top, (float)(left + drawWidth), (float)(top + drawHeight));
+
             if (_backgroundBrush != null)
             {
                 context.FillRectangle(_backgroundBrush.ToImmutable(),
-                    _bounds);
+                    new Rect(dstRect.Left, dstRect.Top, dstRect.Width, dstRect.Height));
             }
 
-            canvas.DrawBitmap(_frame, 0, 0);
+            canvas.DrawBitmap(_frame, dstRect);
         }
     }
 }

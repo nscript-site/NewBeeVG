@@ -61,6 +61,18 @@ public class NBVisual
             context.SaveLayer(layerPaint);
         }
 
+        RenderCore(context);
+
+        if (useOpacityLayer)
+        {
+            context.Restore();
+        }
+
+        context.Restore();
+    }
+
+    protected virtual void RenderCore(SKCanvas context)
+    {
         BeforeRenderChildren(context);
 
         foreach (var child in VisualChildren)
@@ -78,13 +90,6 @@ public class NBVisual
         }
 
         AfterRenderChildren(context);
-
-        if (useOpacityLayer)
-        {
-            context.Restore();
-        }
-
-        context.Restore();
     }
 
     public void InvalidateVisual()

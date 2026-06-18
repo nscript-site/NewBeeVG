@@ -22,7 +22,7 @@ public class NBText : NBLayoutable
     /// <summary>
     /// 字号。
     /// </summary>
-    public float FontSize { get; set; } = 14f;
+    public float FontSize { get; set; } = 40;
 
     /// <summary>
     /// 字体粗细。

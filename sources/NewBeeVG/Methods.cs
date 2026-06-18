@@ -175,6 +175,11 @@ public static class Methods
         return new NBClip(name, builder, frames, start);
     }
 
+    public static NBLayoutableClip clip(string name = "clip", Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null, int frames = 1, int? start = null)
+    {
+        return new NBLayoutableClip(name, builder, frames, start);
+    }
+
     public static NBTTSClip ttsClip(string text, string voice = "Cherry", string lang = "Chinese", string instructions = "", string model = "mlx-tts", string name = "clip", int? start = null)
     {
         return new NBTTSClip(text, voice, lang, instructions, model, name, start);

@@ -4,7 +4,7 @@ using SkiaSharp;
 
 namespace NewBeeVG;
 
-public class NBSkiaBitmap : Control
+public class NBSkiaBitmapView : Control
 {
     public SKBitmap? Bitmap { get; set; } = default;
 
@@ -28,5 +28,10 @@ public class NBSkiaBitmap : Control
                 Bitmap = null;
             }
         }
+    }
+
+    protected override void ArrangeCore(Rect finalRect)
+    {
+        base.ArrangeCore(finalRect);
     }
 }

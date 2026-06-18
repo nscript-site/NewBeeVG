@@ -31,29 +31,6 @@ public class NBWork : IPlayable
         return bitmap;
     }
 
-    //public Control? Build(NBStage stage, int frame, bool includeStageBackground)
-    //{
-    //    var panel = new Panel();
-    //    panel.Width = stage.Width;
-    //    panel.Height = stage.Height;
-
-    //    if (includeStageBackground == true && stage.Background != null)
-    //    {
-    //        panel.Background = stage.Background;
-    //    }
-
-    //    foreach (var track in Tracks)
-    //    {
-    //        if (track.IsVisible == false) continue;
-    //        var ctrl = track.Build(stage, frame, false);
-    //        if (ctrl != null) panel.Children.Add(ctrl);
-    //    }
-
-    //    DrawingHelper.Layout(panel, stage.Width, stage.Height);
-
-    //    return panel;
-    //}
-
     public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
     {
         var bitmap = new SKBitmap(stage.Width, stage.Height);
