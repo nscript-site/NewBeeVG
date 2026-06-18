@@ -25,38 +25,57 @@ public class NBWork : IPlayable
 
     public virtual void Prepare() { }
 
-    public RenderTargetBitmap CreateBitmap()
+    public SKBitmap CreateBitmap()
     {
-        var bitmap = new RenderTargetBitmap(new PixelSize(Stage.Width, Stage.Height), new Vector(Stage.Dpi, Stage.Dpi));
+        var bitmap = new SKBitmap(Stage.Width, Stage.Height);
         return bitmap;
     }
 
-    public Control? Build(NBStage stage, int frame, bool includeStageBackground)
-    {
-        var panel = new Panel();
-        panel.Width = stage.Width;
-        panel.Height = stage.Height;
+    //public Control? Build(NBStage stage, int frame, bool includeStageBackground)
+    //{
+    //    var panel = new Panel();
+    //    panel.Width = stage.Width;
+    //    panel.Height = stage.Height;
 
-        if (includeStageBackground == true && stage.Background != null)
-        {
-            panel.Background = stage.Background;
-        }
+    //    if (includeStageBackground == true && stage.Background != null)
+    //    {
+    //        panel.Background = stage.Background;
+    //    }
 
-        foreach (var track in Tracks)
-        {
-            if (track.IsVisible == false) continue;
-            var ctrl = track.Build(stage, frame, false);
-            if (ctrl != null) panel.Children.Add(ctrl);
-        }
+    //    foreach (var track in Tracks)
+    //    {
+    //        if (track.IsVisible == false) continue;
+    //        var ctrl = track.Build(stage, frame, false);
+    //        if (ctrl != null) panel.Children.Add(ctrl);
+    //    }
 
-        DrawingHelper.Layout(panel, stage.Width, stage.Height);
+    //    DrawingHelper.Layout(panel, stage.Width, stage.Height);
 
-        return panel;
-    }
+    //    return panel;
+    //}
 
     public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
     {
-        var panel = Build(stage, frame, includeStageBackground);
-        return DrawingHelper.Render(panel, stage, includeStageBackground);
+        var bitmap = new SKBitmap(stage.Width, stage.Height);
+        using var canvas = new SKCanvas(bitmap);
+        {
+            if (includeStageBackground == true && stage.Background != null)
+            {
+                var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Fill,
+                    Color = stage.Background.Value
+                };
+                canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
+            }
+            foreach (var track in Tracks)
+            {
+                if (track.IsVisible == false) continue;
+                var bmp = track.Render(stage, frame, false);
+                if (bmp != null)
+                    canvas.DrawBitmap(bmp, 0, 0);
+            }
+        }
+        return bitmap;
     }
 }

@@ -1,5 +1,5 @@
-﻿using Avalonia.Media.Imaging;
-using Avalonia.Threading;
+﻿using Avalonia.Threading;
+using SkiaSharp;
 using System.Diagnostics;
 
 namespace NewBeeVG.Viewer.Widgets;
@@ -11,7 +11,7 @@ public class PlayerView : BaseView
 
     private int Frames = 0;
     private int CurrentFrame = 0;
-    private RenderTargetBitmap? Bitmap = null;
+    private SKBitmap? Bitmap = null;
     private Image FrameImage = default!;
 
     protected bool Playing { get; set; }
@@ -85,8 +85,12 @@ public class PlayerView : BaseView
                         if (Playable!.Render(bitmap, Work.Stage, CurrentFrame))
                         {
                             Bitmap = bitmap;
-                            FrameImage.Source = Bitmap;
+                            var wbm = DrawingHelper.ToWriteableBitmap(bitmap);
+                            if(wbm != null) 
+                               FrameImage.Source = wbm;
                         }
+
+                        // TODO: 这里 bitmap 和 FrameImage.Source 的生命周期管理可能有问题，可能会导致内存泄漏。
 
                         this.UpdateState();
                     }).GetAwaiter().GetResult(); // BLOCK until UI work finishes

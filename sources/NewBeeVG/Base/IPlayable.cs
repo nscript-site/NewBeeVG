@@ -5,17 +5,18 @@ namespace NewBeeVG;
 
 public interface IPlayable
 {
-    public bool Render(RenderTargetBitmap bitmap, NBStage stage, int frame)
+    public bool Render(SKBitmap bitmap, NBStage stage, int frame)
     {
-        var content = Build(stage, frame, true);
+        var content = Render(stage, frame, true);
         if (content == null) return false;
 
-        bitmap.Render(content);
-
+        // 使用 skia 将 content 渲染到 SKBitmap 上
+        using(SKCanvas canvas = new SKCanvas(bitmap))
+        {
+            canvas.DrawBitmap(content, new SKPoint());
+        }
         return true;
     }
-
-    Control? Build(NBStage stage, int frame, bool includeStageBackground);
 
     SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground);
 

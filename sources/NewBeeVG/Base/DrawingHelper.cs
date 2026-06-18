@@ -14,6 +14,46 @@ internal class DrawingHelper
         bitmap.Render(content);
     }
 
+    public static unsafe WriteableBitmap? ToWriteableBitmap(SKBitmap? bitmap)
+    {
+        if (bitmap == null || bitmap.IsEmpty) return null;
+
+        var pixelSize = new PixelSize(bitmap.Width, bitmap.Height);
+        var dpi = new Vector(96, 96);
+
+        // 先把 SKBitmap 的像素直接拷贝到 WriteableBitmap
+        var writeableBitmap = new WriteableBitmap(
+            pixelSize,
+            dpi,
+            Avalonia.Platform.PixelFormat.Bgra8888,
+            Avalonia.Platform.AlphaFormat.Premul);
+
+        var srcPixels = bitmap.GetPixels();
+        if (srcPixels == IntPtr.Zero)
+            return null;
+
+        using (var locked = writeableBitmap.Lock())
+        {
+            var srcStride = bitmap.RowBytes;
+            var dstStride = locked.RowBytes;
+            var copyStride = Math.Min(srcStride, dstStride);
+
+            byte* srcBase = (byte*)srcPixels.ToPointer();
+            byte* dstBase = (byte*)locked.Address.ToPointer();
+
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                Buffer.MemoryCopy(
+                    srcBase + y * srcStride,
+                    dstBase + y * dstStride,
+                    dstStride,
+                    copyStride);
+            }
+        }
+
+        return writeableBitmap;
+    }
+
     public static SKBitmap ToSKBitmap(RenderTargetBitmap rtBmp, NBStage? stage = null, bool drawStageBackground = false)
     {
         var width = rtBmp.PixelSize.Width;
@@ -43,7 +83,7 @@ internal class DrawingHelper
     public static void FillStageBackgroundIfSet(SKBitmap? bmp, NBStage stage, bool drawStageBackground)
     {
         if (bmp == null || drawStageBackground == false || stage.Background == null) return;
-        var skColor = ToSKColor(stage.Background);
+        var skColor = stage.Background.Value;
         using var canvas = new SKCanvas(bmp);
         using var paint = new SKPaint
         {

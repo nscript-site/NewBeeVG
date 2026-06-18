@@ -2,17 +2,17 @@
 
 namespace NewBeeVG;
 
-public class NBSkiaClip : NBClip
+public class NBDrawingClip : NBClip
 {
     private readonly Action<NBDrawContext, NBClip, SKCanvas>? _skBuilder;
 
-    public NBSkiaClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
+    public NBDrawingClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
         :base(name, ConvertBuilder(builder), duration, start)
     {
         _skBuilder = builder;
     }
 
-    protected static Func<NBDrawContext, NBClip, Control?>? ConvertBuilder(Action<NBDrawContext, NBClip, SKCanvas>? skBuilder)
+    protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(Action<NBDrawContext, NBClip, SKCanvas>? skBuilder)
     {
         if (skBuilder == null) return null;
 
@@ -21,7 +21,7 @@ public class NBSkiaClip : NBClip
             var targetBitmap = new SKBitmap(ctx.width, ctx.height);
             using var canvas = new SKCanvas(targetBitmap);
             skBuilder(ctx, clip,canvas);
-            return new NBSkiaBitmap() { Bitmap = targetBitmap };
+            return targetBitmap;
         };
     }
 
@@ -38,11 +38,11 @@ public class NBSkiaClip : NBClip
     }
 }
 
-public class NBMaskedSkiaClip : NBClip
+public class NBMaskedDrawingClip : NBClip
 {
     public SKBlendMode BlendMode { get; private set; }
 
-    public NBMaskedSkiaClip(string name = "clip", 
+    public NBMaskedDrawingClip(string name = "clip", 
         Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
         Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder = null, 
         SKBlendMode blend = SKBlendMode.SrcIn,
@@ -52,7 +52,7 @@ public class NBMaskedSkiaClip : NBClip
         BlendMode = blend;
     }
 
-    protected static Func<NBDrawContext, NBClip, Control?>? ConvertBuilder(
+    protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(
         Action<NBDrawContext, NBClip, SKCanvas>? skBuilder,
         Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder, SKBlendMode blend)
     {
@@ -65,7 +65,7 @@ public class NBMaskedSkiaClip : NBClip
                 var targetBitmap = new SKBitmap(ctx.width, ctx.height);
                 using var canvas = new SKCanvas(targetBitmap);
                 skBuilder(ctx, clip, canvas);
-                return new NBSkiaBitmap() { Bitmap = targetBitmap };
+                return targetBitmap;
             };
         }
 
@@ -93,7 +93,7 @@ public class NBMaskedSkiaClip : NBClip
             // 绘制遮罩位图（尺寸和目标图一致，保证覆盖）
             targetCanvas.DrawBitmap(srcBitmap, new SKPoint(0, 0), paint);
 
-            return new NBSkiaBitmap() { Bitmap = targetBitmap };
+            return targetBitmap;
         };
     }
 }

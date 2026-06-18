@@ -150,13 +150,12 @@ public class QWenVoices
 
 public static class Methods
 {
-    public static NBStage stage(int width = 1080, int height = 1920, int dpi = 96, ISolidColorBrush? bg = null)
+    public static NBStage stage(int width = 1080, int height = 1920, SKColor? bg = null)
     {
         return new NBStage
         {
             Width = width,
             Height = height,
-            Dpi = dpi,
             Background = bg,
         };
     }
@@ -171,7 +170,7 @@ public static class Methods
         return new NBWork();
     }
 
-    public static NBClip clip(string name = "clip", Func<NBDrawContext, NBClip, Control?>? builder = null, int frames = 1, int? start = null)
+    public static NBClip clip(string name = "clip", Func<NBDrawContext, NBClip, SKBitmap?>? builder = null, int frames = 1, int? start = null)
     {
         return new NBClip(name, builder, frames, start);
     }
@@ -181,18 +180,18 @@ public static class Methods
         return new NBTTSClip(text, voice, lang, instructions, model, name, start);
     }
 
-    public static NBSkiaClip skclip(string name = "skclip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int frames = 1, int? start = null)
+    public static NBDrawingClip drawing(string name = "drawing_clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int frames = 1, int? start = null)
     {
-        return new NBSkiaClip(name, builder, frames, start);
+        return new NBDrawingClip(name, builder, frames, start);
     }
 
-    public static NBMaskedSkiaClip skclip_withmask(string name = "skclip_withmask", 
+    public static NBMaskedDrawingClip drawing_withmask(string name = "drawing_clip_withmask", 
         Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
         Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder = null,
         SKBlendMode blend = SKBlendMode.SrcIn,
         int frames = 1, int? start = null)
     {
-        return new NBMaskedSkiaClip(name, builder, maskBuilder, blend, frames, start);
+        return new NBMaskedDrawingClip(name, builder, maskBuilder, blend, frames, start);
     }
 
     public static void init()

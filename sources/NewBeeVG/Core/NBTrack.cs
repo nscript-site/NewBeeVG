@@ -9,6 +9,11 @@ public class NBTrack : IPlayable
     public bool IsVisible { get; set; } = true;
 
     public string FullName => $"[Track] {Name}";
+
+    public bool ContainsVisualClip
+    {
+        get; private set;
+    } = true;
     
     private int _frames = -1;
 
@@ -33,32 +38,30 @@ public class NBTrack : IPlayable
 
     public virtual void Prepare() { }
 
-    public Control? Build(NBStage stage, int frame, bool includeStageBackground)
-    {
-        var panel = new Panel();
-        panel.Width = stage.Width;
-        panel.Height = stage.Height;
-        
-        if(includeStageBackground == true && stage.Background != null)
-        {
-            panel.Background = stage.Background;
-        }
-
-        foreach (var clip in Clips)
-        {
-            if (clip.IsVisible == false || clip.NeedRenderInTrack(frame) == false) continue;
-            var ctrl = clip.Build(stage, frame - clip.StartFrame ?? 0, false);
-            if(ctrl != null) panel.Children.Add(ctrl);
-        }
-
-        DrawingHelper.Layout(panel, stage.Width, stage.Height);
-
-        return panel;
-    }
-
     public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
     {
-        var panel = Build(stage, frame, includeStageBackground);
-        return DrawingHelper.Render(panel, stage, includeStageBackground);
+        if (ContainsVisualClip == false) return null;
+
+        var bitmap = new SKBitmap(stage.Width, stage.Height);
+        using var canvas = new SKCanvas(bitmap);
+        {
+            if (includeStageBackground == true && stage.Background != null)
+            {
+                var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Fill,
+                    Color = stage.Background.Value
+                };
+                canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
+            }
+            foreach (var clip in Clips)
+            {
+                if (clip.IsVisible == false || clip.NeedRenderInTrack(frame) == false) continue;
+                var bmp = clip.Render(stage, frame - clip.StartFrame ?? 0, false);
+                if (bmp != null)
+                    canvas.DrawBitmap(bmp, 0, 0);
+            }
+        }
+        return bitmap;
     }
 }

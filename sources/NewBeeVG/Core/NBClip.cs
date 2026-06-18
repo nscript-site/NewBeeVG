@@ -1,5 +1,4 @@
-﻿using Avalonia.Media.Imaging;
-using SkiaSharp;
+﻿using SkiaSharp;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -20,13 +19,13 @@ public class NBClip : IPlayable
     /// </summary>
     public int DurationFrames { get; set; }
 
-    internal Func<NBDrawContext, NBClip, Control?>? ControlBuilder { get; set; }
+    internal Func<NBDrawContext, NBClip, SKBitmap?>? ControlBuilder { get; set; }
 
     public string Name { get; init; }
 
     public bool IsVisible { get; set; } = true;
 
-    public NBClip(string name = "clip", Func<NBDrawContext, NBClip, Control?>? builder = null, int duration = 1, int? start = null)
+    public NBClip(string name = "clip", Func<NBDrawContext, NBClip, SKBitmap?>? builder = null, int duration = 1, int? start = null)
     {
         Name = name;
         ControlBuilder = builder;
@@ -54,48 +53,10 @@ public class NBClip : IPlayable
 
     public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
     {
-        var panel = Build(stage, frame, includeStageBackground);
-        return DrawingHelper.Render(panel, stage, includeStageBackground);
-    }
-
-    public virtual Control? Build(NBStage stage, int frame, bool includeStageBackground)
-    {
-        if (ControlBuilder == null) return null;
-
-        var content = BuildCore(stage, frame);
-        if (content == null) return null;
-
-        if (includeStageBackground == false) return content;
-
-        var panel = new Panel();
-        panel.Width = stage.Width;
-        panel.Height = stage.Height;
-
-        if (includeStageBackground == true && stage.Background != null)
-        {
-            panel.Background = stage.Background;
-        }
-
-        panel.Children.Add(content);
-
-        DrawingHelper.Layout(panel, stage.Width, stage.Height);
-
-        return panel;
-    }
-
-    private Control? BuildCore(NBStage stage, int frame)
-    {
         if (ControlBuilder == null) return null;
 
         var context = CreateDrawContext(stage, frame);
-
         var content = ControlBuilder(context, this);
-        if (content == null) return null;
-
-        content.Measure(new Size(context.width, context.height));
-        content.Arrange(new Rect(0, 0, context.width, context.height));
-        content.UpdateLayout();
-
         return content;
     }
 
@@ -106,7 +67,6 @@ public class NBClip : IPlayable
             frame = frame,
             width = stage.Width,
             height = stage.Height,
-            dpi = new Vector(stage.Dpi, stage.Dpi),
             progress = CalculateProgress(frame, DurationFrames)
         };
     }
