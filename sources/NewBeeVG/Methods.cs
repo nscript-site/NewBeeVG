@@ -339,5 +339,25 @@ public static class Methods
         return panel;
     }
 
+    public static NBStack HStack(NBVisual[]? childs)
+    {
+        var stack = new NBStack { Orientation = Orientation.Horizontal};
+        if (childs != null)
+        {
+            stack.Childs(childs);
+        }
+        return stack;
+    }
+
+    public static NBStack VStack(NBVisual[]? childs)
+    {
+        var stack = new NBStack { Orientation = Orientation.Vertical };
+        if (childs != null)
+        {
+            stack.Childs(childs);
+        }
+        return stack;
+    }
+
     #endregion
 }

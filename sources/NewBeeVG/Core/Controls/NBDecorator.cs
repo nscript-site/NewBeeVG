@@ -1,4 +1,9 @@
-﻿using NewBeeVG.Core.Controls.Layout;
+﻿/***********************
+ * 代码修改自 avalonia (https://github.com/AvaloniaUI/Avalonia)
+ * license: MIT
+ ***********************/
+
+using NewBeeVG.Core.Controls.Layout;
 
 namespace NewBeeVG;
 
@@ -37,7 +42,7 @@ public class NBDecorator : NBLayoutable, IPaddingable
     }
 }
 
-public static class NBDecorator_Extentions
+public static partial class NBExtentions
 {
     public static T Child<T>(this T decorator, NBLayoutable child) where T : NBDecorator
     {

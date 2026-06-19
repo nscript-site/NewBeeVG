@@ -18,11 +18,19 @@ public class NBVisual
     public SKPath? ClipPath { get; set; }
     public bool ClipToBounds { get; set; } = false;
 
-    private NBVisual? _visualParent;
-    internal NBVisual? VisualParent => _visualParent;
+    /// <summary>
+    /// 在 Canvas 中的位置。
+    /// </summary>
+    public NBPosition? PositionInCanvas { get; set; }
 
-    internal bool IsAttachedToVisualTree { get; set; }
-
+    /// <summary>
+    /// Gets the size that this element computed during the measure pass of the layout process.
+    /// </summary>
+    public Size DesiredSize
+    {
+        get;
+        protected set;
+    }
     /// <summary>
     /// Gets the control's child visuals.
     /// </summary>
@@ -100,17 +108,19 @@ public class NBVisual
         RenderDecorations(context);
     }
 
-    public void InvalidateVisual()
+    internal void TryMeasure(Size availableSize)
     {
+        if(this is NBLayoutable layoutable)
+        {
+            layoutable.Measure(availableSize);
+        }
     }
 
-    internal ILayoutRoot? GetLayoutRoot()
+    internal void TryArrange(Rect rect)
     {
-        return null;
-    }
-
-    internal INBLayoutManager? GetLayoutManager()
-    {
-        return null;
+        if(this is NBLayoutable layoutable)
+        {
+            layoutable.Arrange(rect);
+        }
     }
 }

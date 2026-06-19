@@ -5,7 +5,7 @@ public interface IPaddingable
     Thickness Padding { get; set; }
 }
 
-public static partial class NBWidget_Extentions
+public static partial class NBExtentions
 {
     public static T Padding<T>(this T widget, double left, double top, double right, double bottom) where T : IPaddingable
     {

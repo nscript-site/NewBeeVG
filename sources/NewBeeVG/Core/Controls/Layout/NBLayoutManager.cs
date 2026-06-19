@@ -173,21 +173,6 @@ internal class NBLayoutManager : INBLayoutManager, IDisposable
             return;
         }
 
-        if (!control.IsAttachedToVisualTree)
-        {
-#if DEBUG
-            throw new AvaloniaInternalException(
-                "LayoutManager.InvalidateMeasure called on a control that is detached from the visual tree.");
-#else
-                return;
-#endif
-        }
-
-        if (control.GetLayoutRoot() != _owner)
-        {
-            throw new ArgumentException("Attempt to call InvalidateMeasure on wrong LayoutManager.");
-        }
-
         _toMeasure.Enqueue(control);
         QueueLayoutPass();
     }
@@ -201,21 +186,6 @@ internal class NBLayoutManager : INBLayoutManager, IDisposable
         if (_disposed)
         {
             return;
-        }
-
-        if (!control.IsAttachedToVisualTree)
-        {
-#if DEBUG
-            throw new AvaloniaInternalException(
-                "LayoutManager.InvalidateArrange called on a control that is detached from the visual tree.");
-#else
-                return;
-#endif
-        }
-
-        if (control.GetLayoutRoot() != _owner)
-        {
-            throw new ArgumentException("Attempt to call InvalidateArrange on wrong LayoutManager.");
         }
 
         _toArrange.Enqueue(control);
@@ -378,29 +348,15 @@ internal class NBLayoutManager : INBLayoutManager, IDisposable
 
     private bool Measure(NBLayoutable control)
     {
-        if (!control.IsVisible || !control.IsAttachedToVisualTree)
+        if (!control.IsVisible)
             return false;
-
-        // Controls closest to the visual root need to be arranged first. We don't try to store
-        // ordered invalidation lists, instead we traverse the tree upwards, measuring the
-        // controls closest to the root first. This has been shown by benchmarks to be the
-        // fastest and most memory-efficient algorithm.
-        if (control.VisualParent is NBLayoutable parent)
-        {
-            if (!Measure(parent))
-                return false;
-        }
 
         // If the control being measured has IsMeasureValid == true here then its measure was
         // handed by an ancestor and can be ignored. The measure may have also caused the
         // control to be removed.
         if (!control.IsMeasureValid)
         {
-            if (control.GetLayoutRoot()?.RootVisual == control)
-            {
-                control.Measure(Size.Infinity);
-            }
-            else if (control.PreviousMeasure.HasValue)
+            if (control.PreviousMeasure.HasValue)
             {
                 control.Measure(control.PreviousMeasure.Value);
             }
@@ -411,23 +367,15 @@ internal class NBLayoutManager : INBLayoutManager, IDisposable
 
     private ArrangeResult Arrange(NBLayoutable control)
     {
-        if (!control.IsVisible || !control.IsAttachedToVisualTree)
+        if (!control.IsVisible)
             return ArrangeResult.NotVisible;
-
-        if (control.VisualParent is NBLayoutable parent)
-        {
-            if (Arrange(parent) is var parentResult && parentResult != ArrangeResult.Arranged)
-                return parentResult;
-        }
 
         if (!control.IsMeasureValid)
             return ArrangeResult.AncestorMeasureInvalid;
 
         if (!control.IsArrangeValid)
         {
-            if (control.GetLayoutRoot()?.RootVisual == control)
-                control.Arrange(new Rect(control.DesiredSize));
-            else if (control.PreviousArrange != null)
+            if (control.PreviousArrange != null)
             {
                 // Has been observed that PreviousArrange sometimes is null, probably a bug somewhere else.
                 // Condition observed: control.VisualParent is Scrollbar, control is Border.

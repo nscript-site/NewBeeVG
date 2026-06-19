@@ -27,15 +27,6 @@ public class NBLayoutable : NBVisual
     public bool UseLayoutRounding { get; set; }
 
     /// <summary>
-    /// Gets the size that this element computed during the measure pass of the layout process.
-    /// </summary>
-    public Size DesiredSize
-    {
-        get;
-        private set;
-    }
-
-    /// <summary>
     /// Gets a value indicating whether the control's layout measure is valid.
     /// </summary>
     public bool IsMeasureValid
@@ -57,7 +48,6 @@ public class NBLayoutable : NBVisual
     private Size? _previousMeasure;
     private Rect? _previousArrange;
     private EventHandler? _layoutUpdated;
-    private bool _isAttachingToVisualTree;
 
     /// <summary>
     /// Gets the available size passed in the previous layout pass, if any.
@@ -130,19 +120,7 @@ public class NBLayoutable : NBVisual
             _previousMeasure = availableSize;
 
             Logger.TryGet(LogEventLevel.Verbose, LogArea.Layout)?.Log(this, "Measure requested {DesiredSize}", DesiredSize);
-
-            if (DesiredSize != previousDesiredSize)
-            {
-                this.GetVisualParentLayoutable()?.ChildDesiredSizeChanged(this);
-            }
         }
-    }
-
-    protected NBLayoutable? GetVisualParentLayoutable()
-    {
-        if (this.VisualParent == null) return null;
-        else if(this.VisualParent is NBLayoutable layoutable) return layoutable;
-        else return null;
     }
 
     public void Arrange(double left, double top, double width, double height)
@@ -196,11 +174,6 @@ public class NBLayoutable : NBVisual
             IsMeasureValid = false;
             IsArrangeValid = false;
 
-            if (IsAttachedToVisualTree)
-            {
-                this.GetLayoutManager()?.InvalidateMeasure(this);
-                InvalidateVisual();
-            }
             OnMeasureInvalidated();
         }
     }
@@ -215,8 +188,6 @@ public class NBLayoutable : NBVisual
             Logger.TryGet(LogEventLevel.Verbose, LogArea.Layout)?.Log(this, "Invalidated arrange");
 
             IsArrangeValid = false;
-            this.GetLayoutManager()?.InvalidateArrange(this);
-            InvalidateVisual();
         }
     }
 
@@ -393,7 +364,6 @@ public class NBLayoutable : NBVisual
                 margin = LayoutHelper.RoundLayoutThickness(margin, scale);
             }
 
-
             var availableWidthMinusMargins = finalRect.Width - margin.Left - margin.Right;
             if (availableWidthMinusMargins < 0)
                 availableWidthMinusMargins = 0;
@@ -424,6 +394,8 @@ public class NBLayoutable : NBVisual
                 size = LayoutHelper.RoundLayoutSizeUp(size, scale);
                 availableSizeMinusMargins = LayoutHelper.RoundLayoutSizeUp(availableSizeMinusMargins, scale);
             }
+
+            var childsRegionSize = size;
 
             size = ArrangeOverride(size).Constrain(size);
 
@@ -457,7 +429,16 @@ public class NBLayoutable : NBVisual
             }
 
             Bounds = new SKRect((float)origin.X, (float)origin.Y, (float)(origin.X + size.Width), (float)(origin.Y + size.Height));
+
+            ArrangeChilds(origin, childsRegionSize);
         }
+    }
+
+    protected virtual void ArrangeChilds(Point origin, Size size)
+    {
+        Rect childsArrangeRect = new Rect(origin, size);
+        foreach (var child in VisualChildren)
+            child.TryArrange(childsArrangeRect);
     }
 
     /// <summary>
@@ -467,21 +448,6 @@ public class NBLayoutable : NBVisual
     /// <returns>The actual size used.</returns>
     protected virtual Size ArrangeOverride(Size finalSize)
     {
-        var arrangeRect = new Rect(finalSize);
-
-        var visualChildren = VisualChildren;
-        var visualCount = visualChildren.Count;
-
-        for (var i = 0; i < visualCount; i++)
-        {
-            var visual = visualChildren[i];
-
-            if (visual is NBLayoutable layoutable)
-            {
-                layoutable.Arrange(arrangeRect);
-            }
-        }
-
         return finalSize;
     }
 

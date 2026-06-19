@@ -476,7 +476,7 @@ public class NBText : NBLayoutable, IPaddingable
     }
 }
 
-public static partial class NBWidget_Extentions
+public static partial class NBExtentions
 {
     public static TWidget FontSize<TWidget>(this TWidget widget, float fontSize) where TWidget : NBText
     {

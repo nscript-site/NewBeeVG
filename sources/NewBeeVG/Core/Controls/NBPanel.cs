@@ -97,7 +97,7 @@ public class NBPanel : NBLayoutable, IChildIndexProvider
     }
 }
 
-public static class NBPanel_Extensions
+public static partial class NBExtentions
 {
     /// <summary>
     /// Sets the background color of the panel.

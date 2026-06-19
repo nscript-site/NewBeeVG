@@ -40,12 +40,6 @@ public static class NBLayoutHelper
     public static Size MeasureChild(NBLayoutable? control, Size availableSize, Thickness padding,
         Thickness borderThickness)
     {
-        if (IsParentLayoutRounded(control, out double scale))
-        {
-            padding = RoundLayoutThickness(padding, scale);
-            borderThickness = RoundLayoutThickness(borderThickness, scale);
-        }
-
         if (control != null)
         {
             control.Measure(availableSize.Deflate(padding + borderThickness));
@@ -57,11 +51,6 @@ public static class NBLayoutHelper
 
     public static Size MeasureChild(NBLayoutable? control, Size availableSize, Thickness padding)
     {
-        if (IsParentLayoutRounded(control, out double scale))
-        {
-            padding = RoundLayoutThickness(padding, scale);
-        }
-
         if (control != null)
         {
             control.Measure(availableSize.Deflate(padding));
@@ -73,20 +62,11 @@ public static class NBLayoutHelper
 
     public static Size ArrangeChild(NBLayoutable? child, Size availableSize, Thickness padding, Thickness borderThickness)
     {
-        if (IsParentLayoutRounded(child, out double scale))
-        {
-            padding = RoundLayoutThickness(padding, scale);
-            borderThickness = RoundLayoutThickness(borderThickness, scale);
-        }
-
         return ArrangeChildInternal(child, availableSize, padding + borderThickness);
     }
 
     public static Size ArrangeChild(NBLayoutable? child, Size availableSize, Thickness padding)
     {
-        if (IsParentLayoutRounded(child, out double scale))
-            padding = RoundLayoutThickness(padding, scale);
-
         return ArrangeChildInternal(child, availableSize, padding);
     }
 
@@ -95,20 +75,6 @@ public static class NBLayoutHelper
         child?.Arrange(new Rect(availableSize).Deflate(padding));
 
         return availableSize;
-    }
-
-    private static bool IsParentLayoutRounded(NBLayoutable? child, out double scale)
-    {
-        var layoutableParent = (child as NBVisual)?.VisualParent as NBLayoutable;
-
-        if (layoutableParent == null || !layoutableParent.UseLayoutRounding)
-        {
-            scale = 1.0;
-            return false;
-        }
-
-        scale = GetLayoutScale(layoutableParent);
-        return true;
     }
 
     /// <summary>
@@ -143,7 +109,7 @@ public static class NBLayoutHelper
     /// </summary>
     /// <param name="control">The control.</param>
     /// <exception cref="Exception">Thrown when control has no root or returned layout scaling is invalid.</exception>
-    public static double GetLayoutScale(NBLayoutable control) => control.GetLayoutRoot()?.LayoutScaling ?? 1.0;
+    public static double GetLayoutScale(NBLayoutable control) => 1.0;
 
     /// <summary>
     /// Rounds a size to integer values for layout purposes, compensating for high DPI screen
