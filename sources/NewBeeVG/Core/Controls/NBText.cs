@@ -2,7 +2,7 @@
 
 namespace NewBeeVG;
 
-public class NBText : NBLayoutable
+public class NBText : NBLayoutable, IPaddingable
 {
     /// <summary>
     /// 文本内容的内边距。
@@ -105,7 +105,7 @@ public class NBText : NBLayoutable
     /// <summary>
     /// 在子元素绘制完成后绘制文本本身。
     /// </summary>
-    protected override void AfterRenderChildren(SKCanvas context)
+    protected override void RenderDecorations(SKCanvas context)
     {
         RenderText(context);
     }
@@ -473,5 +473,86 @@ public class NBText : NBLayoutable
             return double.PositiveInfinity;
 
         return Math.Max(0, availableWidth - padding.Left - padding.Right);
+    }
+}
+
+public static partial class NBWidget_Extentions
+{
+    public static TWidget FontSize<TWidget>(this TWidget widget, float fontSize) where TWidget : NBText
+    {
+        widget.FontSize = fontSize;
+        return widget;
+    }
+
+    public static TWidget Text<TWidget>(this TWidget widget, string text) where TWidget : NBText
+    {
+        widget.Text = text;
+        return widget;
+    }
+
+    public static TWidget FontFamily<TWidget>(this TWidget widget, string fontFamily) where TWidget : NBText
+    {
+        widget.FontFamily = fontFamily;
+        return widget;
+    }
+
+    public static TWidget FontWeight<TWidget>(this TWidget widget, SKFontStyleWeight fontWeight) where TWidget : NBText
+    {
+        widget.FontWeight = fontWeight;
+        return widget;
+    }
+
+    public static TWidget FontWidth<TWidget>(this TWidget widget, SKFontStyleWidth fontWidth) where TWidget : NBText
+    {
+        widget.FontWidth = fontWidth;
+        return widget;
+    }
+
+    public static TWidget FontSlant<TWidget>(this TWidget widget, SKFontStyleSlant fontSlant) where TWidget : NBText
+    {
+        widget.FontSlant = fontSlant;
+        return widget;
+    }
+
+    public static TWidget WrapText<TWidget>(this TWidget widget, bool wrap = true) where TWidget : NBText
+    {
+        widget.IsWrapText = wrap;
+        return widget;
+    }
+
+    public static TWidget Trimming<TWidget>(this TWidget widget, bool trimming = true) where TWidget : NBText
+    {
+        widget.IsTrimming = trimming;
+        return widget;
+    }
+
+    public static TWidget Foreground<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
+    {
+        widget.Foreground = color;
+        return widget;
+    }
+
+    public static TWidget LineHeight<TWidget>(this TWidget widget, float lineHeight) where TWidget : NBText
+    {
+        widget.LineHeight = lineHeight;
+        return widget;
+    }
+
+    public static TWidget LetterSpacing<TWidget>(this TWidget widget, float letterSpacing) where TWidget : NBText
+    {
+        widget.LetterSpacing = letterSpacing;
+        return widget;
+    }
+
+    public static TWidget MaxLines<TWidget>(this TWidget widget, int? maxLines) where TWidget : NBText
+    {
+        widget.MaxLines = maxLines;
+        return widget;
+    }
+
+    public static TWidget TextAlign<TWidget>(this TWidget widget, SKTextAlign textAlign) where TWidget : NBText
+    {
+        widget.TextAlign = textAlign;
+        return widget;
     }
 }

@@ -30,6 +30,8 @@ public class ExportVideoView : BaseView
         var frames = Playable.Measure();
         var stage = Work.Stage;
 
+        NBGlobal.CheckOrLoadFFmpeg();
+
         var writer = new MediaWriter(DateTime.Now.ToFileTimeUtc() + ".mp4", stage.Width, stage.Height,stage.FrameRate, true);
 
         try

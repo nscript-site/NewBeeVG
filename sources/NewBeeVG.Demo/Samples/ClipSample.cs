@@ -4,8 +4,6 @@ internal class ClipSample
 {
     public static void Run()
     {
-        init();
-
         //var clip1 = clip(
         //name: "clip1",
         //frames: 30,
@@ -41,6 +39,23 @@ internal class ClipSample
         //            ]);
         //    }
         //);
+
+        var clip2 = clip(
+            name: "clip2",
+            frames: 30,
+            builder: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
+
+                return
+                Panel([
+                    TextBlock("Clip2").FontSize(200)
+                    .Align(0,-1)
+                    .Margin(0, 100 + (ctx.height - 500) * v, 0,0)
+                    ]);
+            }
+        );
 
         var clip3 = drawing(
             name: "skclip",
@@ -134,6 +149,6 @@ internal class ClipSample
 
 
         //run(stage(bg: Brushes.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
-        run(stage(bg: SKColors.Orange), [clip3, clip4, clip5, logo, logo2, footer]);
+        run(stage(bg: SKColors.Orange), [clip2, clip3, clip4, clip5, logo, logo2, footer]);
     }
 }

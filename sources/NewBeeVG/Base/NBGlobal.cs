@@ -14,7 +14,7 @@ public class NBGlobal
         IsFFmpegLoaded = FFmpegUtils.Initialize(ffmpegLibraryPath);
     }
 
-    public static void Initialize(string? ffmpegLibraryPath = null)
+    public static void CheckOrLoadFFmpeg(string? ffmpegLibraryPath = null)
     {
         LoadFFmpegLibrary(ffmpegLibraryPath);
     }

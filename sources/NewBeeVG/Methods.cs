@@ -194,11 +194,6 @@ public static class Methods
         return new NBMaskedDrawingClip(name, builder, maskBuilder, blend, frames, start);
     }
 
-    public static void init()
-    {
-        NBGlobal.Initialize();
-    }
-
     public static NBTrack track()
     {
         return new NBTrack();
@@ -332,6 +327,16 @@ public static class Methods
             >0 => SKTextAlign.Right
         };
         return tb;
+    }
+
+    public static NBPanel Panel(NBVisual[]? childs)
+    {
+        var panel = new NBPanel();
+        if (childs != null)
+        {
+            panel.Childs(childs);
+        }
+        return panel;
     }
 
     #endregion

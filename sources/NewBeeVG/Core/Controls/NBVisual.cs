@@ -28,11 +28,19 @@ public class NBVisual
     /// </summary>
     protected internal IAvaloniaList<NBVisual> VisualChildren { get; } = new AvaloniaList<NBVisual>();
 
-    protected virtual void BeforeRenderChildren(SKCanvas context)
+    /// <summary>
+    /// 绘制背景
+    /// </summary>
+    /// <param name="context"></param>
+    protected virtual void RenderBackground(SKCanvas context)
     {
     }
 
-    protected virtual void AfterRenderChildren(SKCanvas context)
+    /// <summary>
+    /// 绘制装饰物
+    /// </summary>
+    /// <param name="context"></param>
+    protected virtual void RenderDecorations(SKCanvas context)
     {
     }
 
@@ -73,7 +81,7 @@ public class NBVisual
 
     protected virtual void RenderCore(SKCanvas context)
     {
-        BeforeRenderChildren(context);
+        RenderBackground(context);
 
         foreach (var child in VisualChildren)
         {
@@ -89,7 +97,7 @@ public class NBVisual
             }
         }
 
-        AfterRenderChildren(context);
+        RenderDecorations(context);
     }
 
     public void InvalidateVisual()
