@@ -4,6 +4,7 @@
  ***********************/
 
 using NewBeeVG.Internal;
+using SkiaSharp;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -2999,4 +3000,31 @@ public class NBGrid : NBPanel
     }
 
     #endregion
+}
+
+public static partial class NBExtentions
+{
+    public static T RowSpacing<T>(this T panel, double spacing) where T : NBGrid
+    {
+        panel.RowSpacing = spacing;
+        return panel;
+    }
+
+    public static T ColumnSpacing<T>(this T panel, double spacing) where T : NBGrid
+    {
+        panel.ColumnSpacing = spacing;
+        return panel;
+    }
+
+    public static T RowDefinitions<T>(this T panel, string define) where T : NBGrid
+    {
+        panel.RowDefinitions = NBRowDefinitions.Parse(define);
+        return panel;
+    }
+
+    public static T ColumnDefinitions<T>(this T panel, string define) where T : NBGrid
+    {
+        panel.ColumnDefinitions = NBColumnDefinitions.Parse(define);
+        return panel;
+    }
 }

@@ -115,9 +115,23 @@ public static partial class NBExtentions
         return panel;
     }
 
-    public static T Childs<T>(this T panel, NBVisual[] children) where T : NBPanel
+    public static T Childs<T>(this T panel, NBVisual?[] children) where T : NBPanel
     {
-        panel.Children.AddRange(children);
+        bool containsNull = children.Contains(null);
+        if(containsNull)
+        {
+            foreach (var child in children)
+            {
+                if (child != null)
+                {
+                    panel.Children.Add(child);
+                }
+            }
+        }
+        else
+        {
+            panel.Children.AddRange(children!);
+        }
         return panel;
     }
 }

@@ -3,6 +3,8 @@
  * license: MIT
  ***********************/
 
+using SkiaSharp;
+
 namespace NewBeeVG;
 
 public class NBWrapPanel : NBPanel
@@ -197,5 +199,50 @@ public class NBWrapPanel : NBPanel
             get => _orientation == Orientation.Horizontal ? V : U;
             set { if (_orientation == Orientation.Horizontal) V = value; else U = value; }
         }
+    }
+}
+
+public static partial class NBExtentions
+{
+    public static T ItemSpacing<T>(this T panel, double spacing) where T : NBWrapPanel
+    {
+        panel.ItemSpacing = spacing;
+        return panel;
+    }
+
+    public static T LineSpacing<T>(this T panel, double spacing) where T : NBWrapPanel
+    {
+        panel.LineSpacing = spacing;
+        return panel;
+    }
+
+    public static T ItemsAlignment<T>(this T panel, int alignment) where T : NBWrapPanel
+    {
+        panel.ItemsAlignment = alignment;
+        return panel;
+    }
+
+    public static T ItemWidth<T>(this T panel, double width) where T : NBWrapPanel
+    {
+        panel.ItemWidth = width;
+        return panel;
+    }
+
+    public static T ItemHeight<T>(this T panel, double height) where T : NBWrapPanel
+    {
+        panel.ItemHeight = height;
+        return panel;
+    }
+
+    public static T Horizontal<T> (this T panel) where T : NBWrapPanel
+    {
+        panel.Orientation = NewBeeVG.Orientation.Horizontal;
+        return panel;
+    }
+
+    public static T Vertical<T>(this T panel) where T : NBWrapPanel
+    {
+        panel.Orientation = NewBeeVG.Orientation.Vertical;
+        return panel;
     }
 }

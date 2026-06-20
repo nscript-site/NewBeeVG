@@ -10,6 +10,18 @@ public static partial class NBExtentions
         public SKPoint Center => new SKPoint(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
     }
 
+    public static T Styles<T>(this T t, Action<T>[]? styles) where T : NBVisual
+    {
+        if (styles != null)
+        {
+            foreach (var style in styles)
+            {
+                style(t);
+            }
+        }
+        return t;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe bool HasAllFlags<T>(this T value, T flags) where T : unmanaged, Enum
     {

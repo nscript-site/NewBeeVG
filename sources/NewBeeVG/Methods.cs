@@ -317,7 +317,7 @@ public static class Methods
 
     #region Widgets
 
-    public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1 )
+    public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1, Action<NBText>[]? styles = null)
     {
         var tb = new NBText { Text = text, FontFamily = fontFamily ?? "Arial", FontSize = fontSize, Foreground = color ?? SKColors.Black };
         tb.IsWrapText = wrap;
@@ -327,6 +327,7 @@ public static class Methods
             <0 => SKTextAlign.Left,
             >0 => SKTextAlign.Right
         };
+        tb.Styles(styles);
         return tb;
     }
 
@@ -368,28 +369,28 @@ public static class Methods
         return panel;
     }
 
-    public static NBGrid HGrid(string rowDef, NBVisual[]? childs)
-    {
-        var panel = new NBGrid() { RowDefinitions = NBRowDefinitions.Parse(rowDef) };
-        if (childs != null)
-        {
-            for (int i = 0; i < childs.Length; i++)
-            {
-                childs[i].Col(i);
-            }
-            panel.Childs(childs);
-        }
-        return panel;
-    }
-
-    public static NBGrid VGrid(string colDef, NBVisual[]? childs)
+    public static NBGrid HGrid(string colDef, NBVisual?[]? childs)
     {
         var panel = new NBGrid() { ColumnDefinitions = NBColumnDefinitions.Parse(colDef) };
         if (childs != null)
         {
             for (int i = 0; i < childs.Length; i++)
             {
-                childs[i].Row(i);
+                childs[i]?.Col(i);
+            }
+            panel.Childs(childs);
+        }
+        return panel;
+    }
+
+    public static NBGrid VGrid(string rowDef, NBVisual?[]? childs)
+    {
+        var panel = new NBGrid() { RowDefinitions = NBRowDefinitions.Parse(rowDef) };
+        if (childs != null)
+        {
+            for (int i = 0; i < childs.Length; i++)
+            {
+                childs[i]?.Row(i);
             }
             panel.Childs(childs);
         }
