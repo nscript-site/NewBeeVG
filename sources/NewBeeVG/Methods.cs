@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using NewBeeVG.Internal;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -344,6 +345,52 @@ public static class Methods
         var panel = new NBWrapPanel { Orientation = isHorizontal ? Orientation.Horizontal : Orientation.Vertical };
         if (childs != null)
         {
+            panel.Childs(childs);
+        }
+        return panel;
+    }
+
+    public static NBGrid Grid(NBVisual[]? childs, string? rowDef = null, string? colDef = null)
+    {
+        var panel = new NBGrid();
+        if (rowDef != null)
+        {
+            panel.RowDefinitions = NBRowDefinitions.Parse(rowDef);
+        }
+        if (colDef != null)
+        {
+            panel.ColumnDefinitions = NBColumnDefinitions.Parse(colDef);
+        }
+        if (childs != null)
+        {
+            panel.Childs(childs);
+        }
+        return panel;
+    }
+
+    public static NBGrid HGrid(string rowDef, NBVisual[]? childs)
+    {
+        var panel = new NBGrid() { RowDefinitions = NBRowDefinitions.Parse(rowDef) };
+        if (childs != null)
+        {
+            for (int i = 0; i < childs.Length; i++)
+            {
+                childs[i].Col(i);
+            }
+            panel.Childs(childs);
+        }
+        return panel;
+    }
+
+    public static NBGrid VGrid(string colDef, NBVisual[]? childs)
+    {
+        var panel = new NBGrid() { ColumnDefinitions = NBColumnDefinitions.Parse(colDef) };
+        if (childs != null)
+        {
+            for (int i = 0; i < childs.Length; i++)
+            {
+                childs[i].Row(i);
+            }
             panel.Childs(childs);
         }
         return panel;

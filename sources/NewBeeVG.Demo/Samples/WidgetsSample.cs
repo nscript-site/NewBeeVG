@@ -66,31 +66,27 @@ internal class WidgetsSample
            }
        );
 
-        //var clip2 = clip(
-        //    name: "clip2",
-        //    frames: 30,
-        //    builder: (ctx, clip) =>
-        //    {
-        //        var easing = Easing.SineInOut;
-        //        double v = easing(ctx.progress);
+        var clip2 = clip(
+            name: "clip2",
+            frames: 30,
+            builder: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
 
-        //        return
-        //        Panel([
-        //                TextBlock("Clip2").FontSize(200)
-        //                .Align(0,-1)
-        //                .Margin(0, 100 + (ctx.height - 500) * v, 0,0),
+                return
+                Panel([
+                        HGrid("200, *", [
+                            TextBlock("AAAA"),
+                            TextBlock("BBBB")
+                            ])
+                        .Background(SKColors.Red)
+                        .Align(0,1)
+                        .Margin(100)
+                    ]);
+            }
+        );
 
-        //                HStack([
-        //                    TextBlock("AAAA"),
-        //                    TextBlock("BBBB")
-        //                    ])
-        //                .Background(SKColors.Red)
-        //                .Align(0,1)
-        //                .Margin(100)
-        //            ]);
-        //    }
-        //);
-
-        run(stage(bg: SKColors.Orange), [clip1]);
+        run(stage(bg: SKColors.Orange), [clip1, clip2]);
     }
 }

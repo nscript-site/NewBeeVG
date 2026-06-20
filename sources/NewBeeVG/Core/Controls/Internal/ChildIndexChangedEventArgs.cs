@@ -1,4 +1,10 @@
-﻿namespace NewBeeVG.Internal;
+﻿/***********************
+ * 代码修改自 avalonia (https://github.com/AvaloniaUI/Avalonia)
+ * license: MIT
+ ***********************/
+
+
+namespace NewBeeVG.Internal;
 
 /// <summary>
 /// Describes the action that caused a <see cref="IChildIndexProvider.ChildIndexChanged"/> event.

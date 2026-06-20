@@ -1,6 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿/***********************
+ * 代码修改自 avalonia (https://github.com/AvaloniaUI/Avalonia)
+ * license: MIT
+ ***********************/
 
 namespace NewBeeVG.Internal;
 

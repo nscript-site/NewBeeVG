@@ -23,6 +23,8 @@ public class NBVisual
     /// </summary>
     public NBPosition? PositionInCanvas { get; set; }
 
+    public NBParamsInGrid? ParamsInGrid { get; set; }
+
     /// <summary>
     /// Gets the size that this element computed during the measure pass of the layout process.
     /// </summary>
@@ -122,5 +124,50 @@ public class NBVisual
         {
             layoutable.Arrange(rect);
         }
+    }
+
+    internal void TryArrange(Point offset, Rect rect)
+    {
+        var offsetRect = new Rect(new Point(offset.X + rect.X, offset.Y + rect.Y), rect.Size);
+        if (this is NBLayoutable layoutable)
+        {
+            layoutable.Arrange(offsetRect);
+        }
+    }
+
+    public void Col(int column)
+    {
+        if(ParamsInGrid == null)
+        {
+            ParamsInGrid = new NBParamsInGrid();
+        }
+        ParamsInGrid.Column = column;
+    }
+
+    public void Row(int row)
+    {
+        if (ParamsInGrid == null)
+        {
+            ParamsInGrid = new NBParamsInGrid();
+        }
+        ParamsInGrid.Row = row;
+    }
+
+    public void ColSpan(int colSpan)
+    {
+        if (ParamsInGrid == null)
+        {
+            ParamsInGrid = new NBParamsInGrid();
+        }
+        ParamsInGrid.ColumnSpan = colSpan;
+    }
+
+    public void RowSpan(int rowSpan)
+    {
+        if (ParamsInGrid == null)
+        {
+            ParamsInGrid = new NBParamsInGrid();
+        }
+        ParamsInGrid.RowSpan = rowSpan;
     }
 }
