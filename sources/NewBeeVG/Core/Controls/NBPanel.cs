@@ -1,4 +1,9 @@
-﻿using NewBeeVG.Internal;
+﻿/***********************
+ * 代码修改自 avalonia (https://github.com/AvaloniaUI/Avalonia)
+ * license: MIT
+ ***********************/
+
+using NewBeeVG.Internal;
 using SkiaSharp;
 using System.Collections.Specialized;
 

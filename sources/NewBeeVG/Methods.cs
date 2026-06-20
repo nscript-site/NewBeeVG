@@ -339,6 +339,16 @@ public static class Methods
         return panel;
     }
 
+    public static NBWrapPanel WrapPanel(NBVisual[]? childs, bool isHorizontal = true)
+    {
+        var panel = new NBWrapPanel { Orientation = isHorizontal ? Orientation.Horizontal : Orientation.Vertical };
+        if (childs != null)
+        {
+            panel.Childs(childs);
+        }
+        return panel;
+    }
+
     public static NBStack HStack(NBVisual[]? childs)
     {
         var stack = new NBStack { Orientation = Orientation.Horizontal};
