@@ -417,5 +417,35 @@ public static class Methods
         return stack;
     }
 
+    private static Dictionary<string,SKBitmap> _imageCache = new Dictionary<string, SKBitmap>();
+    private static object _imageCacheLock = new object();
+    private static SKBitmap LoadImage(string source)
+    {
+        lock (_imageCacheLock)
+        {
+            if (_imageCache.TryGetValue(source, out var bitmap))
+            {
+                return bitmap;
+            }
+            else
+            {
+                bitmap = SKBitmap.Decode(source);
+                _imageCache[source] = bitmap;
+                return bitmap;
+            }
+        }
+    }
+
+    public static NBImage Image(string source, float width = 300, float height = 300)
+    {
+        SKBitmap? bitmap = LoadImage(source);
+        return new NBImage { Source = bitmap, Width = width, Height = height };
+    }
+
+    public static NBImage Image(SKBitmap source, float width = 300, float height = 300)
+    {
+        return new NBImage { Source = source, Width = width, Height = height };
+    }
+
     #endregion
 }

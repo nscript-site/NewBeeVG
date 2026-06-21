@@ -50,6 +50,22 @@ internal class WidgetsSample
             }
         );
 
-        run(stage(bg: SKColors.Orange), [clip1, clip2]);
+        var clip3 = clip(
+            name: "clip_image",
+            frames: 30,
+            builder: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
+                double h = 100 + (ctx.height - 100) * v;
+                return
+                VGrid($"*,{h}", [
+                        null,
+                        Image("./Assets/snows.jpg").Align(0,-1).Size(300,200).Stretch(Stretch.Fill)
+                    ]).Background(SKColors.DeepSkyBlue);
+            }
+        );
+
+        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3]);
     }
 }

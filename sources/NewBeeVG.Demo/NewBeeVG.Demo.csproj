@@ -41,6 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Assets\snows.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Notes\n0001.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
