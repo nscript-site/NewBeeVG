@@ -1,4 +1,5 @@
-﻿using Avalonia.Threading;
+﻿using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using SkiaSharp;
 using System.Diagnostics;
 
@@ -120,9 +121,41 @@ public class PlayerView : BaseView
         });
     }
 
-    private void Export()
+    private async void Export()
     {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null) return;
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "保存 MP4",
+            SuggestedFileName = $"out_{Playable!.FullName}.mp4",
+            DefaultExtension = "mp4",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("MP4")
+                {
+                    Patterns = ["*.mp4"]
+                }
+            ]
+        });
+
+        if (file is null)
+            return;
+
         var exportView = new ExportVideoView() { Playable = this.Playable!, Work = this.Work! };
-        exportView.ShowInOverlay(this, true);
+        exportView.ExportFilePath = file.Path.LocalPath;
+        exportView.OnSave = filePath =>
+        {
+            if (!string.IsNullOrEmpty(filePath))
+            {
+                this.ShowToast($"视频已保存到: {filePath}");
+            }
+        };
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            exportView.ShowInOverlay(this, true);
+        });
     }
 }

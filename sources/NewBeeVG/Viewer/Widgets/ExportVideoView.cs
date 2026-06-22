@@ -1,4 +1,5 @@
 ﻿using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using NewBeeMedia;
 
@@ -11,11 +12,19 @@ public class ExportVideoView : BaseView
 
     private string Message { get; set; } = string.Empty;
 
+    public Action<string>? OnSave { get; set; }
+
+    internal string? ExportFilePath { get; set; }
+
     protected override void Build(out Control content)
     {
-        TextBlock(() => Message)
+        VGrid("*", [
+            TextBlock(() => Message)
             .Align(0,0)
             .Margin(10)
+            ])
+            .Size(200,100)
+            .Background(Brushes.White)
             .Return(out content);
     }
 
@@ -27,12 +36,16 @@ public class ExportVideoView : BaseView
 
     private void Export()
     {
-        var frames = Playable.Measure();
-        var stage = Work.Stage;
+        if (ExportFilePath == null) return;
 
         NBGlobal.CheckOrLoadFFmpeg();
 
-        var writer = new MediaWriter(DateTime.Now.ToFileTimeUtc() + ".mp4", stage.Width, stage.Height,stage.FrameRate, true);
+        var frames = Playable.Measure();
+        var stage = Work.Stage;
+
+        var fileName = ExportFilePath;
+
+        var writer = new MediaWriter(fileName, stage.Width, stage.Height,stage.FrameRate, true);
 
         try
         {
@@ -45,7 +58,6 @@ public class ExportVideoView : BaseView
 
                 if (CurrentFrame % 10 == 0)
                 {
-
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         Message = $"正在导出视频... {CurrentFrame}/{frames}";
@@ -61,6 +73,7 @@ public class ExportVideoView : BaseView
             Dispatcher.UIThread.InvokeAsync(() =>
             {
                 this.RemoveFromOverlay();
+                OnSave?.Invoke(fileName);
             });
         }
     }
