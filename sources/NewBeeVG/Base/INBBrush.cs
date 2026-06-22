@@ -45,7 +45,8 @@ public class NBColorBrush : NBBrush
         return new SKPaint
         {
             Style = SKPaintStyle.Fill,
-            Color = Color
+            Color = Color,
+            IsAntialias = true
         };
     }
 }

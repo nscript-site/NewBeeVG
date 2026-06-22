@@ -50,7 +50,8 @@ public class NBTrack : IPlayable
                 var paint = new SKPaint
                 {
                     Style = SKPaintStyle.Fill,
-                    Color = stage.Background.Value
+                    Color = stage.Background.Value,
+                    IsAntialias = true
                 };
                 canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
             }

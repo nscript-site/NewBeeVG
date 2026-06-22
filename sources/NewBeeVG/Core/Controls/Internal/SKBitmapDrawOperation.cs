@@ -65,6 +65,14 @@ public class SKBitmapDrawOperation : ICustomDrawOperation
             }
 
             canvas.DrawBitmap(_frame, dstRect);
+            //TODO: 提高绘制质量
+            //using var paint = new SKPaint
+            //{
+            //    FilterQuality = SKFilterQuality.High,
+            //    IsAntialias = true
+            //};
+
+            //canvas.DrawBitmap(_frame, dstRect, paint);
         }
     }
 }

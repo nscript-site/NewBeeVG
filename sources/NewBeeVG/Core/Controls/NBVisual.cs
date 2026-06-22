@@ -73,7 +73,8 @@ public class NBVisual
             byte alpha = (byte)Math.Clamp(Opacity * 255.0, 0, 255);
             using var layerPaint = new SKPaint
             {
-                Color = SKColors.White.WithAlpha(alpha)
+                Color = SKColors.White.WithAlpha(alpha), 
+                IsAntialias = true
             };
 
             context.SaveLayer(layerPaint);

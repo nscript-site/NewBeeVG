@@ -88,7 +88,8 @@ internal class DrawingHelper
         using var paint = new SKPaint
         {
             Style = SKPaintStyle.Fill,
-            Color = skColor
+            Color = skColor,
+            IsAntialias = true
         };
         canvas.DrawRect(new SKRect(0, 0, bmp.Width, bmp.Height), paint);
     }
