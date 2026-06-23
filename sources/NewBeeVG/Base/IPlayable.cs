@@ -6,18 +6,24 @@ public interface IPlayable
 {
     public bool Render(SKBitmap bitmap, NBStage stage, int frame)
     {
-        var content = Render(stage, frame, true);
-        if (content == null) return false;
-
-        // 使用 skia 将 content 渲染到 SKBitmap 上
         using(SKCanvas canvas = new SKCanvas(bitmap))
         {
-            canvas.DrawBitmap(content, new SKPoint());
+            this.Render(canvas, stage, frame, true);
+            return true;
         }
-        return true;
     }
 
-    SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground);
+    public SKBitmap RenderBitmap(NBStage stage, int frame, bool includeStageBackground)
+    {
+        var bitmap = new SKBitmap(stage.Width, stage.Height);
+        using (SKCanvas canvas = new SKCanvas(bitmap))
+        {
+            this.Render(canvas, stage, frame, includeStageBackground);
+            return bitmap;
+        }
+    }
+
+    void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground);
 
     /// <summary>
     /// 准备。有些 playable 需要准备工作。

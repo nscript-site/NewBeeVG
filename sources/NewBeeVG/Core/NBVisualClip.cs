@@ -12,18 +12,15 @@ public class NBVisualClip : NBClip
         _skBuilder = builder;
     }
 
-    protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(Func<NBDrawContext, NBClip, NBVisual?>? builder)
+    protected static Action<NBDrawContext, NBClip, SKCanvas>? ConvertBuilder(Func<NBDrawContext, NBClip, NBVisual?>? builder)
     {
         if (builder == null) return null;
 
-        return (ctx, clip) =>
+        return (ctx, clip, canvas) =>
         {
             var visual = builder(ctx, clip);
-            if (visual == null) return null;
-            var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-            using var canvas = new SKCanvas(targetBitmap);
+            if (visual == null) return;
             visual.Render(canvas);
-            return targetBitmap;
         };
     }
 }

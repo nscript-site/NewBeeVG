@@ -1,8 +1,8 @@
 ﻿//LayoutSample.Run();
 
-WidgetsSample.Run();
+//WidgetsSample.Run();
 
-//ClipSample.Run();
+ClipSample.Run();
 
 //TTSScriptParserSample.Run();
 

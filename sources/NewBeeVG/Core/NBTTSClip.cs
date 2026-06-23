@@ -44,11 +44,10 @@ public class NBTTSClip : NBClip
 
     private bool _playing = false;
 
-    public override SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    public override void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground)
     {
         if (frame == 0)
             Play();
-        return null;
     }
 
     public override void Prepare()

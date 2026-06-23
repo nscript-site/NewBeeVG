@@ -7,35 +7,35 @@ public class NBDrawingClip : NBClip
     private readonly Action<NBDrawContext, NBClip, SKCanvas>? _skBuilder;
 
     public NBDrawingClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
-        :base(name, ConvertBuilder(builder), duration, start)
+        :base(name, builder, duration, start)
     {
         _skBuilder = builder;
     }
 
-    protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(Action<NBDrawContext, NBClip, SKCanvas>? skBuilder)
-    {
-        if (skBuilder == null) return null;
+    //protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(Action<NBDrawContext, NBClip, SKCanvas>? skBuilder)
+    //{
+    //    if (skBuilder == null) return null;
 
-        return (ctx, clip) =>
-        {
-            var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-            using var canvas = new SKCanvas(targetBitmap);
-            skBuilder(ctx, clip,canvas);
-            return targetBitmap;
-        };
-    }
+    //    return (ctx, clip) =>
+    //    {
+    //        var targetBitmap = new SKBitmap(ctx.width, ctx.height);
+    //        using var canvas = new SKCanvas(targetBitmap);
+    //        skBuilder(ctx, clip,canvas);
+    //        return targetBitmap;
+    //    };
+    //}
 
-    public override SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
-    {
-        if (_skBuilder == null) return null;
+    //public override SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    //{
+    //    if (_skBuilder == null) return null;
 
-        var ctx = this.CreateDrawContext(stage, frame);
-        var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-        DrawingHelper.FillStageBackgroundIfSet(targetBitmap, stage, includeStageBackground);
-        using var canvas = new SKCanvas(targetBitmap);
-        _skBuilder(ctx, this, canvas);
-        return targetBitmap;
-    }
+    //    var ctx = this.CreateDrawContext(stage, frame);
+    //    var targetBitmap = new SKBitmap(ctx.width, ctx.height);
+    //    DrawingHelper.FillStageBackgroundIfSet(targetBitmap, stage, includeStageBackground);
+    //    using var canvas = new SKCanvas(targetBitmap);
+    //    _skBuilder(ctx, this, canvas);
+    //    return targetBitmap;
+    //}
 }
 
 public class NBMaskedDrawingClip : NBClip
@@ -52,7 +52,7 @@ public class NBMaskedDrawingClip : NBClip
         BlendMode = blend;
     }
 
-    protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(
+    protected static Action<NBDrawContext, NBClip, SKCanvas>? ConvertBuilder(
         Action<NBDrawContext, NBClip, SKCanvas>? skBuilder,
         Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder, SKBlendMode blend)
     {
@@ -60,16 +60,10 @@ public class NBMaskedDrawingClip : NBClip
 
         if(maskBuilder == null)
         {
-            return (ctx, clip) =>
-            {
-                var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-                using var canvas = new SKCanvas(targetBitmap);
-                skBuilder(ctx, clip, canvas);
-                return targetBitmap;
-            };
+            return skBuilder!;
         }
 
-        return (ctx, clip) =>
+        return (ctx, clip, canvas) =>
         {
             using var srcBitmap = new SKBitmap(ctx.width, ctx.height);
             using var maskBitmap = new SKBitmap(ctx.width, ctx.height);
@@ -92,8 +86,7 @@ public class NBMaskedDrawingClip : NBClip
             };
             // 绘制遮罩位图（尺寸和目标图一致，保证覆盖）
             targetCanvas.DrawBitmap(srcBitmap, new SKPoint(0, 0), paint);
-
-            return targetBitmap;
+            canvas.DrawBitmap(targetBitmap, new SKPoint(0, 0));
         };
     }
 }

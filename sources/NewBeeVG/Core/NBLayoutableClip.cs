@@ -12,21 +12,18 @@ public class NBLayoutableClip : NBClip
         _skBuilder = builder;
     }
 
-    protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(Func<NBDrawContext, NBClip, NBLayoutable?>? builder)
+    protected static Action<NBDrawContext, NBClip, SKCanvas>? ConvertBuilder(Func<NBDrawContext, NBClip, NBLayoutable?>? builder)
     {
         if (builder == null) return null;
 
-        return (ctx, clip) =>
+        return (ctx, clip, canvas) =>
         {
             var visual = builder(ctx, clip);
-            if (visual == null) return null;
+            if (visual == null) return;
 
-            var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-            using var canvas = new SKCanvas(targetBitmap);
             visual.Measure(ctx.width, ctx.height);
             visual.Arrange(0, 0, ctx.width, ctx.height);
             visual.Render(canvas);
-            return targetBitmap;
         };
     }
 }

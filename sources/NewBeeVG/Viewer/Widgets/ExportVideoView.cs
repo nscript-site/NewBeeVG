@@ -51,7 +51,7 @@ public class ExportVideoView : BaseView
         {
             for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
             {
-                using var bmp = Playable.Render(stage, CurrentFrame, true);
+                using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
                 if (bmp == null) break;
 
                 writer.WriteFrame(bmp);

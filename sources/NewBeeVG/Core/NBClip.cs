@@ -19,13 +19,13 @@ public class NBClip : IPlayable
     /// </summary>
     public int DurationFrames { get; set; }
 
-    internal Func<NBDrawContext, NBClip, SKBitmap?>? ControlBuilder { get; set; }
+    internal Action<NBDrawContext, NBClip, SKCanvas>? ControlBuilder { get; set; }
 
     public string Name { get; init; }
 
     public bool IsVisible { get; set; } = true;
 
-    public NBClip(string name = "clip", Func<NBDrawContext, NBClip, SKBitmap?>? builder = null, int duration = 1, int? start = null)
+    public NBClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
     {
         Name = name;
         ControlBuilder = builder;
@@ -51,13 +51,12 @@ public class NBClip : IPlayable
         return frame /(count - 1.0);
     }
 
-    public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
+    public virtual void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground)
     {
-        if (ControlBuilder == null) return null;
+        if (ControlBuilder == null) return;
 
         var context = CreateDrawContext(stage, frame);
-        var content = ControlBuilder(context, this);
-        return content;
+        ControlBuilder(context, this, canvas);
     }
 
     protected NBDrawContext CreateDrawContext(NBStage stage, int frame)
