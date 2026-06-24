@@ -22,7 +22,7 @@ $ a^2 + b^2 = c^2 $
   line((0, 0), (4, 0))
   line((0, 0), (0, 3))
   line((0, 0), (4, 3))
-  circle((2, 1.5 + frames/30.0), radius: 0.8, fill: aqua.lighten(40%))
+  circle((2, 1.5 ), radius: 0.8 + frames/30.0, fill: aqua.lighten(40%))
 })
 
-#image("./assets/snows.jpg", width: 200pt)
+#image("./snows.jpg", width: 200pt)

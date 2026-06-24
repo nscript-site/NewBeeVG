@@ -81,6 +81,20 @@ internal class WidgetsSample
             }
         );
 
-        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4]);
+        var clip5 = clip(
+            name: "typst",
+            frames: 30,
+            builder: (ctx, clip) =>
+            {
+                return
+                VGrid($"*", [
+                        TypstFile("./Assets/page1.typ")
+                            .Align(0,0)
+                            .TypstInputs(x=>{x["frames"] = $"{ctx.frame}"; })
+                        ]).Background(SKColors.DeepSkyBlue);
+            }
+        );
+
+        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5]);
     }
 }

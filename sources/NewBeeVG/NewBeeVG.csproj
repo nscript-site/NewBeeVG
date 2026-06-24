@@ -16,6 +16,7 @@
     <PackageReference Include="NAudio" />
     <PackageReference Include="newbeeui" />
     <PackageReference Include="Svg.Skia" />
+    <PackageReference Include="TypstNET" />
   </ItemGroup>
 
   <ItemGroup>

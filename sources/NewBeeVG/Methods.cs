@@ -466,5 +466,14 @@ public static class Methods
         return svg;
     }
 
+    public static NBTypst TypstFile(string path, float? width = null, float? height = null)
+    {
+        var file = new NBTypst();
+        file.TypstFile = path;
+        if (width.HasValue) file.Width = width.Value;
+        if (height.HasValue) file.Height = height.Value;
+        return file;
+    }
+
     #endregion
 }
