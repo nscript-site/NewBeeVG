@@ -7,7 +7,7 @@ var erasings = Easing.All();
 var clips = new List<NBClip>();
 foreach (var e in erasings)
 {
-    var newClip = skclip(
+    var newClip = drawing(
         name: $"{e.Item1}",
         frames: 15,
         builder: (ctx, clip, canvas) =>
@@ -37,4 +37,4 @@ foreach (var e in erasings)
     clips.Add(newClip);
 }
 
-run(stage(width: 1920, height: 1080, bg: Brushes.Black), clips);
+run(stage(width: 1920, height: 1080, bg: SKColors.Black), clips);

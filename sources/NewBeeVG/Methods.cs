@@ -436,15 +436,34 @@ public static class Methods
         }
     }
 
-    public static NBImage Image(string source, float width = 300, float height = 300)
+    public static NBImage Image(string source, float? width = null, float? height = null)
     {
-        SKBitmap? bitmap = LoadImage(source);
-        return new NBImage { Source = bitmap, Width = width, Height = height };
+        return Image(SKBitmap.Decode(source), width, height);
     }
 
-    public static NBImage Image(SKBitmap source, float width = 300, float height = 300)
+    public static NBImage Image(SKBitmap source, float? width = null, float? height = null)
     {
-        return new NBImage { Source = source, Width = width, Height = height };
+        var img = new NBImage { Source = source };
+        if (width.HasValue) img.Width = width.Value;
+        if (height.HasValue) img.Height = height.Value;
+        return img;
+    }
+
+    public static NBSvg SVG(Stream stream, float? width = null, float? height = null)
+    {
+        var svg = new NBSvg { SvgStream = stream };
+        if (width.HasValue) svg.Width = width.Value;
+        if (height.HasValue) svg.Height = height.Value;
+        return svg;
+    }
+
+    public static NBSvg SVG(string content, float? width = null, float? height = null)
+    {
+        var svg = new NBSvg();
+        svg.SvgContent(content);
+        if (width.HasValue) svg.Width = width.Value;
+        if (height.HasValue) svg.Height = height.Value;
+        return svg;
     }
 
     #endregion

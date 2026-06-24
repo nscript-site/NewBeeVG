@@ -10,7 +10,6 @@
     <Using Include="Python.Runtime" />
   </ItemGroup>
   <ItemGroup>
-    <Using Include="Avalonia.Media"/>
     <Using Include="NewBeeVG" />
     <Using Include="SkiaSharp" />
     <Using Include="NewBeeVG.Methods" Static="True" />

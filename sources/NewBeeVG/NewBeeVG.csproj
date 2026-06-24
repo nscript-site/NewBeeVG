@@ -15,6 +15,7 @@
     <!--<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" />-->
     <PackageReference Include="NAudio" />
     <PackageReference Include="newbeeui" />
+    <PackageReference Include="Svg.Skia" />
   </ItemGroup>
 
   <ItemGroup>

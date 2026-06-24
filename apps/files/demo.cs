@@ -3,14 +3,6 @@
 // 简单的 NewBeeVG 使用例子
 // #:project ../../sources/NewBeeVG/NewBeeVG.csproj
 
-using NewBeeUI;
-using NewBeeVG;
-using Avalonia.Media;
-using Avalonia.Markup.Declarative;
-using static NewBeeUI.BaseView;
-using static NewBeeVG.Methods;
-using SkiaSharp;
-
 var clip1 = clip(
     name: "clip1",
     frames: 30,
@@ -47,8 +39,8 @@ var clip2 = clip(
     }
 );
 
-var clip3 = skclip(
-    name: "skclip",
+var clip3 = drawing(
+    name: "drawing",
     frames:10,
     builder: (ctx, clip, canvas) =>
     {
@@ -63,8 +55,8 @@ var clip3 = skclip(
     }
 );
 
-var clip4 = skclip_withmask(
-    name: "skclip2",
+var clip4 = drawing_withmask(
+    name: "drawing_withmask",
     frames:10,
     builder: (ctx, clip, canvas) =>
     {
@@ -83,8 +75,8 @@ var clip4 = skclip_withmask(
     }
 );
 
-var clip5 = skclip_withmask(
-    name: "skclip3",
+var clip5 = drawing_withmask(
+    name: "drawing_withmask2",
     frames: 10,
     blend: SKBlendMode.SrcOut,
     builder: (ctx, clip, canvas) =>
@@ -126,5 +118,5 @@ var logo2 = clip(
     }
 );
 
-run(stage(bg: Brushes.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
+run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
 

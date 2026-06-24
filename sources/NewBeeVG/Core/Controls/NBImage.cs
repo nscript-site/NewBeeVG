@@ -60,7 +60,7 @@ public enum StretchDirection
     Both,
 }
 
-public class NBImage : NBLayoutable
+public class NBImage : NBLayoutable, INBImage
 {
     public SKBitmap? Source { get; set; }
 
@@ -134,24 +134,6 @@ public static partial class NBExtentions
     public static T Source<T>(this T widget, SKBitmap? source) where T : NBImage
     {
         widget.Source = source;
-        return widget;
-    }
-
-    public static T Stretch<T>(this T widget, Stretch stretch) where T : NBImage
-    {
-        widget.Stretch = stretch;
-        return widget;
-    }
-
-    public static T StretchDirection<T>(this T widget, StretchDirection stretchDirection) where T : NBImage
-    {
-        widget.StretchDirection = stretchDirection;
-        return widget;
-    }
-
-    public static T BlendMode<T>(this T widget, SKBlendMode blendMode) where T : NBImage
-    {
-        widget.BlendMode = blendMode;
         return widget;
     }
 }

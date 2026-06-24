@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace NewBeeVG.Demo.Samples;
+﻿namespace NewBeeVG.Demo.Samples;
 
 internal class WidgetsSample
 {
@@ -42,7 +38,7 @@ internal class WidgetsSample
                 VGrid($"*,{h}",[
                         null,
                         HGrid("200, *", [
-                            TextBlock("AAAA").Align(0,0),
+                            null,
                             TextBlock("BBBB").Align(0,-1).Margin(0,h-100,0,0)
                             ])
                         .Background(SKColors.Red)
@@ -66,6 +62,25 @@ internal class WidgetsSample
             }
         );
 
-        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3]);
+        var svg = $"""
+                    <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">            
+                        <rect width="100" height="100" fill="#f5f5f5"/>
+                        <text x="140" y="108" font-size="24" fill="#222">Hello SVG</text>
+                    </svg>
+                    """;
+
+        var clip4 = clip(
+            name: "svg",
+            frames: 30,
+            builder: (ctx, clip) =>
+            {
+                return
+                VGrid($"*", [
+                        SVG(svg).Align(0,0)
+                    ]).Background(SKColors.DeepSkyBlue);
+            }
+        );
+
+        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4]);
     }
 }
