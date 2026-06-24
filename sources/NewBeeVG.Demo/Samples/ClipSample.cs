@@ -1,8 +1,10 @@
-﻿namespace NewBeeVG.Demo.Samples;
+﻿using System.Runtime.CompilerServices;
+
+namespace NewBeeVG.Demo.Samples;
 
 internal class ClipSample
 {
-    public static void Run()
+    public static void Run([CallerFilePath] string filePath = "")
     {
         //var clip1 = clip(
         //name: "clip1",

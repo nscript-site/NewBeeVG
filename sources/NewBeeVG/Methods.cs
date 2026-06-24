@@ -1,5 +1,8 @@
-﻿using NewBeeVG.Internal;
+﻿using FFmpeg.AutoGen.Abstractions;
+using NewBeeVG.Internal;
+using Python.Runtime;
 using SkiaSharp;
+using System.Runtime.CompilerServices;
 
 namespace NewBeeVG;
 
@@ -315,6 +318,104 @@ public static class Methods
         return prefix + new string('*', maskedChars) + str.Substring(maskedChars);
     }
 
+    #region embed python
+
+    public static void embed_python312_win32(string? pythonDir = null, [CallerFilePath] string filePath = "")
+    {
+        FileInfo file = new FileInfo(filePath);
+        var dir = file.Directory?.FullName ?? "./";
+
+        var dllDir = @"../_lib/python-3.12.8-embed-amd64/";
+
+        var dllDirInfo = pythonDir == null ? new DirectoryInfo(Path.Combine(dir, dllDir)) : new DirectoryInfo(pythonDir);
+
+        string pythonHomePath = dllDirInfo.FullName;
+        string pythonDllPath = $"{pythonHomePath}python312.dll";
+        // 对应python内的重要路径
+        string[] py_paths = { "python312.zip", "lib", "lib/site-packages" };
+        string pySearchPath = $"{pythonHomePath};";
+        foreach (string p in py_paths)
+        {
+            pySearchPath += $"{pythonHomePath}/{p};";
+        }
+
+        Runtime.PythonDLL = pythonDllPath;
+        Environment.SetEnvironmentVariable("PYTHONNET_PYDLL", pythonDllPath);
+        PythonEngine.PythonHome = pythonHomePath;
+        PythonEngine.PythonPath = pySearchPath;
+        PythonEngine.Initialize();
+    }
+
+    public static void embed_python312_macosx(string? pythonDir = null)
+    {
+        string pythonDllPath = pythonDir ?? $"/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/Python";
+        Runtime.PythonDLL = pythonDllPath;
+        Environment.SetEnvironmentVariable("PYTHONNET_PYDLL", pythonDllPath);
+        PythonEngine.Initialize();
+    }
+
+    public static Python.Runtime.Py.GILState py_gil()
+    {
+        return Py.GIL();
+    }
+
+    public static PyObject py_module(string path)
+    {
+        var fileInfo = new FileInfo(path);
+        var dir = fileInfo.Directory;
+        using(py_gil())
+        {
+            if (dir != null)
+            {
+                dynamic sys = Py.Import("sys");
+                sys.path.append(dir.FullName); // 加入路径    
+            }
+
+            var fileName = fileInfo.Name;
+            if (fileInfo.Extension == ".py")
+            {
+                fileName = fileInfo.Name.Substring(0, fileInfo.Name.Length - 3);
+            }
+            return Py.Import(fileName);
+        }
+    }
+
+    public static SKBitmap? py_imdecode(PyObject obj)
+    {
+        // 1. 安全读取元组
+        int width = Convert.ToInt32(obj[0]);
+        int height = Convert.ToInt32(obj[1]);
+        dynamic data = obj[2];
+        byte[] rawBytes = (byte[])data; // bytes直接转C# byte[]
+
+        int expected = width * height * 4;
+        if (rawBytes.Length != expected)
+        {
+            throw new Exception($"图像数据长度不匹配：预期{expected}，实际{rawBytes.Length}");
+        }
+
+        // 2. 显式指定RGBA8888，和matplotlib canvas.buffer_rgba输出完全匹配
+        SKImageInfo imgInfo = new SKImageInfo(width, height, SKColorType.Rgba8888);
+        SKBitmap bitmap = new SKBitmap(imgInfo);
+
+        // 3. 拷贝外部像素到SKBitmap自有内存，彻底解决生命周期问题
+        unsafe
+        {
+            fixed (byte* srcPtr = rawBytes)
+            {
+                // 获取bitmap内部像素缓冲区指针
+                byte* dstPtr = (byte*)bitmap.GetPixels();
+                int totalBytes = width * height * 4;
+                // 内存拷贝
+                Buffer.MemoryCopy(srcPtr, dstPtr, totalBytes, totalBytes);
+            }
+        }
+
+        return bitmap;
+    }
+
+    #endregion
+
     #region Widgets
 
     public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1, Action<NBText>[]? styles = null)
@@ -439,6 +540,12 @@ public static class Methods
     public static NBImage Image(string source, float? width = null, float? height = null)
     {
         return Image(SKBitmap.Decode(source), width, height);
+    }
+
+    public static NBImage Image(byte[] data, float? width = null, float? height = null)
+    {
+        using var stream = new MemoryStream(data);
+        return Image(SKBitmap.Decode(stream), width, height);
     }
 
     public static NBImage Image(SKBitmap source, float? width = null, float? height = null)
