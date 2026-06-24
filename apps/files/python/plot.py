@@ -48,10 +48,10 @@ def plot_3d_data(angle):
     plt.close(fig)
     return w, h, raw_bin
 
-if __name__ == "__main__":
-    w, h, raw_bin = plot_3d_data(0)
-    print(f"w={w}, h={h}")
-    print(f"Generated raw data size: {len(raw_bin)} bytes")
-    _, plt = plot_3d(0)
-    plt.savefig("output.png")
-    plt.close()
+# if __name__ == "__main__":
+    # w, h, raw_bin = plot_3d_data(0)
+    # print(f"w={w}, h={h}")
+    # print(f"Generated raw data size: {len(raw_bin)} bytes")
+    # _, plt = plot_3d(0)
+    # plt.savefig("output.png")
+    # plt.close()

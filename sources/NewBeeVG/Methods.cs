@@ -1,8 +1,10 @@
 ﻿using FFmpeg.AutoGen.Abstractions;
+using NewBeeMedia;
 using NewBeeVG.Internal;
 using Python.Runtime;
 using SkiaSharp;
 using System.Runtime.CompilerServices;
+using Tmds.DBus.Protocol;
 
 namespace NewBeeVG;
 
@@ -229,6 +231,67 @@ public static class Methods
 
         NBWorkspace.Current = NBWorkspace.Create(stage, clips);
         start();
+    }
+
+    public static void save(string path, NBStage stage, IList<NBClip> clips)
+    {
+        var fileInfo = new FileInfo(path);
+        if(fileInfo.Exists == true)
+        {
+            Console.WriteLine($"文件已存在:{path}, 保存失败!");
+            return;
+        }
+
+        foreach (var clip in clips)
+        {
+            try
+            {
+                clip.Prepare();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Clip[{clip.Name} prepare fail: {ex.Message}]");
+            }
+        }
+
+        var work = NBWorkspace.Create(stage, clips);
+        if(work.Works.Count == 0)
+        {
+            Console.WriteLine($"没有可导出的视频内容!");
+            return;
+        }
+
+        NBGlobal.CheckOrLoadFFmpeg();
+
+        var frames = work.Works[0].Measure();
+
+        var fileName = fileInfo.FullName;
+
+        IPlayable Playable = work.Works[0];
+
+        var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true);
+
+        try
+        {
+            for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
+            {
+                using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
+                if (bmp == null) break;
+
+                writer.WriteFrame(bmp);
+
+                if (CurrentFrame % 10 == 0)
+                {
+                    var msg = $"正在导出视频... {CurrentFrame}/{frames}";
+                    Console.WriteLine (msg);
+                }
+            }
+
+            writer.Close();
+        }
+        finally
+        {
+        }
     }
 
     private static Dictionary<string, string> _localConfigData = new Dictionary<string, string>();

@@ -120,6 +120,7 @@ internal class WidgetsSample
             }
         );
 
-        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
+        //run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
+        save("out.mp4", stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
     }
 }
