@@ -3,25 +3,29 @@ using Svg.Skia;
 
 namespace NewBeeVG;
 
-public class NBSvg : NBLayoutable, INBImage
+public class NBSvg : NBBaseImage
 {
     public Stream? SvgStream { get; set; }
 
-    public SKPicture? Source { get; private set; }
+    public SKPicture? Source { get; protected set; }
 
-    private SKSvg? Svg { get; set; }
+    protected SKSvg? Svg { get; set; }
 
-    public Exception? SvgLoadException { get; private set; }
+    public Exception? SvgLoadException { get; protected set; }
 
-    private bool IsSvgLoaded;
+    protected bool IsSvgLoaded;
 
-    public Stretch Stretch { get; set; } = Stretch.Uniform;
+    protected override SKSize? GetImageSize()
+    {
+        TryLoadSvg();
+        if (Source != null)
+        {
+            return new SKSize(Source.CullRect.Width, Source.CullRect.Height);
+        }
+        return null;
+    }
 
-    public StretchDirection StretchDirection { get; set; } = StretchDirection.Both;
-
-    public SKBlendMode BlendMode { get; set; } = SKBlendMode.SrcOver;
-
-    private void TryLoadSvg()
+    protected void TryLoadSvg()
     {
         if (IsSvgLoaded == true) return;
 
@@ -39,84 +43,27 @@ public class NBSvg : NBLayoutable, INBImage
                 SvgLoadException = ex;
             }
         }
-    }
+    } 
 
-    /// <summary>
-    /// Measures the control.
-    /// </summary>
-    /// <param name="availableSize">The available size.</param>
-    /// <returns>The desired size of the control.</returns>
-    protected override Size MeasureOverride(Size availableSize)
+    protected override void Draw(SKCanvas context, SKRect src, SKRect dest, SKPaint paint)
     {
-        TryLoadSvg();
+        if (Source == null) return;
 
-        var source = Source;
-        var result = new Size();
+        context.Save();
 
-        if (source != null)
-        {
-            result = Stretch.CalculateSize(availableSize, new Size(source.CullRect.Width, source.CullRect.Height), StretchDirection);
-        }
+        // 计算缩放和平移
+        float scaleX = dest.Width / src.Width;
+        float scaleY = dest.Height / src.Height;
+        // 平移到目标区域
+        context.Translate(dest.Left, dest.Top);
+        // 缩放到目标大小
+        context.Scale(scaleX, scaleY);
+        // 平移到原点（如果 cullRect 不从 0,0 开始）
+        context.Translate(-src.Left, -src.Top);
 
-        return result;
-    }
+        context.DrawPicture(Source, paint);
 
-    /// <inheritdoc/>
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        var source = Source;
-
-        if (source != null)
-        {
-            var sourceSize = new Size(source.CullRect.Width, source.CullRect.Height);
-            var result = Stretch.CalculateSize(finalSize, sourceSize, StretchDirection);
-            return result;
-        }
-        else
-        {
-            return new Size();
-        }
-    }
-
-    protected override void RenderCore(SKCanvas context)
-    {
-        var source = Source;
-
-        if (source != null && Bounds.Width > 0 && Bounds.Height > 0)
-        {
-            var viewPort = new SKRect(Bounds.Left, Bounds.Top, Bounds.Right, Bounds.Bottom);
-            var sourceSize = new SKSize(source.CullRect.Width, source.CullRect.Height);
-
-            Vector scale = Stretch.CalculateScaling(Bounds.Size, sourceSize, StretchDirection);
-            SKSize scaledSize = new SKSize((float)(sourceSize.Width * scale.X), (float)(sourceSize.Height * scale.Y));
-            SKRect dest = viewPort
-                .CenterRect(new SKRect(0, 0, scaledSize.Width, scaledSize.Height))
-                .IntersectRect(viewPort);
-            SKRect src = new SKRect(0, 0, sourceSize.Width, sourceSize.Height)
-                .CenterRect(new SKRect(0, 0, (float)(dest.Width / scale.X), (float)(dest.Height / scale.Y)));
-
-            // 计算绘制矩阵
-
-
-            // 绘制图像
-            using var paint = new SKPaint { BlendMode = BlendMode };
-
-            context.Save();
-
-            // 计算缩放和平移
-            float scaleX = dest.Width / src.Width;
-            float scaleY = dest.Height / src.Height;
-            // 平移到目标区域
-            context.Translate(dest.Left, dest.Top);
-            // 缩放到目标大小
-            context.Scale(scaleX, scaleY);
-            // 平移到原点（如果 cullRect 不从 0,0 开始）
-            context.Translate(-src.Left, -src.Top);
-
-            context.DrawPicture(source, paint);
-
-            context.Restore();
-        }
+        context.Restore();
     }
 }
 

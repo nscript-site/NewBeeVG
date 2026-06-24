@@ -7,62 +7,12 @@ using SkiaSharp;
 
 namespace NewBeeVG;
 
-/// <summary>
-/// Describes how content is resized to fill its allocated space.
-/// </summary>
-public enum Stretch
+public class NBBaseImage : NBLayoutable, INBImage
 {
-    /// <summary>
-    /// The content preserves its original size.
-    /// </summary>
-    None,
-
-    /// <summary>
-    /// The content is resized to fill the destination dimensions. The aspect ratio is not
-    /// preserved.
-    /// </summary>
-    Fill,
-
-    /// <summary>
-    /// The content is resized to fit in the destination dimensions while preserving its
-    /// native aspect ratio.
-    /// </summary>
-    Uniform,
-
-    /// <summary>
-    /// The content is resized to completely fill the destination rectangle while preserving
-    /// its native aspect ratio. A portion of the content may not be visible if the aspect
-    /// ratio of the content does not match the aspect ratio of the allocated space.
-    /// </summary>
-    UniformToFill,
-}
-
-/// <summary>
-/// Describes the type of scaling that can be used when scaling content.
-/// </summary>
-public enum StretchDirection
-{
-    /// <summary>
-    /// Only scales the content upwards when the content is smaller than the available space.
-    /// If the content is larger, no scaling downwards is done.
-    /// </summary>
-    UpOnly,
-
-    /// <summary>
-    /// Only scales the content downwards when the content is larger than the available space.
-    /// If the content is smaller, no scaling upwards is done.
-    /// </summary>
-    DownOnly,
-
-    /// <summary>
-    /// Always stretches to fit the available space according to the stretch mode.
-    /// </summary>
-    Both,
-}
-
-public class NBImage : NBLayoutable, INBImage
-{
-    public SKBitmap? Source { get; set; }
+    protected virtual SKSize? GetImageSize()
+    {
+        return null;
+    }
 
     public Stretch Stretch { get; set; } = Stretch.Uniform;
 
@@ -77,12 +27,12 @@ public class NBImage : NBLayoutable, INBImage
     /// <returns>The desired size of the control.</returns>
     protected override Size MeasureOverride(Size availableSize)
     {
-        var source = Source;
+        var size = GetImageSize();
         var result = new Size();
 
-        if (source != null)
+        if (size != null)
         {
-            result = Stretch.CalculateSize(availableSize, new Size(source.Width, source.Height), StretchDirection);
+            result = Stretch.CalculateSize(availableSize, new Size(size.Value.Width, size.Value.Height), StretchDirection);
         }
 
         return result;
@@ -91,11 +41,11 @@ public class NBImage : NBLayoutable, INBImage
     /// <inheritdoc/>
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var source = Source;
+        var size = GetImageSize();
 
-        if (source != null)
+        if (size != null)
         {
-            var sourceSize = new Size(source.Width, source.Height);
+            var sourceSize = new Size(size.Value.Width, size.Value.Height);
             var result = Stretch.CalculateSize(finalSize, sourceSize, StretchDirection);
             return result;
         }
@@ -107,9 +57,12 @@ public class NBImage : NBLayoutable, INBImage
 
     protected override void RenderCore(SKCanvas context)
     {
-        var source = Source;
+        var imgSize = GetImageSize();
+        if (imgSize == null) return;
 
-        if (source != null && Bounds.Width > 0 && Bounds.Height > 0)
+        var source = imgSize.Value;
+
+        if (Bounds.Width > 0 && Bounds.Height > 0)
         {
             var viewPort = new SKRect(Bounds.Left, Bounds.Top, Bounds.Right, Bounds.Bottom);
             var sourceSize = new SKSize(source.Width, source.Height);
@@ -124,7 +77,35 @@ public class NBImage : NBLayoutable, INBImage
 
             // 绘制图像
             using var paint = new SKPaint { BlendMode = BlendMode };
-            context.DrawBitmap(source, sourceRect, destRect, paint);
+            Draw(context, sourceRect, destRect, paint);
+        }
+    }
+
+    protected virtual void Draw(SKCanvas context, SKRect sourceRect, SKRect destRect, SKPaint paint)
+    {
+
+    }
+}
+
+public class NBImage : NBBaseImage
+{
+    public SKBitmap? Source { get; set {
+            field = value;
+            if (value == null) _size = null;
+            else _size = new SKSize(value.Width, value.Height);
+        } }
+
+    private SKSize? _size;
+    protected override SKSize? GetImageSize()
+    {
+        return _size;
+    }
+
+    protected override void Draw(SKCanvas context, SKRect sourceRect, SKRect destRect, SKPaint paint)
+    {
+        if(Source != null)
+        {
+            context.DrawBitmap(Source, sourceRect, destRect, paint);
         }
     }
 }
