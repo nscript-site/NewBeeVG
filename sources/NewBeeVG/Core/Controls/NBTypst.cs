@@ -69,17 +69,24 @@ public class NBTypst : NBSvg
                     var svg = result?.Document?.RenderPageToSvg(0);
                     SvgResult = svg;
                 }
+                else
+                {
+                    var err = result.Errors.FirstOrDefault();
+                    if (err != null) 
+                    {
+                        DecodeException = new Exception($"Typst compilation error: {err.Message} at {err.Location}");
+                    }
+                }
 
                 if(SvgResult != null)
                 {
                     SvgStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(SvgResult));
                     TryLoadSvg();
                 }
-
             }
             catch (Exception ex)
             {
-                SvgLoadException = ex;
+                DecodeException = ex;
             }
         }
     }

@@ -197,7 +197,8 @@ public class NBText : NBLayoutable, IPaddingable
         return new SKPaint
         {
             IsAntialias = true,
-            Color = Foreground
+            Color = Foreground, 
+            IsDither = true,
         };
     }
 

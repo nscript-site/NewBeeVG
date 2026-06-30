@@ -11,8 +11,6 @@ public class NBSvg : NBBaseImage
 
     protected SKSvg? Svg { get; set; }
 
-    public Exception? SvgLoadException { get; protected set; }
-
     protected bool IsSvgLoaded;
 
     protected override SKSize? GetImageSize()
@@ -40,7 +38,7 @@ public class NBSvg : NBBaseImage
             }
             catch(Exception ex)
             {
-                SvgLoadException = ex;
+                DecodeException = ex;
             }
         }
     } 

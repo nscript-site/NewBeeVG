@@ -61,10 +61,36 @@ public class SKBitmapDrawOperation : ICustomDrawOperation
             if (_backgroundBrush != null)
             {
                 context.FillRectangle(_backgroundBrush.ToImmutable(),
-                    new Rect(dstRect.Left, dstRect.Top, dstRect.Width, dstRect.Height));
+                    new Rect((int)dstRect.Left, (int)dstRect.Top, (int)dstRect.Width, (int)dstRect.Height));
+            }
+            
+            using SKImage image = SKImage.FromBitmap(_frame);
+
+            if (scale < 0.2f)
+            {
+                var cubic = SKCubicResampler.Mitchell;
+                var samplingOptions = new SKSamplingOptions(cubic);
+                using var smooth = new SKPaint
+                {
+                    IsAntialias = true,
+                    IsDither = true,
+                    ImageFilter = SKImageFilter.CreateBlur(0.5f, 0.5f)
+                };
+                canvas.DrawImage(image, dstRect, samplingOptions, smooth);
+            }
+            else
+            {
+                SKSamplingOptions samplingOptions = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+                using var smooth = new SKPaint
+                {
+                    IsAntialias = true,
+                    IsDither = true
+                    //ImageFilter = SKImageFilter.CreateBlur(0.5f, 0.5f)
+                };
+                canvas.DrawImage(image, dstRect, samplingOptions, smooth);
             }
 
-            canvas.DrawBitmap(_frame, dstRect);
+
             //TODO: 提高绘制质量
             //using var paint = new SKPaint
             //{

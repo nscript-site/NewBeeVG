@@ -68,7 +68,7 @@ internal class WidgetsSample
                     <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">            
                         <rect width="100" height="100" fill="#f5f5f5"/>
                         <text x="140" y="108" font-size="24" fill="#222">Hello SVG</text>
-                    </svg>
+                    </svg>s
                     """;
 
         var clip4 = clip(
@@ -89,11 +89,13 @@ internal class WidgetsSample
             builder: (ctx, clip) =>
             {
                 return
-                VGrid($"*", [
-                        TypstFile("./Assets/page1.typ")
-                            .Align(0,0)
-                            .TypstInputs(x=>{x["frames"] = $"{ctx.frame}"; })
-                        ]).Background(SKColors.DeepSkyBlue);
+                HGrid("*", [
+                    VGrid($"*", [
+                            TypstFile("./Assets/page1.typ")
+                                .Align(0,0).Margin(100)
+                                .TypstInputs(x=>{x["frames"] = $"{ctx.frame}"; })
+                            ]).Margin(100).Background(SKColors.DeepSkyBlue)
+                ]).Background(SKColors.Green);
             }
         );
 
@@ -120,7 +122,7 @@ internal class WidgetsSample
             }
         );
 
-        //run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
-        save("out.mp4", stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
+        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
+        //save("out.mp4", stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
     }
 }

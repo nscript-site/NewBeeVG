@@ -1,15 +1,10 @@
-﻿using NewBeeVG.Internal;
-using System.Collections.Generic;
-using System.Data;
-
-namespace NewBeeVG.Demo.Samples;
+﻿namespace NewBeeVG.Demo.Samples;
 
 internal class TTSScriptParserSample
 {
     public static void Run()
     {
-        var codes = TTSScriptParser.BuildCode("./Notes/n0001.md");
-        Console.WriteLine(codes);
+        scripts("./Notes/n0001.md");
     }
 
     public static void RunCode()

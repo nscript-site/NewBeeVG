@@ -14,6 +14,8 @@ public class NBBaseImage : NBLayoutable, INBImage
         return null;
     }
 
+    public Exception? DecodeException { get; protected set; }
+
     public Stretch Stretch { get; set; } = Stretch.Uniform;
 
     public StretchDirection StretchDirection { get; set; } = StretchDirection.Both;
@@ -28,14 +30,32 @@ public class NBBaseImage : NBLayoutable, INBImage
     protected override Size MeasureOverride(Size availableSize)
     {
         var size = GetImageSize();
-        var result = new Size();
 
         if (size != null)
         {
-            result = Stretch.CalculateSize(availableSize, new Size(size.Value.Width, size.Value.Height), StretchDirection);
+            return Stretch.CalculateSize(availableSize, new Size(size.Value.Width, size.Value.Height), StretchDirection);
+        }
+        else
+        {
+            TryShowException();
+
+            if(_exceptionText != null)
+            {
+                _exceptionText.Measure(availableSize);
+                return _exceptionText.DesiredSize;
+            }
         }
 
-        return result;
+        return new Size();
+    }
+
+    protected NBText? _exceptionText;
+    protected void TryShowException()
+    {
+        if (DecodeException == null) return;
+        if (_exceptionText != null) return;
+        _exceptionText = Methods.TextBlock(DecodeException.Message, 32, SKColors.Red);
+        this.VisualChildren.Add(_exceptionText);
     }
 
     /// <inheritdoc/>
@@ -51,12 +71,26 @@ public class NBBaseImage : NBLayoutable, INBImage
         }
         else
         {
+            TryShowException();
+
+            if (_exceptionText != null)
+            {
+                //_exceptionText.TryArrange(new Rect(0,0, finalSize.Width, finalSize.Height));
+                return _exceptionText.DesiredSize;
+            }
+
             return new Size();
         }
     }
 
     protected override void RenderCore(SKCanvas context)
     {
+        if(_exceptionText != null)
+        {
+            base.RenderCore(context);
+            return;
+        }
+
         var imgSize = GetImageSize();
         if (imgSize == null) return;
 
