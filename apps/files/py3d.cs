@@ -21,4 +21,37 @@ var clip1 = clip(
     }
 );
 
-run(stage(bg: SKColors.Orange), [clip1]);
+var logo = clip(
+    name: "logo",
+    start: 0,
+    frames: -1,
+    builder: (ctx, clip) =>
+    {
+        return
+            TextBlock("NewBeeVG").Align(1, -1).Margin(20);
+    }
+);
+
+var logo2 = clip(
+    name: "logo2",
+    start: 0,
+    frames: -1,
+    builder: (ctx, clip) =>
+    {
+        return
+            TextBlock("By Nscript").Align(0, 0).Foreground(SKColors.Red).FontSize(60);
+    }
+);
+
+var footer = clip(
+    name: "footer",
+    start: 0,
+    frames: -1,
+    builder: (ctx, clip) =>
+    {
+        return
+            TextBlock("This is a long long long long long long long long long long long long long long long long long long long long long long long long long long long long long footer", textAlign: 0).Align(0, 1).Margin(20);
+    }
+);
+
+run(stage(bg: SKColors.Orange), [clip1, logo, logo2, footer]);

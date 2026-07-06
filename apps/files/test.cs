@@ -1,25 +1,6 @@
 
-#:project ../common/common.csproj
+#:include common.cs
 
-using MyVGLib;
-
-using C = (string Name, string IP);
-using D = System.Collections.Generic.Dictionary<string, object>;
-
-var d = new D(){
-    ["a"] = 3
-};
-
-
-
-void Print(C c)
-{
-    Console.WriteLine(c.Name);
-    Console.WriteLine(c.IP);
-}
-
-Print(new C("Name","IP"));
-
-var cls = new Class1(){ Name  = "11"  };
-
-Console.WriteLine("hello, world!");
+BS.Foo();
+var clip1 = BS.Clip();
+Console.WriteLine(clip1);

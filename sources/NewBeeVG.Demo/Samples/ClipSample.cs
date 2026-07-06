@@ -89,7 +89,7 @@ internal class ClipSample
         );
 
         var clip3 = drawing(
-            name: "skclip",
+            name: "drawing",
             frames: 10,
             builder: (ctx, clip, canvas) =>
             {
@@ -105,7 +105,7 @@ internal class ClipSample
         );
 
         var clip4 = drawing_withmask(
-            name: "skclip2",
+            name: "withmask1",
             frames: 10,
             builder: (ctx, clip, canvas) =>
             {
@@ -125,7 +125,7 @@ internal class ClipSample
         );
 
         var clip5 = drawing_withmask(
-            name: "skclip3",
+            name: "withmask2",
             frames: 10,
             blend: SKBlendMode.SrcOut,
             builder: (ctx, clip, canvas) =>

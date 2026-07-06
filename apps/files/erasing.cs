@@ -1,7 +1,5 @@
 #!/usr/bin/env dotnet
 
-// #:project ../../sources/NewBeeVG/NewBeeVG.csproj
-
 // 所有缓动函数的例子
 var erasings = Easing.All();
 var clips = new List<NBClip>();
@@ -38,3 +36,4 @@ foreach (var e in erasings)
 }
 
 run(stage(width: 1920, height: 1080, bg: SKColors.Black), clips);
+

@@ -5,6 +5,19 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>1.0.0.1</Version>
+    <RepositoryUrl>https://github.com/nscript-site/NewBeeVG</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageId>NewBeeMedia</PackageId>
+    <PackageTags>NewBeeMedia,NewBeeVG</PackageTags>
+    <PackageProjectUrl>https://github.com/nscript-site/NewBeeVG</PackageProjectUrl>
+    <Copyright>geblab.com</Copyright>
+    <Title>NewBeeMedia: A media library for NewBeeVG</Title>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>False</IncludeSymbols>
+    <Company>geblab</Company>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FFmpeg.AutoGen" />
