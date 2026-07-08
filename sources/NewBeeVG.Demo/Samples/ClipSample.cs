@@ -111,7 +111,7 @@ internal class ClipSample
             {
                 canvas.Clear(SKColors.Green);
             },
-            maskBuilder: (ctx, clip, canvas) =>
+            mask: (ctx, clip, canvas) =>
             {
                 var paint = new SKPaint
                 {
@@ -132,7 +132,7 @@ internal class ClipSample
             {
                 canvas.Clear(SKColors.Green);
             },
-            maskBuilder: (ctx, clip, canvas) =>
+            mask: (ctx, clip, canvas) =>
             {
                 var paint = new SKPaint
                 {

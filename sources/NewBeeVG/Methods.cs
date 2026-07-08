@@ -28,13 +28,62 @@ public static class Methods
         return new NBWork();
     }
 
-    public static NBLayoutableClip clip(string name = "clip", 
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null,
-        Func<NBDrawContext, NBClip, NBLayoutable?>? mask = null,
+    public static NBDrawingClip clip(
+        Func<NBDrawContext, NBClip, NBLayoutable?>? builder,
         SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "clip",
         int frames = 1, int? start = null)
     {
-        return new NBLayoutableClip(name, builder, mask, blend, frames, start);
+        return new NBDrawingClip(name, builder, null, blend, frames, start);
+    }
+
+    public static NBDrawingClip clip(
+        Func<NBDrawContext, NBClip, NBLayoutable?>? builder,
+        Func<NBDrawContext, NBClip, NBLayoutable?>? mask,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "clip",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, builder, mask, blend, frames, start);
+    }
+
+    public static NBDrawingClip clip(
+        Func<NBDrawContext, NBClip, NBLayoutable?>? builder,
+        Action<NBDrawContext, NBClip, SKCanvas>? mask,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "clip",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, builder, mask, blend, frames, start);
+    }
+
+    public static NBDrawingClip drawing(
+        Action<NBDrawContext, NBClip, SKCanvas>? builder,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "drawing",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, builder, null, blend, frames, start);
+    }
+
+    public static NBDrawingClip drawing(
+        Action<NBDrawContext, NBClip, SKCanvas>? builder,
+        Func<NBDrawContext, NBClip, NBLayoutable?>? mask,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "drawing",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, builder, mask, blend, frames, start);
+    }
+
+    public static NBDrawingClip drawing(
+        Action<NBDrawContext, NBClip, SKCanvas>? builder,
+        Action<NBDrawContext, NBClip, SKCanvas>? mask,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "drawing",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, builder, mask, blend, frames, start);
     }
 
     public static NBTTSClip ttsClip(string text, string voice = "Cherry", string lang = "Chinese", string instructions = "", string model = "mlx-tts", string name = "clip", int? start = null)
@@ -74,15 +123,6 @@ public static class Methods
         {
             Console.WriteLine($"不支持的脚本文件类型:{ext}");
         }
-    }
-
-    public static NBDrawingClip drawing(string name = "drawing", 
-        Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
-        Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder = null,
-        SKBlendMode blend = SKBlendMode.SrcIn,
-        int frames = 1, int? start = null)
-    {
-        return new NBDrawingClip(name, builder, maskBuilder, blend, frames, start);
     }
 
     public static NBTrack track()
