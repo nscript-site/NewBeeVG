@@ -28,9 +28,13 @@ public static class Methods
         return new NBWork();
     }
 
-    public static NBLayoutableClip clip(string name = "clip", Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null, int frames = 1, int? start = null)
+    public static NBLayoutableClip clip(string name = "clip", 
+        Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null,
+        Func<NBDrawContext, NBClip, NBLayoutable?>? mask = null,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        int frames = 1, int? start = null)
     {
-        return new NBLayoutableClip(name, builder, frames, start);
+        return new NBLayoutableClip(name, builder, mask, blend, frames, start);
     }
 
     public static NBTTSClip ttsClip(string text, string voice = "Cherry", string lang = "Chinese", string instructions = "", string model = "mlx-tts", string name = "clip", int? start = null)
@@ -72,18 +76,13 @@ public static class Methods
         }
     }
 
-    public static NBDrawingClip drawing(string name = "drawing_clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int frames = 1, int? start = null)
-    {
-        return new NBDrawingClip(name, builder, frames, start);
-    }
-
-    public static NBMaskedDrawingClip drawing_withmask(string name = "drawing_clip_withmask", 
+    public static NBDrawingClip drawing(string name = "drawing", 
         Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
         Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder = null,
         SKBlendMode blend = SKBlendMode.SrcIn,
         int frames = 1, int? start = null)
     {
-        return new NBMaskedDrawingClip(name, builder, maskBuilder, blend, frames, start);
+        return new NBDrawingClip(name, builder, maskBuilder, blend, frames, start);
     }
 
     public static NBTrack track()

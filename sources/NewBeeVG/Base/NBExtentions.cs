@@ -53,6 +53,16 @@ public static partial class NBExtentions
 
     }
 
+    public static void Render(this Func<NBDrawContext, NBClip, NBLayoutable?> builder, NBDrawContext ctx, NBClip clip, SKCanvas canvas)
+    {
+        var visual = builder(ctx, clip);
+        if (visual == null) return;
+
+        visual.Measure(ctx.width, ctx.height);
+        visual.Arrange(0, 0, ctx.width, ctx.height);
+        visual.Render(canvas);
+    }
+
     public static T Styles<T>(this T t, Action<T>[]? styles) where T : NBVisual
     {
         if (styles != null)

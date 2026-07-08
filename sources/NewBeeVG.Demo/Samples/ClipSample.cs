@@ -104,7 +104,7 @@ internal class ClipSample
             }
         );
 
-        var clip4 = drawing_withmask(
+        var clip4 = drawing(
             name: "withmask1",
             frames: 10,
             builder: (ctx, clip, canvas) =>
@@ -124,7 +124,7 @@ internal class ClipSample
             }
         );
 
-        var clip5 = drawing_withmask(
+        var clip5 = drawing(
             name: "withmask2",
             frames: 10,
             blend: SKBlendMode.SrcOut,
@@ -142,6 +142,81 @@ internal class ClipSample
                 };
                 var radius = 100 + 200 * ctx.progress;
                 canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
+            }
+        );
+
+        var clip_mask1 = clip(
+            name: "clip_mask1",
+            frames: 30,
+            builder: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
+
+                return
+                Panel([
+                        TextBlock("Clip2").FontSize(200)
+                                        .Align(0,-1)
+                                        .Margin(0, 100 + (ctx.height - 500) * v, 0,0),
+
+                                        HStack([
+                                            TextBlock("AAAA"),
+                                            TextBlock("BBBB")
+                                            ])
+                                        .Background(SKColors.Red)
+                                        .Align(0,1)
+                                        .Margin(100)
+                    ]).Background(SKColors.Yellow);
+            },
+            mask: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
+
+                return
+                Panel([
+                        Panel([])
+                                .Margin(0.5*v*ctx.width, 0.5*v*ctx.height)
+                                .Background(SKColors.White)
+                    ]);
+            }
+        );
+
+
+        var clip_mask2 = clip(
+            name: "clip_mask2",
+            frames: 30, blend: SKBlendMode.SrcOut,
+            builder: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
+
+                return
+                Panel([
+                        TextBlock("Clip2").FontSize(200)
+                                                .Align(0,-1)
+                                                .Margin(0, 100 + (ctx.height - 500) * v, 0,0),
+
+                                                HStack([
+                                                    TextBlock("AAAA"),
+                                                    TextBlock("BBBB")
+                                                    ])
+                                                .Background(SKColors.Red)
+                                                .Align(0,1)
+                                                .Margin(100)
+                    ]).Background(SKColors.Yellow);
+            },
+            mask: (ctx, clip) =>
+            {
+                var easing = Easing.SineInOut;
+                double v = easing(ctx.progress);
+
+                return
+                Panel([
+                        Panel([])
+                                        .Margin(0.5*v*ctx.width, 0.5*v*ctx.height)
+                                        .Background(SKColors.White)
+                    ]);
             }
         );
 
@@ -180,6 +255,6 @@ internal class ClipSample
 
 
         //run(stage(bg: Brushes.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
-        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2, footer]);
+        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip_mask1, clip_mask2, logo, logo2, footer]);
     }
 }

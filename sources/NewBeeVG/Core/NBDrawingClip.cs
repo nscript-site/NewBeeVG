@@ -4,45 +4,9 @@ namespace NewBeeVG;
 
 public class NBDrawingClip : NBClip
 {
-    private readonly Action<NBDrawContext, NBClip, SKCanvas>? _skBuilder;
-
-    public NBDrawingClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
-        :base(name, builder, duration, start)
-    {
-        _skBuilder = builder;
-    }
-
-    //protected static Func<NBDrawContext, NBClip, SKBitmap?>? ConvertBuilder(Action<NBDrawContext, NBClip, SKCanvas>? skBuilder)
-    //{
-    //    if (skBuilder == null) return null;
-
-    //    return (ctx, clip) =>
-    //    {
-    //        var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-    //        using var canvas = new SKCanvas(targetBitmap);
-    //        skBuilder(ctx, clip,canvas);
-    //        return targetBitmap;
-    //    };
-    //}
-
-    //public override SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
-    //{
-    //    if (_skBuilder == null) return null;
-
-    //    var ctx = this.CreateDrawContext(stage, frame);
-    //    var targetBitmap = new SKBitmap(ctx.width, ctx.height);
-    //    DrawingHelper.FillStageBackgroundIfSet(targetBitmap, stage, includeStageBackground);
-    //    using var canvas = new SKCanvas(targetBitmap);
-    //    _skBuilder(ctx, this, canvas);
-    //    return targetBitmap;
-    //}
-}
-
-public class NBMaskedDrawingClip : NBClip
-{
     public SKBlendMode BlendMode { get; private set; }
 
-    public NBMaskedDrawingClip(string name = "clip", 
+    public NBDrawingClip(string name = "clip", 
         Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
         Action<NBDrawContext, NBClip, SKCanvas>? maskBuilder = null, 
         SKBlendMode blend = SKBlendMode.SrcIn,
@@ -60,7 +24,7 @@ public class NBMaskedDrawingClip : NBClip
 
         if(maskBuilder == null)
         {
-            return skBuilder!;
+            return skBuilder;
         }
 
         return (ctx, clip, canvas) =>
