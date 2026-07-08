@@ -321,17 +321,14 @@ public class NBLayoutable : NBVisual
         {
             var visual = visualChildren[i];
 
-            if (visual is NBLayoutable layoutable)
-            {
-                layoutable.Measure(availableSize);
-                var childSize = layoutable.DesiredSize;
+            visual.TryMeasure(availableSize);
+            var childSize = visual.DesiredSize;
 
-                if (childSize.Width > width)
-                    width = childSize.Width;
+            if (childSize.Width > width)
+                width = childSize.Width;
 
-                if (childSize.Height > height)
-                    height = childSize.Height;
-            }
+            if (childSize.Height > height)
+                height = childSize.Height;
         }
 
         return new Size(width, height);

@@ -4,7 +4,9 @@
 
 //WidgetsSample.Run();
 
-ClipSample.Run();
+ShapeSamples.Run();
+
+//ClipSample.Run();
 
 //TTSScriptParserSample.Run();
 

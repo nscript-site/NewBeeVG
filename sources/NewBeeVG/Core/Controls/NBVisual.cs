@@ -111,7 +111,7 @@ public class NBVisual
         RenderDecorations(context);
     }
 
-    internal void TryMeasure(Size availableSize)
+    internal protected virtual void TryMeasure(Size availableSize)
     {
         if(this is NBLayoutable layoutable)
         {
@@ -119,7 +119,7 @@ public class NBVisual
         }
     }
 
-    internal void TryArrange(Rect rect)
+    internal protected virtual void TryArrange(Rect rect)
     {
         if(this is NBLayoutable layoutable)
         {
@@ -127,13 +127,10 @@ public class NBVisual
         }
     }
 
-    internal void TryArrange(Point offset, Rect rect)
+    internal protected void TryArrange(Point offset, Rect rect)
     {
         var offsetRect = new Rect(new Point(offset.X + rect.X, offset.Y + rect.Y), rect.Size);
-        if (this is NBLayoutable layoutable)
-        {
-            layoutable.Arrange(offsetRect);
-        }
+        TryArrange(offsetRect);
     }
 
     public void Col(int column)
