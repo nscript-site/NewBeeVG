@@ -15,7 +15,7 @@
     <Using Include="NewBeeVG.Methods" Static="True" />
   </ItemGroup>
   <ItemGroup>
-  <PackageReference Include="NewBeeVG" Version="1.0.0.1" />
+  <PackageReference Include="NewBeeVG" Version="1.0.0.2" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="pythonnet" Version="3.1.0" />

@@ -72,14 +72,14 @@ var clip4 = drawing(
     }
 );
 
-var clip5 = drawing_withmask(
+var clip5 = drawing(
     name: "withmask1",
     frames: 10,
     builder: (ctx, clip, canvas) =>
     {
         canvas.Clear(SKColors.Green);
     },
-    maskBuilder: (ctx, clip, canvas) =>
+    mask: (ctx, clip, canvas) =>
     {
         var paint = new SKPaint
         {
@@ -92,7 +92,7 @@ var clip5 = drawing_withmask(
     }
 );
 
-var clip6 = drawing_withmask(
+var clip6 = drawing(
     name: "withmask2",
     frames: 10,
     blend: SKBlendMode.SrcOut,
@@ -100,7 +100,7 @@ var clip6 = drawing_withmask(
     {
         canvas.Clear(SKColors.Green);
     },
-    maskBuilder: (ctx, clip, canvas) =>
+    mask: (ctx, clip, canvas) =>
     {
         var paint = new SKPaint
         {

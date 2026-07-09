@@ -434,7 +434,7 @@ public static class Methods
         return tb;
     }
 
-    public static NBPanel Panel(NBVisual[]? childs)
+    public static NBPanel Panel(NBVisual[]? childs = null)
     {
         var panel = new NBPanel();
         if (childs != null)
@@ -444,7 +444,7 @@ public static class Methods
         return panel;
     }
 
-    public static NBWrapPanel WrapPanel(NBVisual[]? childs, bool isHorizontal = true)
+    public static NBWrapPanel WrapPanel(NBVisual[]? childs = null, bool isHorizontal = true)
     {
         var panel = new NBWrapPanel { Orientation = isHorizontal ? Orientation.Horizontal : Orientation.Vertical };
         if (childs != null)
@@ -454,7 +454,7 @@ public static class Methods
         return panel;
     }
 
-    public static NBGrid Grid(NBVisual[]? childs, string? rowDef = null, string? colDef = null)
+    public static NBGrid Grid(NBVisual[]? childs = null, string? rowDef = null, string? colDef = null)
     {
         var panel = new NBGrid();
         if (rowDef != null)

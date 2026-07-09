@@ -188,34 +188,16 @@ internal class ClipSample
             frames: 30, blend: SKBlendMode.SrcOut,
             builder: (ctx, clip) =>
             {
-                var easing = Easing.SineInOut;
-                double v = easing(ctx.progress);
-
                 return
-                Panel([
-                        TextBlock("Clip2").FontSize(200)
-                                                .Align(0,-1)
-                                                .Margin(0, 100 + (ctx.height - 500) * v, 0,0),
-
-                                                HStack([
-                                                    TextBlock("AAAA"),
-                                                    TextBlock("BBBB")
-                                                    ])
-                                                .Background(SKColors.Red)
-                                                .Align(0,1)
-                                                .Margin(100)
-                    ]).Background(SKColors.Yellow);
+                Panel().Background(SKColors.Yellow);
             },
             mask: (ctx, clip) =>
             {
                 var easing = Easing.SineInOut;
                 double v = easing(ctx.progress);
-
                 return
                 Panel([
-                        Panel([])
-                                        .Margin(0.5*v*ctx.width, 0.5*v*ctx.height)
-                                        .Background(SKColors.White)
+                        rect(v*ctx.width,v*ctx.height, cornerRadius:v*ctx.width*0.3, fill:SKColors.Snow).Align(0,0)
                     ]);
             }
         );
