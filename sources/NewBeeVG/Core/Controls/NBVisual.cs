@@ -17,6 +17,9 @@ public class NBVisual
     public SKPath? ClipPath { get; set; }
     public bool ClipToBounds { get; set; } = false;
 
+    public SKImageFilter? Filter { get; set; }
+    public SKColorFilter? ColorFilter { get; set; }
+
     /// <summary>
     /// 在 Canvas 中的位置。
     /// </summary>
@@ -77,13 +80,15 @@ public class NBVisual
         }
 
         bool useOpacityLayer = Opacity < 1.0;
-        if (useOpacityLayer)
+        if (useOpacityLayer || Filter != null || ColorFilter != null)
         {
             byte alpha = (byte)Math.Clamp(Opacity * 255.0, 0, 255);
             using var layerPaint = new SKPaint
             {
                 Color = SKColors.White.WithAlpha(alpha), 
-                IsAntialias = true
+                IsAntialias = true,
+                ImageFilter = Filter,
+                ColorFilter = ColorFilter
             };
 
             context.SaveLayer(layerPaint);
@@ -198,6 +203,83 @@ public static partial class NBExtentions
     public static T Opacity<T>(this T widget, double opacity) where T : NBVisual
     {
         widget.Opacity = opacity;
+        return widget;
+    }
+
+    public static T Filter<T>(this T widget, params SKImageFilter?[] filters) where T : NBVisual
+    {
+        if(filters == null || filters.Length == 0)
+        {
+            widget.Filter = null;
+        }
+        else if (filters.Length == 1)
+        {
+            widget.Filter = filters[0];
+        }
+        else if (filters.Length > 1)
+        {
+            var list = new List<SKImageFilter>();
+            foreach (var filter in filters)
+            {
+                if (filter != null)
+                {
+                    list.Add(filter);
+                }
+            }
+
+            if (list.Count == 1)
+            {
+                widget.Filter = list[0];
+            }
+            else if (list.Count > 1)
+            {
+                var f0 = list[0];
+                for(int i = 1; i < list.Count; i++)
+                {
+                    // Compose filters in order, the last filter is applied first
+                    f0 = SKImageFilter.CreateCompose(list[i], f0);
+                }
+                widget.Filter = f0;
+            }
+        }
+        return widget;
+    }
+
+    public static T ColorFilter<T>(this T widget, params SKColorFilter?[] filters) where T : NBVisual
+    {
+        if (filters == null || filters.Length == 0)
+        {
+            widget.ColorFilter = null;
+        }
+        else if (filters.Length == 1)
+        {
+            widget.ColorFilter = filters[0];
+        }
+        else if (filters.Length > 1)
+        {
+            var list = new List<SKColorFilter>();
+            foreach (var filter in filters)
+            {
+                if (filter != null)
+                {
+                    list.Add(filter);
+                }
+            }
+            if (list.Count == 1)
+            {
+                widget.ColorFilter = list[0];
+            }
+            else if (list.Count > 1)
+            {
+                var f0 = list[0];
+                for (int i = 1; i < list.Count; i++)
+                {
+                    // Compose color filters in order, the last filter is applied first
+                    f0 = SKColorFilter.CreateCompose(list[i], f0);
+                }
+                widget.ColorFilter = f0;
+            }
+        }
         return widget;
     }
 }
