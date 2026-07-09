@@ -6,7 +6,9 @@
 
 //ShapeSamples.Run();
 
-ClipSample.Run();
+TransformSample.Run();
+
+//ClipSample.Run();
 
 //TTSScriptParserSample.Run();
 

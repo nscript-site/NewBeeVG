@@ -4,7 +4,6 @@
  ***********************/
 
 using Avalonia.Collections;
-using NewBeeVG.Layout;
 using SkiaSharp;
 
 namespace NewBeeVG;
@@ -58,6 +57,16 @@ public class NBVisual
     {
         context.Save();
 
+        if (this.RenderTransform != null)
+        {
+            var bounds = this.Bounds;
+            var centerX = bounds.Left + bounds.Width / 2;
+            var centerY = bounds.Top + bounds.Height / 2;
+            context.Concat(SKMatrix.CreateTranslation(centerX, centerY));
+            context.Concat(this.RenderTransform.Value);
+            context.Concat(SKMatrix.CreateTranslation(-centerX, -centerY));
+        }
+
         if (ClipPath != null)
         {
             context.ClipPath(ClipPath, SKClipOperation.Intersect, true);
@@ -99,10 +108,6 @@ public class NBVisual
             if (child.IsVisible)
             {
                 context.Save();
-                if (child.RenderTransform != null)
-                {
-                    context.Concat(child.RenderTransform.Value);
-                }
                 child.Render(context);
                 context.Restore();
             }
@@ -167,5 +172,32 @@ public class NBVisual
             ParamsInGrid = new NBParamsInGrid();
         }
         ParamsInGrid.RowSpan = rowSpan;
+    }
+}
+
+public static partial class NBExtentions
+{
+    public static T RenderTransform<T>(this T widget, SKMatrix? m) where T : NBVisual
+    {
+        widget.RenderTransform = m;
+        return widget;  
+    }
+
+    public static T ClipPath<T>(this T widget, SKPath? path) where T : NBVisual
+    {
+        widget.ClipPath = path;
+        return widget;
+    }
+
+    public static T ClipToBounds<T>(this T widget, bool clipToBounds) where T : NBVisual
+    {
+        widget.ClipToBounds = clipToBounds;
+        return widget;
+    }
+
+    public static T Opacity<T>(this T widget, double opacity) where T : NBVisual
+    {
+        widget.Opacity = opacity;
+        return widget;
     }
 }
