@@ -7,7 +7,7 @@ public static partial class NBExtentions
 {
     extension(SKShader self)
     {
-        public static SKShader CreateAlphaLinearGradient(SKPoint start, SKPoint end, float[] alphas, float[] positions, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
+        public static SKShader CreateAlphaLinearGradient(SKPoint start, SKPoint end, float[] positions, float[] alphas,SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
         {
             SKColor[] colors = new SKColor[alphas.Length];
             for (int i = 0; i < alphas.Length; i++)
@@ -17,7 +17,7 @@ public static partial class NBExtentions
             return SKShader.CreateLinearGradient(start, end, colors, positions, tileMode);
         }
 
-        public static SKShader CreateAlphaRadialGradient(SKPoint center, float radius, float[] alphas, float[] positions, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
+        public static SKShader CreateAlphaRadialGradient(SKPoint center, float radius, float[] positions, float[] alphas, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
         {
             SKColor[] colors = new SKColor[alphas.Length];
             for (int i = 0; i < alphas.Length; i++)
@@ -69,9 +69,9 @@ public static partial class NBExtentions
 
         public float Area => self.Width * self.Height;
 
-        public float Radius1 => Math.Min(self.Width, self.Height) / 2;
+        public float MinRadius => Math.Min(self.Width, self.Height) / 2;
 
-        public float Radius2 => Math.Max(self.Width, self.Height) / 2;
+        public float MaxRadius => (float)Math.Sqrt(self.Width * self.Width + self.Height * self.Height) / 2;
 
         /// <summary>
         /// Gets the intersection of two rectangles.
@@ -108,14 +108,36 @@ public static partial class NBExtentions
             self.Item1.Y + (self.Item2.Y - self.Item1.Y) * t);
     }
 
-    public static void Render(this Func<NBDrawContext, NBClip, NBLayoutable?> builder, NBDrawContext ctx, NBClip clip, SKCanvas canvas)
+    public static void Render(this Func<NBDrawContext, NBClip, NBVisual?> builder, NBDrawContext ctx, NBClip clip, SKCanvas canvas)
     {
-        var visual = builder(ctx, clip);
-        if (visual == null) return;
+        builder.RenderCore(ctx, clip, canvas);
+    }
 
-        visual.Measure(ctx.width, ctx.height);
-        visual.Arrange(0, 0, ctx.width, ctx.height);
-        visual.Render(canvas);
+    internal static NBLayoutable? RenderCore(this Func<NBDrawContext, NBClip, NBVisual?> builder, NBDrawContext ctx, NBClip clip, SKCanvas canvas, NBLayoutable? refLayout = null)
+    {
+        var content = builder(ctx, clip);
+        if (content == null) return null;
+
+        var panel = Methods.Panel([content]);
+
+        panel.Measure(ctx.width, ctx.height);
+        panel.Arrange(0, 0, ctx.width, ctx.height);
+        if (refLayout != null)
+        {
+            var boundedItems = content.FindBounded();
+            if(boundedItems != null)
+            {
+                foreach (var item in boundedItems)
+                {
+                    var refItem = refLayout.Find(item.BoundedId);
+                    if (refItem == null) continue;
+                    item.Bounds = refItem.Bounds;
+                }
+            }
+        }
+
+        panel.Render(canvas);
+        return panel;
     }
 
     public static T Styles<T>(this T t, Action<T>[]? styles) where T : NBVisual

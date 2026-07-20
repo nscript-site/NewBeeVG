@@ -10,6 +10,7 @@ namespace NewBeeVG;
 
 public class NBVisual
 {
+    public string? Id { get; set; }
     public bool IsVisible { get; set; } = true;
     public double Opacity { get; set; } = 1.0;
     public SKMatrix? RenderTransform { get; set; }
@@ -20,6 +21,8 @@ public class NBVisual
     public SKImageFilter? Filter { get; set; }
     public SKColorFilter? ColorFilter { get; set; }
     public NBShaderSetting Shaders { get; private set; } = new NBShaderSetting();
+
+    public string? BoundedId { get; set; }
 
     /// <summary>
     /// 在 Canvas 中的位置。
@@ -40,6 +43,48 @@ public class NBVisual
     /// Gets the control's child visuals.
     /// </summary>
     protected internal IAvaloniaList<NBVisual> VisualChildren { get; } = new AvaloniaList<NBVisual>();
+
+    public NBVisual? Find(string? id)
+    {
+        if (id == null) return null;
+
+        if (this.Id == id)
+        {
+            return this;
+        }
+
+        foreach (var child in VisualChildren)
+        {
+            var found = child.Find(id);
+            if (found != null)
+            {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    public List<NBVisual>? FindBounded()
+    {
+        List<NBVisual>? match = null;
+
+        if (BoundedId != null)
+        {
+            if(match == null) match = new List<NBVisual>();
+            match.Add(this);
+        }
+
+        foreach (var item in this.VisualChildren)
+        {
+            var found = item.FindBounded();
+            if(found != null)
+            {
+                if(match == null) match = new List<NBVisual>();
+                match.AddRange(found);
+            }
+        }
+        return match;
+    }
 
     /// <summary>
     /// 绘制背景
@@ -183,6 +228,18 @@ public class NBVisual
 
 public static partial class NBExtentions
 {
+    public static T Id<T>(this T widget, string id) where T : NBVisual
+    {
+        widget.Id = id;
+        return widget;
+    }
+
+    public static T Bind<T>(this T widget, string boundedId) where T : NBVisual
+    {
+        widget.BoundedId = boundedId;
+        return widget;
+    }
+
     public static T RenderTransform<T>(this T widget, SKMatrix? m) where T : NBVisual
     {
         widget.RenderTransform = m;

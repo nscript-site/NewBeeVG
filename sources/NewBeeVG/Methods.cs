@@ -28,8 +28,13 @@ public static class Methods
         return new NBWork();
     }
 
+    public static Func<NBDrawContext, NBClip, NBVisual?>? build(Func<NBDrawContext, NBClip, NBVisual?>? builder)
+    {
+        return builder;
+    }
+
     public static NBDrawingClip clip(
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder,
+        Func<NBDrawContext, NBClip, NBVisual?>? builder,
         SKBlendMode blend = SKBlendMode.SrcIn,
         string name = "clip",
         int frames = 1, int? start = null)
@@ -38,8 +43,8 @@ public static class Methods
     }
 
     public static NBDrawingClip clip(
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder,
-        Func<NBDrawContext, NBClip, NBLayoutable?>? mask,
+        Func<NBDrawContext, NBClip, NBVisual?>? builder,
+        Func<NBDrawContext, NBClip, NBVisual?>? mask,
         SKBlendMode blend = SKBlendMode.SrcIn,
         string name = "clip",
         int frames = 1, int? start = null)
@@ -48,7 +53,7 @@ public static class Methods
     }
 
     public static NBDrawingClip clip(
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder,
+        Func<NBDrawContext, NBClip, NBVisual?>? builder,
         Action<NBDrawContext, NBClip, SKCanvas>? mask,
         SKBlendMode blend = SKBlendMode.SrcIn,
         string name = "clip",
@@ -420,9 +425,38 @@ public static class Methods
 
     #region Widgets
 
+    private static string? _globalFontFaminy = null;
+    private static string GetDefaultFontFamily()
+    {
+        if (String.IsNullOrEmpty(_globalFontFaminy) == false) return _globalFontFaminy;
+
+        // 在不同平台上设置默认字体
+        if (OperatingSystem.IsWindows())
+        {
+            return "Microsoft YaHei";
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            return "Helvetica";
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            return "DejaVu Sans";
+        }
+        else
+        {
+            return "Arial"; // 默认回退字体
+        }
+    }
+
+    public static void font(string name)
+    {
+        _globalFontFaminy = name;
+    }
+
     public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1, Action<NBText>[]? styles = null)
     {
-        var tb = new NBText { Text = text, FontFamily = fontFamily ?? "Arial", FontSize = fontSize, Foreground = color ?? SKColors.Black };
+        var tb = new NBText { Text = text, FontFamily = fontFamily ?? GetDefaultFontFamily(), FontSize = fontSize, Foreground = color ?? SKColors.Black };
         tb.IsWrapText = wrap;
         tb.TextAlign = textAlign switch
         {

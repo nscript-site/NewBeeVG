@@ -6,7 +6,9 @@
 
 //ShapeSamples.Run();
 
-TransformSample.Run();
+TextAnimate1.Run();
+
+//TransformSample.Run();
 
 //ClipSample.Run();
 

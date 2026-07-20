@@ -18,7 +18,7 @@ public class NBDrawingClip : NBClip
 
     public NBDrawingClip(string name = "clip",
         Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
-        Func<NBDrawContext, NBClip, NBLayoutable?>? mask = null,
+        Func<NBDrawContext, NBClip, NBVisual?>? mask = null,
         SKBlendMode blend = SKBlendMode.SrcIn,
         int duration = 1, int? start = null)
     : base(name, ConvertBuilder(builder, null, null, mask, blend), duration, start)
@@ -27,7 +27,7 @@ public class NBDrawingClip : NBClip
     }
 
     public NBDrawingClip(string name = "clip",
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null,
+        Func<NBDrawContext, NBClip, NBVisual?>? builder = null,
         Action<NBDrawContext, NBClip, SKCanvas>? mask = null,
         SKBlendMode blend = SKBlendMode.SrcIn,
         int duration = 1, int? start = null)
@@ -37,8 +37,8 @@ public class NBDrawingClip : NBClip
     }
 
     public NBDrawingClip(string name = "clip",
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder = null,
-        Func<NBDrawContext, NBClip, NBLayoutable?>? mask = null,
+        Func<NBDrawContext, NBClip, NBVisual?>? builder = null,
+        Func<NBDrawContext, NBClip, NBVisual?>? mask = null,
         SKBlendMode blend = SKBlendMode.SrcIn,
         int duration = 1, int? start = null)
         : base(name, ConvertBuilder(null, builder, null, mask, blend), duration, start)
@@ -49,9 +49,9 @@ public class NBDrawingClip : NBClip
 
     protected static Action<NBDrawContext, NBClip, SKCanvas>? ConvertBuilder(
         Action<NBDrawContext, NBClip, SKCanvas>? builder1,
-        Func<NBDrawContext, NBClip, NBLayoutable?>? builder2,
+        Func<NBDrawContext, NBClip, NBVisual?>? builder2,
         Action<NBDrawContext, NBClip, SKCanvas>? mask1,
-        Func<NBDrawContext, NBClip, NBLayoutable?>? mask2,
+        Func<NBDrawContext, NBClip, NBVisual?>? mask2,
         SKBlendMode blend)
     {
         if (builder1 == null && builder2 == null) return null;
@@ -68,6 +68,14 @@ public class NBDrawingClip : NBClip
             using var maskBitmap = new SKBitmap(ctx.width, ctx.height);
             var targetBitmap = new SKBitmap(ctx.width, ctx.height);
 
+            NBLayoutable? content = null;
+
+            using var srcCanvas = new SKCanvas(srcBitmap);
+            if (builder1 != null)
+                builder1(ctx, clip, srcCanvas);
+            else if (builder2 != null)
+                content = builder2.RenderCore(ctx, clip, srcCanvas, null);
+
             using var maskCanvas = new SKCanvas(maskBitmap);
             if (mask1 != null)
             {
@@ -75,14 +83,8 @@ public class NBDrawingClip : NBClip
             }
             else if (mask2 != null)
             {
-                mask2.Render(ctx, clip, maskCanvas);
+                mask2.RenderCore(ctx, clip, maskCanvas, content);
             }
-
-            using var srcCanvas = new SKCanvas(srcBitmap);
-            if(builder1 != null)
-                builder1(ctx, clip, srcCanvas);
-            else if(builder2 != null)
-                builder2.Render(ctx, clip, srcCanvas);
 
             using var targetCanvas = new SKCanvas(targetBitmap);
             targetCanvas.Clear(SKColors.Transparent); // 确保目标位图初始透明

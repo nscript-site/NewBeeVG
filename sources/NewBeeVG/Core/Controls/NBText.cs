@@ -88,10 +88,10 @@ public class NBText : NBLayoutable, IPaddingable
         var lineHeight = GetLineHeight(font);
         var lines = BuildLines(Text, innerAvailableWidth, font);
 
-        double contentWidth = 0;
+        float contentWidth = 0;
         foreach (var line in lines)
         {
-            contentWidth = Math.Max(contentWidth, MeasureLineWidth(line, font));
+            contentWidth = (float)Math.Max(contentWidth, MeasureLineWidth(line, font));
         }
 
         double contentHeight = lines.Count * lineHeight;
@@ -121,10 +121,12 @@ public class NBText : NBLayoutable, IPaddingable
         var bounds = Bounds;
         var padding = Padding;
 
+        float eps = 0.0001f;
+
         var innerLeft = bounds.Left + (float)padding.Left;
         var innerTop = bounds.Top + (float)padding.Top;
-        var innerWidth = Math.Max(0, bounds.Width - (float)padding.Left - (float)padding.Right);
-        var innerHeight = Math.Max(0, bounds.Height - (float)padding.Top - (float)padding.Bottom);
+        var innerWidth = Math.Max(0, eps + bounds.Width - (float)padding.Left - (float)padding.Right);
+        var innerHeight = Math.Max(0, eps + bounds.Height - (float)padding.Top - (float)padding.Bottom);
 
         if (innerWidth <= 0 || innerHeight <= 0)
             return;
@@ -178,7 +180,8 @@ public class NBText : NBLayoutable, IPaddingable
     private SKTypeface CreateTypeface()
     {
         var fontStyle = new SKFontStyle((int)FontWeight, (int)FontWidth, FontSlant);
-        return SKTypeface.FromFamilyName(FontFamily, fontStyle) ?? SKTypeface.Default;
+        var font = SKTypeface.FromFamilyName(FontFamily, fontStyle);
+        return font ?? SKTypeface.Default;
     }
 
     /// <summary>
