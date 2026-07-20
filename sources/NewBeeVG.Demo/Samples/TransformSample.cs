@@ -38,7 +38,7 @@ internal class TransformSample
         var clip3 = GetClip("rotation", 2);
 
         var clip4 = clip(
-                name: "clip4",
+                name: "filter",
                 frames: 30,
                 builder: (ctx, clip) =>
                 {
@@ -72,6 +72,54 @@ internal class TransformSample
                 }
             );
 
-        run(stage(bg: SKColors.Orange), [clip1,clip2,clip3,clip4]);
+        var clip5 = clip(
+                name: "shader",
+                frames: 30,
+                builder: (ctx, clip) =>
+                {
+                    var shader = (SKRect rect) => SKShader.CreateLinearGradient(rect.LeftMiddle, rect.RightMiddle,
+                        new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue },
+                        new float[] { 0, 0.5f, 1 },
+                        SKShaderTileMode.Clamp);
+
+                    return
+                    VGrid("*", [
+                            Rect(400,600).Align(0,0)
+                            .Shader(shader)
+                        ]).Background(SKColors.DeepSkyBlue);
+                }
+            );
+
+        var clip6 = clip(
+             name: "alpha shader",
+             frames: 30,
+             builder: (ctx, clip) =>
+             {
+                 return
+                 VGrid($"*", [
+                         Image("./Assets/snows.jpg")
+                            .Align(0,0).Stretch(Stretch.Fill)
+                     ]).Background(SKColors.DeepSkyBlue);
+             }
+             ,
+             mask: (ctx, clip) =>
+             {
+                 var easing = Easing.SineInOut;
+                 double v = easing(ctx.progress);
+
+                 var alphaShader = (SKRect rect) =>
+                 {
+                     var pair = (rect.LeftMiddle, rect.RightMiddle);
+                     return SKShader.CreateAlphaLinearGradient(pair.Interpolate(0 + v), pair.Interpolate(1 + v), [0, 1], [0, 1]);
+                 };
+
+                 return
+                    Panel([Rect(800,1200,cornerRadius:20).Align(0,0)
+                    .Shader(alphaShader)
+                ]);
+             }
+         );
+
+        run(stage(bg: SKColors.Orange), [clip1,clip2,clip3,clip4,clip5,clip6]);
     }
 }

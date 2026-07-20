@@ -132,12 +132,12 @@ public static class Methods
 
     #region shapes
 
-    public static NBRect rect(double width, double height, SKColor? fill = null, double cornerRadius = 0)
+    public static NBRect Rect(double width = 100, double height = 100, SKColor? fill = null, double cornerRadius = 0)
     {
         return new NBRect(width, height) { Fill = fill, CornerRadius = cornerRadius };
     }
 
-    public static NBEllipse ellipse(double width, double height, SKColor? fill = null)
+    public static NBEllipse Ellipse(double width = 100, double height = 100, SKColor? fill = null)
     {
         return new NBEllipse(width, height) { Fill = fill };
     }

@@ -12,9 +12,20 @@ public class NBEllipse : NBAlignableShape
 
     protected override void RenderCore(SKCanvas context)
     {
-        if (Fill.HasValue)
+        if (Shaders.IsEmpty() == true)
         {
-            using (var paint = new SKPaint { Color = Fill.Value })
+            if (Fill.HasValue)
+            {
+                using (var paint = new SKPaint { Color = Fill.Value })
+                {
+                    context.DrawOval(Bounds, paint);
+                }
+            }
+        }
+        else
+        {
+            Shaders.UpdateShader(Bounds);
+            using (var paint = new SKPaint { Shader = Shaders.Shader, IsAntialias = true })
             {
                 context.DrawOval(Bounds, paint);
             }

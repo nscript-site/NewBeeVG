@@ -5,10 +5,31 @@ namespace NewBeeVG;
 
 public static partial class NBExtentions
 {
+    extension(SKShader self)
+    {
+        public static SKShader CreateAlphaLinearGradient(SKPoint start, SKPoint end, float[] alphas, float[] positions, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
+        {
+            SKColor[] colors = new SKColor[alphas.Length];
+            for (int i = 0; i < alphas.Length; i++)
+            {
+                colors[i] = new SKColor(255, 255, 255, (byte)(alphas[i] * 255));
+            }
+            return SKShader.CreateLinearGradient(start, end, colors, positions, tileMode);
+        }
+
+        public static SKShader CreateAlphaRadialGradient(SKPoint center, float radius, float[] alphas, float[] positions, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
+        {
+            SKColor[] colors = new SKColor[alphas.Length];
+            for (int i = 0; i < alphas.Length; i++)
+            {
+                colors[i] = new SKColor(255, 255, 255, (byte)(alphas[i] * 255));
+            }
+            return SKShader.CreateRadialGradient(center, radius, colors, positions, tileMode);
+        }
+    }
+
     extension(SKRect self)
     {
-        public SKPoint Center => new SKPoint(self.Left + self.Width / 2, self.Top + self.Height / 2);
-
         /// <summary>
         /// Centers another rectangle in this rectangle.
         /// </summary>
@@ -28,6 +49,29 @@ public static partial class NBExtentions
             return new SKRect(left, top, left + width, top + height);
         }
 
+        public SKPoint LeftMiddle => new SKPoint(self.Left, self.Top + self.Height / 2);
+
+        public SKPoint RightMiddle => new SKPoint(self.Right, self.Top + self.Height / 2);
+
+        public SKPoint TopMiddle => new SKPoint(self.Left + self.Width / 2, self.Top);
+
+        public SKPoint BottomMiddle => new SKPoint(self.Left + self.Width / 2, self.Bottom);
+
+        public SKPoint Center => new SKPoint(self.Left + self.Width / 2, self.Top + self.Height / 2);
+
+        public SKPoint TopLeft => new SKPoint(self.Left, self.Top);
+
+        public SKPoint TopRight => new SKPoint(self.Right, self.Top);
+
+        public SKPoint BottomLeft => new SKPoint(self.Left, self.Bottom);
+
+        public SKPoint BottomRight => new SKPoint(self.Right, self.Bottom);
+
+        public float Area => self.Width * self.Height;
+
+        public float Radius1 => Math.Min(self.Width, self.Height) / 2;
+
+        public float Radius2 => Math.Max(self.Width, self.Height) / 2;
 
         /// <summary>
         /// Gets the intersection of two rectangles.
@@ -50,7 +94,18 @@ public static partial class NBExtentions
                 return default;
             }
         }
+    }
 
+    public static SKPoint Interpolate(this ValueTuple<SKPoint, SKPoint> self, double t)
+    {
+        return self.Interpolate((float)t);
+    }
+
+    public static SKPoint Interpolate(this ValueTuple<SKPoint, SKPoint> self, float t)
+    {
+        return new SKPoint(
+            self.Item1.X + (self.Item2.X - self.Item1.X) * t,
+            self.Item1.Y + (self.Item2.Y - self.Item1.Y) * t);
     }
 
     public static void Render(this Func<NBDrawContext, NBClip, NBLayoutable?> builder, NBDrawContext ctx, NBClip clip, SKCanvas canvas)

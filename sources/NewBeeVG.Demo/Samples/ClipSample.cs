@@ -197,7 +197,7 @@ internal class ClipSample
                 double v = easing(ctx.progress);
                 return
                 Panel([
-                        rect(v*ctx.width,v*ctx.height, cornerRadius:v*ctx.width*0.3, fill:SKColors.Snow).Align(0,0)
+                        Rect(v*ctx.width,v*ctx.height, cornerRadius:v*ctx.width*0.3, fill:SKColors.Snow).Align(0,0)
                     ]);
             }
         );

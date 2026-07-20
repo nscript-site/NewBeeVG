@@ -92,5 +92,5 @@ run(stage(bg: Brushes.White), [clip1, clip2, logo]);
 
 # TODO
 
-- [ ] File Based App 示例
-- [ ] 导出视频
+- [x] File Based App 示例
+- [x] 导出视频

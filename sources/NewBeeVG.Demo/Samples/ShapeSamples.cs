@@ -15,9 +15,9 @@ internal class ShapeSamples
                return
                 HGrid("*,*,*",
                 [
-                    rect(v*100,200,SKColors.Green,20).Align(0,0),
-                    rect(v*100,0,SKColors.Green).Align(0,null),
-                    ellipse(v*100,v*200,SKColors.Green).Align(0,0),
+                    Rect(v*100,200,SKColors.Green,20).Align(0,0),
+                    Rect(v*100,0,SKColors.Green).Align(0,null),
+                    Ellipse(v*100,v*200,SKColors.Green).Align(0,0),
                 ]);
            }
         );

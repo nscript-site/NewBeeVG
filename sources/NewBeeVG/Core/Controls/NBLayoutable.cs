@@ -449,7 +449,7 @@ public class NBLayoutable : NBVisual
     }
 
     /// <summary>
-    /// Tests whether any of a <see cref="Rect"/>'s properties include negative values,
+    /// Tests whether any of a <see cref="Avalonia.Rect"/>'s properties include negative values,
     /// a NaN or Infinity.
     /// </summary>
     /// <param name="rect">The rect.</param>

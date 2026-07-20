@@ -19,6 +19,7 @@ public class NBVisual
 
     public SKImageFilter? Filter { get; set; }
     public SKColorFilter? ColorFilter { get; set; }
+    public NBShaderSetting Shaders { get; private set; } = new NBShaderSetting();
 
     /// <summary>
     /// 在 Canvas 中的位置。
@@ -278,6 +279,25 @@ public static partial class NBExtentions
                     f0 = SKColorFilter.CreateCompose(list[i], f0);
                 }
                 widget.ColorFilter = f0;
+            }
+        }
+        return widget;
+    }
+
+    public static T Shader<T>(this T widget, params Func<SKRect, SKShader>?[] shaderFuncs) where T : NBVisual
+    {
+        if (shaderFuncs == null || shaderFuncs.Length == 0)
+        {
+            widget.Shaders.ClearShaderFuncs();
+            return widget;
+        }
+
+
+        foreach (var shaderFunc in shaderFuncs)
+        {
+            if (shaderFunc != null)
+            {
+                widget.Shaders.AddShaderFunc(shaderFunc);
             }
         }
         return widget;

@@ -14,11 +14,25 @@ public class NBRect : NBAlignableShape
 
     protected override void RenderCore(SKCanvas context)
     {
-        if (Fill.HasValue)
+        if(Shaders.IsEmpty() == true)
         {
-            using (var paint = new SKPaint { Color = Fill.Value })
+            if (Fill.HasValue)
             {
-                if(CornerRadius <= 0)
+                using (var paint = new SKPaint { Color = Fill.Value })
+                {
+                    if (CornerRadius <= 0)
+                        context.DrawRect(Bounds, paint);
+                    else
+                        context.DrawRoundRect(Bounds, (float)CornerRadius, (float)CornerRadius, paint);
+                }
+            }
+        }
+        else
+        {
+            Shaders.UpdateShader(Bounds);
+            using (var paint = new SKPaint { Shader = Shaders.Shader, IsAntialias = true })
+            {
+                if (CornerRadius <= 0)
                     context.DrawRect(Bounds, paint);
                 else
                     context.DrawRoundRect(Bounds, (float)CornerRadius, (float)CornerRadius, paint);
