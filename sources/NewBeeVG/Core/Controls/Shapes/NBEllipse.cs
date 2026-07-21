@@ -24,8 +24,8 @@ public class NBEllipse : NBAlignableShape
         }
         else
         {
-            Shaders.UpdateShader(Bounds);
-            using (var paint = new SKPaint { Shader = Shaders.Shader, IsAntialias = true })
+            Shaders.BuildComposeShader(Bounds);
+            using (var paint = new SKPaint { Shader = Shaders.ComposedShader, IsAntialias = true })
             {
                 context.DrawOval(Bounds, paint);
             }

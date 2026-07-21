@@ -20,7 +20,7 @@ public class NBVisual
 
     public SKImageFilter? Filter { get; set; }
     public SKColorFilter? ColorFilter { get; set; }
-    public NBShaderSetting Shaders { get; private set; } = new NBShaderSetting();
+    public NBShaders Shaders { get; private set; } = new NBShaders();
 
     public string? BoundedId { get; set; }
 
@@ -345,7 +345,7 @@ public static partial class NBExtentions
     {
         if (shaderFuncs == null || shaderFuncs.Length == 0)
         {
-            widget.Shaders.ClearShaderFuncs();
+            widget.Shaders.ClearShaders();
             return widget;
         }
 
@@ -354,7 +354,26 @@ public static partial class NBExtentions
         {
             if (shaderFunc != null)
             {
-                widget.Shaders.AddShaderFunc(shaderFunc);
+                widget.Shaders.AddShader(new NBFuncShader(shaderFunc));
+            }
+        }
+        return widget;
+    }
+
+    public static T Shader<T>(this T widget, params NBShader?[] shaders) where T : NBVisual
+    {
+        if (shaders == null || shaders.Length == 0)
+        {
+            widget.Shaders.ClearShaders();
+            return widget;
+        }
+
+
+        foreach (var shaderFunc in shaders)
+        {
+            if (shaderFunc != null)
+            {
+                widget.Shaders.AddShader(shaderFunc);
             }
         }
         return widget;

@@ -29,8 +29,8 @@ public class NBRect : NBAlignableShape
         }
         else
         {
-            Shaders.UpdateShader(Bounds);
-            using (var paint = new SKPaint { Shader = Shaders.Shader, IsAntialias = true })
+            Shaders.BuildComposeShader(Bounds);
+            using (var paint = new SKPaint { Shader = Shaders.ComposedShader, IsAntialias = true })
             {
                 if (CornerRadius <= 0)
                     context.DrawRect(Bounds, paint);
