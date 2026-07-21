@@ -12,23 +12,43 @@ namespace NewBeeVG;
 /// </summary>
 public class NBDecorator : NBLayoutable, IPaddingable
 {
-    public NBLayoutable? Child { get; set { ChildChanged(field, value); field = value;  } }
+    public NBVisual? Child { get; set { ChildChanged(field, value); field = value;  } }
 
     public Thickness Padding { get; set; }
 
-    /// <inheritdoc/>
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        return NBLayoutHelper.MeasureChild(Child, availableSize, Padding);
-    }
+    ///// <inheritdoc/>
+    //protected override Size MeasureOverride(Size availableSize)
+    //{
+    //    if (Child == null) return new Size();
 
-    /// <inheritdoc/>
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        return NBLayoutHelper.ArrangeChild(Child, finalSize, Padding);
-    }
+    //    if(Child is NBLayoutable layoutableChild)
+    //    {
+    //        NBLayoutHelper.MeasureChild(layoutableChild, availableSize, Padding);
+    //    } 
+    //    else
+    //    {
+    //        Child.TryMeasure(availableSize);
+    //    }
+    //    return Child.DesiredSize;
+    //}
 
-    private void ChildChanged(NBLayoutable? oldChild, NBLayoutable? newChild)
+    ///// <inheritdoc/>
+    //protected override Size ArrangeOverride(Size finalSize)
+    //{
+    //    if (Child == null) return new Size();
+
+    //    if (Child is NBLayoutable layoutableChild)
+    //    {
+    //        NBLayoutHelper.ArrangeChild(layoutableChild, finalSize, Padding);
+    //    }
+    //    else
+    //    {
+    //    }
+
+    //    return Child.DesiredSize;
+    //}
+
+    private void ChildChanged(NBVisual? oldChild, NBVisual? newChild)
     {
         if (oldChild != null)
         {

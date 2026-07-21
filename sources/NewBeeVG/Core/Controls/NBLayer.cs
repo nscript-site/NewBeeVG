@@ -2,55 +2,55 @@
 
 namespace NewBeeVG;
 
-public class NBLayer : NBBaseImage
+public class NBLayer : NBDecorator
 {
     private SKSize? _size;
 
-    public NBVisual? Source { get; set; }
+    public NBVisual? Source { get => Child; set => Child = value; }
 
     public NBVisual? Mask { get; set; }
 
     public SKBlendMode MaskBlendMode { get; set; } = SKBlendMode.SrcIn;
 
-    protected override SKSize? GetImageSize()
+    protected override void RenderCore(SKCanvas context)
     {
-        if(_size == null)
+        var width = (float)Bounds.Width;
+        var height = (float)Bounds.Height;
+        if (width > 0 && height > 0)
         {
-            if (double.IsNaN(Width) || double.IsNaN(Height) || Source == null) 
-                _size = new SKSize(0,0);
-            else
-                _size = new SKSize((float)Math.Max(0, Width), (float)Math.Max(0, Height));
+            SKRect sourceRect = new SKRect(0, 0, width, height);
+            using var paint = new SKPaint {  };
+            Draw(context, sourceRect, Bounds, paint);
         }
-        return _size;
     }
 
-    protected override void Draw(SKCanvas context, SKRect sourceRect, SKRect destRect, SKPaint paint)
+    protected void Draw(SKCanvas context, SKRect sourceRect, SKRect destRect, SKPaint paint)
     {
         if (Source == null) return;
 
-        var size = GetImageSize();
-        if (size == null || size.Value.Width <= 0 || size.Value.Height <= 0) return;
+        var size = new SKSize(Bounds.Width, Bounds.Height);
+        if (size.Width <= 0 || size.Height <= 0) return;
 
         if(Mask == null)
         {
-            using var srcBitmap = new SKBitmap((int)size.Value.Width, (int)size.Value.Height);
+            using var srcBitmap = new SKBitmap((int)size.Width, (int)size.Height);
             using var srcCanvas = new SKCanvas(srcBitmap);
-            var content = Source.RenderCore(size.Value, srcCanvas, null);
+            var content = Source.RenderCore(size, srcCanvas, null);
             context?.DrawBitmap(srcBitmap, sourceRect, destRect, paint);
         }
         else
         {
-            using var srcBitmap = new SKBitmap((int)size.Value.Width, (int)size.Value.Height);
-            using var maskBitmap = new SKBitmap((int)size.Value.Width, (int)size.Value.Height);
-            var targetBitmap = new SKBitmap((int)size.Value.Width, (int)size.Value.Height);
+            using var srcBitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            using var maskBitmap = new SKBitmap((int)size.Width, (int)size.Height);
+            var targetBitmap = new SKBitmap((int)size.Width, (int)size.Height);
 
             NBLayoutable? content = null;
 
             using var srcCanvas = new SKCanvas(srcBitmap);
-            content = Source.RenderCore(size.Value, srcCanvas, null);
+            content = Source.RenderCore(size, srcCanvas, null);
 
             using var maskCanvas = new SKCanvas(maskBitmap);
-            Mask.RenderCore(size.Value, maskCanvas, content);
+            Mask.RenderCore(size, maskCanvas, content);
 
             using var targetCanvas = new SKCanvas(targetBitmap);
             targetCanvas.Clear(SKColors.Transparent); // 确保目标位图初始透明

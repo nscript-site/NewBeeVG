@@ -488,9 +488,9 @@ public static class Methods
         return panel;
     }
 
-    public static NBLayer Layer(double width, double height, int? hAlign = 0, int? vAlign = 0)
+    public static NBLayer Layer(double? width = null, double? height = null, int? hAlign = 0, int? vAlign = 0)
     {
-        var layer = new NBLayer { Width = width, Height = height };
+        var layer = new NBLayer { Width = width ?? double.NaN, Height = height ?? double.NaN };
         layer.Align(hAlign, vAlign);
         return layer;
     }

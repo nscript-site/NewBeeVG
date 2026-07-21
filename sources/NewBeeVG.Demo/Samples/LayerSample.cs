@@ -12,7 +12,7 @@ internal class LayerSample
 
         var clip1 = clip(
              name: "animate",
-             frames: 40, blend: SKBlendMode.SrcOut,
+             frames: 40,
              builder: (ctx, clip) => {
                  float v = (float)ctx.progress;
                  var shader = (SKRect rect) =>
@@ -23,7 +23,7 @@ internal class LayerSample
                  };
                  return
                    Panel([
-                       Layer(800, 200).MaskBlend(SKBlendMode.SrcIn)
+                       Layer()
                             .Source(TextBlock("输入你的文字").FontSize(120).Foreground(SKColors.Black).Align(0,0).Id("Text"))
                             .Mask(Rect().Bind("Text").Shader(shader))])
                    .Align(0, 0);

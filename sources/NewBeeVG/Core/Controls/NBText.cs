@@ -85,8 +85,9 @@ public class NBText : NBLayoutable, IPaddingable
         using var typeface = CreateTypeface();
         using var font = CreateFont(typeface);
 
+        float eps = 0.001f;
         var lineHeight = GetLineHeight(font);
-        var lines = BuildLines(Text, innerAvailableWidth, font);
+        var lines = BuildLines(Text, innerAvailableWidth + eps, font);
 
         float contentWidth = 0;
         foreach (var line in lines)
@@ -121,7 +122,7 @@ public class NBText : NBLayoutable, IPaddingable
         var bounds = Bounds;
         var padding = Padding;
 
-        float eps = 0.0001f;
+        float eps = 0.001f;
 
         var innerLeft = bounds.Left + (float)padding.Left;
         var innerTop = bounds.Top + (float)padding.Top;
