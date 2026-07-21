@@ -46,6 +46,22 @@ public class NBDrawingClip : NBClip
         BlendMode = blend;
     }
 
+    public NBDrawingClip(string name = "clip",
+        NBVisual? content = null,
+        NBVisual? mask = null,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        int duration = 1, int? start = null)
+    : base(name, ConvertBuilder(null, ToBuilder(content), null, ToBuilder(mask), blend), duration, start)
+    {
+        BlendMode = blend;
+    }
+
+    private static Func<NBDrawContext, NBClip, NBVisual?> ToBuilder(NBVisual? content)
+    {
+        if(content == null) return null;
+
+        return (NBDrawContext ctx, NBClip clip) => content;
+    }
 
     protected static Action<NBDrawContext, NBClip, SKCanvas>? ConvertBuilder(
         Action<NBDrawContext, NBClip, SKCanvas>? builder1,

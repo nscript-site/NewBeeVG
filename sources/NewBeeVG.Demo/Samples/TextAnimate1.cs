@@ -29,11 +29,13 @@ internal class TextAnimate1
                  };
                  return
                    VStack([
-                       Layer(800, 200)
-                            .Source(TextBlock("输入你的文字").FontSize(120).Foreground(SKColors.Black).Align(0,0).Id("Text"))
-                            .Mask(Rect().Bind("Text").Shader(shader)),
-                       Layer(800, 200).Source(TextBlock("……").FontSize(120).Foreground(SKColors.Black).Align(-1,-1).Id("Text2"))
-                            .Mask(Rect().Bind("Text2").Shader(shader)),
+                       Layer([
+                           TextBlock("输入你的文字").FontSize(120).Foreground(SKColors.Black).Align(0,0).Id("Text"),
+                           Rect().Bind("Text").Shader(shader)
+                       ]).Size(800,200),
+                       Layer([TextBlock("……").FontSize(120).Foreground(SKColors.Black).Align(-1,-1).Id("Text2"),
+                            Rect().Bind("Text2").Shader(shader)
+                       ]).Size(800,200),
                    ]).Spacing(10)
                    .Align(0, 0);
              }

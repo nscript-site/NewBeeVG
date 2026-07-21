@@ -6,26 +6,29 @@ internal class LayerSample
     {
         font("阿里巴巴普惠体 2.0");
 
-        var clip1 = clip(
-             name: "animate",
-             frames: 40,
-             builder: (ctx, clip) => {
-                 //float v = (float)ctx.progress;
-                 //var shader = (SKRect rect) =>
-                 //{
-                 //    return SKShader.CreateAlphaLinearGradient(rect.LeftMiddle, rect.RightMiddle,
-                 //        [0 - 0.4f, (v - 0.4f) / 0.6f, 0.1f + (v - 0.4f) / 0.6f, 1 + 0.2f],
-                 //        [0, 0, 1, 1]);
-                 //};
-                 return
-                   Panel([
-                       Layer()
-                            .Source(TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"))
-                            .Mask(Rect().Bind("Text").Shader(AlphaLinearGradientShader()))])
-                   .Align(0, 0);
-             }
-         );
+        VStack([
+            Layer([
+                TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"),
+                Rect().Bind("Text").Shader(AlphaLinearGradientShader())
+            ]),
+            TextBlock("输入你的文字").Font(120, SKColors.Black)
+                .OnFrame(
+                    e=>
+                    {
+                        e.Sender.Opacity(e.p); 
 
-        run(stage(1920, 1080, bg: SKColors.White), [clip1]);
+                        e.SenderLayoutable?.Margin(0,e.p * 200,0,0);
+                    }
+                )
+        ])
+        .Align(0, 0)
+        .AsClip(out var clip1, frames: 40, name: "animate");
+
+        VStack([
+            TextBlock("Code").Font(80, SKColors.Orange).Align(0,0),
+            TypstFile("./Assets/code1.typ").MaxHeight(800).Align(0,0)
+        ]).Align(0,0).AsClip(out var clip2, frames: 40, name: "code");
+
+        run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2]);
     }
 }

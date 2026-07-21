@@ -41,6 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Assets\code1.typ">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\module_test.py">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

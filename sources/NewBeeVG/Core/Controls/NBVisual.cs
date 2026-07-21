@@ -24,6 +24,8 @@ public class NBVisual
 
     public string? BoundedId { get; set; }
 
+    public Action<NBFrameUpdateEvent>? OnFrameUpdated { get; set; }
+
     /// <summary>
     /// 在 Canvas 中的位置。
     /// </summary>
@@ -43,6 +45,20 @@ public class NBVisual
     /// Gets the control's child visuals.
     /// </summary>
     protected internal IAvaloniaList<NBVisual> VisualChildren { get; } = new AvaloniaList<NBVisual>();
+
+    public void FireOnFrameUpdated(NBFrameUpdateEvent e)
+    {
+        if(OnFrameUpdated != null)
+        {
+            e.Sender = this;
+            OnFrameUpdated.Invoke(e);
+        }
+
+        foreach (var child in VisualChildren)
+        {
+            child.FireOnFrameUpdated(e);
+        }
+    }
 
     public NBVisual? Find(string? id)
     {
@@ -183,6 +199,19 @@ public class NBVisual
         }
     }
 
+    public void TryInvalidateMeasure()
+    {
+        if (this is NBLayoutable layoutable)
+        {
+            layoutable.InvalidateMeasure();
+        }
+
+        foreach(var item in VisualChildren)
+        {
+            item.TryInvalidateMeasure();
+        }
+    }
+
     internal protected void TryArrange(Point offset, Rect rect)
     {
         var offsetRect = new Rect(new Point(offset.X + rect.X, offset.Y + rect.Y), rect.Size);
@@ -228,6 +257,27 @@ public class NBVisual
 
 public static partial class NBExtentions
 {
+    public static T Ref<T>(this T widget, out T value) where T : NBVisual
+    {
+        value = widget;
+        return widget;
+    }
+
+    public static NBDrawingClip AsClip<T>(this T widget, out NBDrawingClip value, int frames, int? start = null, string name = "clip") where T : NBVisual
+    {
+        value = Methods.clip(widget, name: name, frames: frames, start: start); 
+        return value;
+    }
+
+    public static T OnFrame<T>(this T widget, Action<NBFrameUpdateEvent>? onFrame) where T : NBVisual
+    {
+        if(onFrame != null)
+        {
+            widget.OnFrameUpdated += onFrame;
+        }
+        return widget;
+    }
+
     public static T Id<T>(this T widget, string id) where T : NBVisual
     {
         widget.Id = id;

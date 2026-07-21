@@ -143,8 +143,11 @@ public static partial class NBExtentions
         var content = builder(ctx, clip);
         if (content == null) return null;
 
-        var panel = Methods.Panel([content]);
+        NBFrameUpdateEvent e = new NBFrameUpdateEvent(ctx);
 
+        var panel = Methods.Panel([content]);
+        panel.TryInvalidateMeasure();
+        panel.FireOnFrameUpdated(e);
         panel.Measure(ctx.width, ctx.height);
         panel.Arrange(0, 0, ctx.width, ctx.height);
         if (refLayout != null)
@@ -174,8 +177,11 @@ public static partial class NBExtentions
     {
         if (content == null) return null;
 
-        var panel = Methods.Panel([content]);
+        NBFrameUpdateEvent e = new NBFrameUpdateEvent(NBDrawContext.Current ?? new NBDrawContext());
 
+        var panel = Methods.Panel([content]);
+        panel.TryInvalidateMeasure();
+        panel.FireOnFrameUpdated(e);
         panel.Measure(size.Width, size.Height);
         panel.Arrange(0, 0, size.Width, size.Height);
         if (refLayout != null)

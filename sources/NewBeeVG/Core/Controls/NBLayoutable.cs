@@ -32,7 +32,7 @@ public class NBLayoutable : NBVisual
     public bool IsMeasureValid
     {
         get;
-        private set;
+        internal set;
     }
 
     /// <summary>
@@ -41,7 +41,7 @@ public class NBLayoutable : NBVisual
     public bool IsArrangeValid
     {
         get;
-        private set;
+        internal set;
     }
 
     private bool _measuring;
@@ -162,7 +162,6 @@ public class NBLayoutable : NBVisual
         }
     }
 
-    /// <summary>
     /// Invalidates the measurement of the control and queues a new layout pass.
     /// </summary>
     public void InvalidateMeasure()
@@ -173,8 +172,6 @@ public class NBLayoutable : NBVisual
 
             IsMeasureValid = false;
             IsArrangeValid = false;
-
-            OnMeasureInvalidated();
         }
     }
 
@@ -185,8 +182,6 @@ public class NBLayoutable : NBVisual
     {
         if (IsArrangeValid)
         {
-            Logger.TryGet(LogEventLevel.Verbose, LogArea.Layout)?.Log(this, "Invalidated arrange");
-
             IsArrangeValid = false;
         }
     }
@@ -201,13 +196,6 @@ public class NBLayoutable : NBVisual
         {
             InvalidateMeasure();
         }
-    }
-
-    /// <summary>
-    /// Called by InvalidateMeasure
-    /// </summary>
-    protected virtual void OnMeasureInvalidated()
-    {
     }
 
     /// <summary>

@@ -43,6 +43,15 @@ public static class Methods
     }
 
     public static NBDrawingClip clip(
+        NBVisual? content,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "clip",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, content, null, blend, frames, start);
+    }
+
+    public static NBDrawingClip clip(
         Func<NBDrawContext, NBClip, NBVisual?>? builder,
         Func<NBDrawContext, NBClip, NBVisual?>? mask,
         SKBlendMode blend = SKBlendMode.SrcIn,
@@ -50,6 +59,16 @@ public static class Methods
         int frames = 1, int? start = null)
     {
         return new NBDrawingClip(name, builder, mask, blend, frames, start);
+    }
+
+    public static NBDrawingClip clip(
+        NBVisual? content,
+        NBVisual? mask,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        string name = "clip",
+        int frames = 1, int? start = null)
+    {
+        return new NBDrawingClip(name, content, mask, blend, frames, start);
     }
 
     public static NBDrawingClip clip(
@@ -495,12 +514,31 @@ public static class Methods
         return panel;
     }
 
-    public static NBLayer Layer(double? width = null, double? height = null, int? hAlign = 0, int? vAlign = 0)
+    public static NBLayer Layer(NBVisual?[]? childs = null)
     {
-        var layer = new NBLayer { Width = width ?? double.NaN, Height = height ?? double.NaN };
-        layer.Align(hAlign, vAlign);
+        var layer = new NBLayer();
+        layer.Align(0, 0);
+        if(childs != null)
+        {
+            if(childs.Length > 0)
+            {
+                layer.Source = childs[0];
+            }
+
+            if(childs.Length > 1)
+            {
+                layer.Mask = childs[1];
+            }
+        }
         return layer;
     }
+
+    //public static NBLayer Layer(double? width = null, double? height = null, int? hAlign = 0, int? vAlign = 0)
+    //{
+    //    var layer = new NBLayer { Width = width ?? double.NaN, Height = height ?? double.NaN };
+    //    layer.Align(hAlign, vAlign);
+    //    return layer;
+    //}
 
     public static NBGrid Grid(NBVisual[]? childs = null, string? rowDef = null, string? colDef = null)
     {
