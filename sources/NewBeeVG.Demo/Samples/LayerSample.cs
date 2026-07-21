@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace NewBeeVG.Demo.Samples;
+
+internal class LayerSample
+{
+    public static void Run()
+    {
+        font("阿里巴巴普惠体 2.0");
+
+        var clip1 = clip(
+             name: "animate",
+             frames: 40, blend: SKBlendMode.SrcOut,
+             builder: (ctx, clip) => {
+                 float v = (float)ctx.progress;
+                 var shader = (SKRect rect) =>
+                 {
+                     return SKShader.CreateAlphaLinearGradient(rect.LeftMiddle, rect.RightMiddle,
+                         [0 - 0.4f, (v - 0.4f) / 0.6f, 0.1f + (v - 0.4f) / 0.6f, 1 + 0.2f],
+                         [0, 0, 1, 1]);
+                 };
+                 return
+                   Panel([
+                       Layer(800, 200).MaskBlend(SKBlendMode.SrcIn)
+                            .Source(TextBlock("输入你的文字").FontSize(120).Foreground(SKColors.Black).Align(0,0).Id("Text"))
+                            .Mask(Rect().Bind("Text").Shader(shader))])
+                   .Align(0, 0);
+             }
+         );
+
+        run(stage(1920, 1080, bg: SKColors.White), [clip1]);
+    }
+}

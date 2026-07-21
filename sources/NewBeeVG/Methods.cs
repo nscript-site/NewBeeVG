@@ -488,6 +488,13 @@ public static class Methods
         return panel;
     }
 
+    public static NBLayer Layer(double width, double height, int? hAlign = 0, int? vAlign = 0)
+    {
+        var layer = new NBLayer { Width = width, Height = height };
+        layer.Align(hAlign, vAlign);
+        return layer;
+    }
+
     public static NBGrid Grid(NBVisual[]? childs = null, string? rowDef = null, string? colDef = null)
     {
         var panel = new NBGrid();

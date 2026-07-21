@@ -66,7 +66,7 @@ public class NBDrawingClip : NBClip
         {
             using var srcBitmap = new SKBitmap(ctx.width, ctx.height);
             using var maskBitmap = new SKBitmap(ctx.width, ctx.height);
-            var targetBitmap = new SKBitmap(ctx.width, ctx.height);
+            using var targetBitmap = new SKBitmap(ctx.width, ctx.height);
 
             NBLayoutable? content = null;
 
@@ -95,7 +95,6 @@ public class NBDrawingClip : NBClip
                 BlendMode = blend,
                 IsAntialias = true // 抗锯齿，边缘更平滑
             };
-            // 绘制遮罩位图（尺寸和目标图一致，保证覆盖）
             targetCanvas.DrawBitmap(srcBitmap, new SKPoint(0, 0), paint);
             canvas.DrawBitmap(targetBitmap, new SKPoint(0, 0));
         };
