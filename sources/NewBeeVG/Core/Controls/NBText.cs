@@ -489,6 +489,16 @@ public static partial class NBExtentions
         return widget;
     }
 
+    public static TWidget Font<TWidget>(this TWidget widget, float size, SKColor? color = null) where TWidget : NBText
+    {
+        widget.FontSize = size;
+        if(color.HasValue)
+        {
+            widget.Foreground = color.Value;
+        }
+        return widget;
+    }
+
     public static TWidget Text<TWidget>(this TWidget widget, string text) where TWidget : NBText
     {
         widget.Text = text;
@@ -532,6 +542,12 @@ public static partial class NBExtentions
     }
 
     public static TWidget Foreground<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
+    {
+        widget.Foreground = color;
+        return widget;
+    }
+
+    public static TWidget Fg<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
     {
         widget.Foreground = color;
         return widget;

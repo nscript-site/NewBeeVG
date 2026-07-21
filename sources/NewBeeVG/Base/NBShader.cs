@@ -23,6 +23,8 @@ public enum NBRectDirection
 
 public class NBAlphaLinearGradientShader : NBShader
 {
+    public NBRectDirection Direction { get; init; } = NBRectDirection.LeftToRight;
+
     public override SKShader? CreateShader()
     {
         return null;

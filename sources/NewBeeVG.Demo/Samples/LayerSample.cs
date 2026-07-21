@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace NewBeeVG.Demo.Samples;
+﻿namespace NewBeeVG.Demo.Samples;
 
 internal class LayerSample
 {
@@ -24,7 +20,7 @@ internal class LayerSample
                  return
                    Panel([
                        Layer()
-                            .Source(TextBlock("输入你的文字").FontSize(120).Foreground(SKColors.Black).Align(0,0).Id("Text"))
+                            .Source(TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"))
                             .Mask(Rect().Bind("Text").Shader(shader))])
                    .Align(0, 0);
              }
