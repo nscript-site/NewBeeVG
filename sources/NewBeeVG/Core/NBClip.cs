@@ -61,13 +61,16 @@ public class NBClip : IPlayable
 
     protected NBDrawContext CreateDrawContext(NBStage stage, int frame)
     {
-        return new NBDrawContext
+        var cxt = new NBDrawContext
         {
             frame = frame,
             width = stage.Width,
-            height = stage.Height,
+            height = stage.Height, 
+            durationFrames = DurationFrames,
             progress = CalculateProgress(frame, DurationFrames)
         };
+        NBDrawContext.Current = cxt;
+        return cxt;
     }
 
     internal bool NeedRenderInTrack(int frame)
