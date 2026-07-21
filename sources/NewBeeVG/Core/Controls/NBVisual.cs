@@ -20,7 +20,7 @@ public class NBVisual
 
     public SKImageFilter? Filter { get; set; }
     public SKColorFilter? ColorFilter { get; set; }
-    public NBShaders Shaders { get; private set; } = new NBShaders();
+    public NBShaderCollection Shaders { get; private set; } = new NBShaderCollection();
 
     public string? BoundedId { get; set; }
 

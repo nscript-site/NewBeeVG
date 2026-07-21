@@ -5,12 +5,9 @@ namespace NewBeeVG;
 /// <summary>
 /// Shader 的基类 NBShader
 /// </summary>
-public class NBShader
+public abstract class NBShader
 {
-    public virtual SKShader? CreateShader(NBDrawContext ctx, SKRect rect)
-    {
-        return null;
-    }
+    public abstract SKShader? CreateShader(NBDrawContext ctx, SKRect rect);
 }
 
 /// <summary>
@@ -41,7 +38,7 @@ public class NBFuncShader : NBShader
         {
             return ShaderFunc2(rect);
         }
-        return base.CreateShader(ctx, rect);
+        return null;
     }
 }
 
@@ -60,6 +57,9 @@ public class NBAlphaLinearGradientShader : NBShader
 
     public override SKShader? CreateShader(NBDrawContext ctx, SKRect rect)
     {
-        return base.CreateShader(ctx, rect);
+        float v = (float)ctx.progress;
+        return SKShader.CreateAlphaLinearGradient(rect.LeftMiddle, rect.RightMiddle,
+            [0 - 0.4f, (v - 0.4f) / 0.6f, 0.1f + (v - 0.4f) / 0.6f, 1 + 0.2f],
+            [0, 0, 1, 1]);
     }
 }

@@ -10,18 +10,18 @@ internal class LayerSample
              name: "animate",
              frames: 40,
              builder: (ctx, clip) => {
-                 float v = (float)ctx.progress;
-                 var shader = (SKRect rect) =>
-                 {
-                     return SKShader.CreateAlphaLinearGradient(rect.LeftMiddle, rect.RightMiddle,
-                         [0 - 0.4f, (v - 0.4f) / 0.6f, 0.1f + (v - 0.4f) / 0.6f, 1 + 0.2f],
-                         [0, 0, 1, 1]);
-                 };
+                 //float v = (float)ctx.progress;
+                 //var shader = (SKRect rect) =>
+                 //{
+                 //    return SKShader.CreateAlphaLinearGradient(rect.LeftMiddle, rect.RightMiddle,
+                 //        [0 - 0.4f, (v - 0.4f) / 0.6f, 0.1f + (v - 0.4f) / 0.6f, 1 + 0.2f],
+                 //        [0, 0, 1, 1]);
+                 //};
                  return
                    Panel([
                        Layer()
                             .Source(TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"))
-                            .Mask(Rect().Bind("Text").Shader(shader))])
+                            .Mask(Rect().Bind("Text").Shader(AlphaLinearGradientShader()))])
                    .Align(0, 0);
              }
          );
