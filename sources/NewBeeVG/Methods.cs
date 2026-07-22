@@ -670,5 +670,16 @@ public static class Methods
         return file;
     }
 
+    public static NBLottie LottieFile(string path, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
+    {
+        var file = new NBLottie();
+        file.LottieFile = path;
+        if (width.HasValue) file.Width = width.Value;
+        if (height.HasValue) file.Height = height.Value;
+        file.Speed = speed;
+        file.LoopMode = loop;
+        return file;
+    }
+
     #endregion
 }

@@ -5,8 +5,8 @@
 
 #set page(
   width: 600pt,
-  height: 320pt, 
-  margin: 20pt,
+  height: auto,
+  margin: 10pt,
 )
 
 #zebraw(

@@ -26,7 +26,8 @@ internal class LayerSample
 
         VStack([
             TextBlock("Code").Font(80, SKColors.Orange).Align(0,0),
-            TypstFile("./Assets/code1.typ").MaxHeight(800).Align(0,0)
+            TypstFile("./Assets/code1.typ")
+            .MaxHeight(800).Align(0,0)
         ]).Align(0,0).AsClip(out var clip2, frames: 40, name: "code");
 
         run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2]);

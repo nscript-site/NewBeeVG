@@ -25,6 +25,10 @@ public class NBTypst : NBSvg
 
     public Dictionary<string,string>? TypstInputs { get; set; }
 
+    public Dictionary<string, string>? MeasureTypstInputs { get; set; }
+
+    public Action<SKBitmap>? OnMeasureBitmap { get; set; }
+
     public String? SvgResult { get; private set; }
 
     protected override SKSize? GetImageSize()
@@ -90,15 +94,25 @@ public class NBTypst : NBSvg
             }
         }
     }
+
+    private bool IsBitmapMeasured;
+    private void TryMeasureBitmap()
+    {
+        if (IsBitmapMeasured == true) return;
+        IsBitmapMeasured = true;
+        if (OnMeasureBitmap != null)
+        {
+        }
+    }
 }
 
 public static partial class NBExtentions
 {
-    public static T TypstInputs<T>(this T widget, Action<Dictionary<string,string>> onInputs) where T : NBTypst
+    public static T TypstInputs<T>(this T self, Action<Dictionary<string,string>> onInputs) where T : NBTypst
     {
         var dic = new Dictionary<string, string>();
         onInputs(dic);
-        widget.TypstInputs = dic;
-        return widget;
+        self.TypstInputs = dic;
+        return self;
     }
 }

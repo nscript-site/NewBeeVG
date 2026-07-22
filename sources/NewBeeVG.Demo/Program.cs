@@ -6,7 +6,9 @@
 
 //ShapeSamples.Run();
 
-LayerSample.Run();
+LottieSample.Run();
+
+//LayerSample.Run();
 
 //TextAnimate1.Run();
 

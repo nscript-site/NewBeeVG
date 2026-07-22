@@ -26,6 +26,7 @@
     <PackageVersion Include="newbeeui" Version="$(NewBeeUIVersion)" />
     <PackageVersion Include="pythonnet" Version="3.1.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
+    <PackageVersion Include="SkiaSharp.Skottie" Version="3.119.4" />
     <PackageVersion Include="Svg.Skia" Version="5.1.1" />
     <PackageVersion Include="TypstNET" Version="1.0.0-rc1" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />

@@ -3,11 +3,14 @@
 #set page(fill: none)
 
 #set page(
-  width: 200pt,
-  height: 600pt,
+  width: auto,
+  height: auto,
+  margin: 10pt,
 )
 
 = 标题
+
+#highlight(fill: aqua)[浅蓝高亮]
 
 这是正文。
 
