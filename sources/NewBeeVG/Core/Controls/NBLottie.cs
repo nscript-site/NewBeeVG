@@ -125,12 +125,15 @@ public class NBLottie : NBBaseImage
 
         Animator.SeekFrame(frame);
 
-        using var srcBitmap = new SKBitmap(width, height);
-        var canvas = new SKCanvas(srcBitmap);
-        canvas.Clear(SKColors.Transparent);
-        var rect = new SKRect(0, 0, width, height);
-        Animator.Render(canvas, rect);
-        context.DrawBitmap(srcBitmap, src, dest, paint);
+        Draw(Animator, context, dest, frame);
+    }
+
+    protected void Draw(Animation animator, SKCanvas canvas, SKRect dest, int frameIndex)
+    {
+        if (frameIndex < 0 || frameIndex >= TotalFrames) return;
+
+        animator.SeekFrame(frameIndex);
+        animator.Render(canvas, dest);
     }
 }
 
