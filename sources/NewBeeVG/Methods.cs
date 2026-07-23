@@ -644,6 +644,17 @@ public static class Methods
         return img;
     }
 
+    public static NBImage Image(string basePath, string fileName, float? width = null, float? height = null)
+    {
+        var img = new NBImage();
+        img.TryLoad(
+            () => img.Source = SKBitmap.Decode(FileHelpers.LoadStream(basePath, fileName))
+        );
+        if (width.HasValue) img.Width = width.Value;
+        if (height.HasValue) img.Height = height.Value;
+        return img;
+    }
+
     public static NBSvg SVG(Stream stream, float? width = null, float? height = null)
     {
         var svg = new NBSvg { SvgStream = stream };
@@ -661,6 +672,19 @@ public static class Methods
         return svg;
     }
 
+    public static NBSvg SVG(string basePath, string fileName, float? width = null, float? height = null)
+    {
+        var svg = new NBSvg();
+        
+        svg.TryLoad(()=> svg.SvgStream = FileHelpers.LoadStream(basePath, fileName));
+
+        if (width.HasValue) svg.Width = width.Value;
+        if (height.HasValue) svg.Height = height.Value;
+
+        return svg;
+    }
+
+
     public static NBTypst TypstFile(string path, float? width = null, float? height = null)
     {
         var file = new NBTypst();
@@ -674,6 +698,17 @@ public static class Methods
     {
         var file = new NBLottie();
         file.LottieFile = path;
+        if (width.HasValue) file.Width = width.Value;
+        if (height.HasValue) file.Height = height.Value;
+        file.Speed = speed;
+        file.LoopMode = loop;
+        return file;
+    }
+
+    public static NBLottie LottieFile(string basePath, string fileName, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
+    {
+        var file = new NBLottie();
+        file.LoadFromFile(basePath, fileName);
         if (width.HasValue) file.Width = width.Value;
         if (height.HasValue) file.Height = height.Value;
         file.Speed = speed;

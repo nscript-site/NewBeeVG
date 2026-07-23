@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using SkiaSharp.Skottie;
+using System.IO.Compression;
 
 namespace NewBeeVG;
 
@@ -33,6 +34,54 @@ public class NBLottie : NBBaseImage
                     LottieStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(LottieCode));
                 }
             }
+            else
+            {
+                Console.WriteLine($"Lottie file does not exist: {value}");
+            }
+        }
+    }
+
+    public void LoadFromFile(string basePath, string fileName)
+    {
+        FileInfo baseFileInfo = new FileInfo(basePath);
+        if(baseFileInfo.Exists == true)
+        {
+            LoadFromZipFile(basePath, fileName);
+        }
+        else
+        {
+            LottieFile = Path.Combine(basePath, fileName);
+        }
+    }
+
+    public void LoadFromZipFile(string zipFullPath, string filePath)
+    {
+        // 从 zip 文件中加载内容
+        // 打开zip归档，读取内部指定条目
+        try
+        {
+            using var zipStream = File.OpenRead(zipFullPath);
+            using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+
+            var entry = archive.GetEntry(filePath);
+            if (entry == null)
+            {
+                DecodeException = new FileNotFoundException($"压缩包内未找到文件：{filePath}");
+            }
+            else
+            {
+                // entry.OpenStream() 就是压缩包内文件流，在这里处理你的Lottie资源加载
+                using var entryStream = entry.Open();
+                var ms = new MemoryStream();
+                LottieCode = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+                entryStream.CopyTo(ms);
+                ms.Position = 0;
+                LottieStream = ms;
+            }
+        }
+        catch(Exception ex)
+        {
+            DecodeException = ex;
         }
     }
 

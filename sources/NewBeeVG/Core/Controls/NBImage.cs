@@ -16,6 +16,18 @@ public class NBBaseImage : NBLayoutable, INBImage
 
     public Exception? DecodeException { get; protected set; }
 
+    public void TryLoad(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            DecodeException = ex;
+        }
+    }
+
     public Stretch Stretch { get; set; } = Stretch.Uniform;
 
     public StretchDirection StretchDirection { get; set; } = StretchDirection.Both;
