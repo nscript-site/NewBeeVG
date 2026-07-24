@@ -253,6 +253,16 @@ public class NBVisual
         }
         ParamsInGrid.RowSpan = rowSpan;
     }
+
+    public T? As<T>() where T : NBVisual
+    {
+        return this as T;
+    }
+
+    public NBLayoutable? AsLayoutable()
+    {
+        return this as NBLayoutable;
+    }
 }
 
 public static partial class NBExtentions
@@ -461,5 +471,17 @@ public static partial class NBExtentions
             }
         }
         return widget;
+    }
+
+    public static T Styles<T>(this T t, params Action<T>[]? styles) where T : NBVisual
+    {
+        if (styles != null)
+        {
+            foreach (var style in styles)
+            {
+                style(t);
+            }
+        }
+        return t;
     }
 }

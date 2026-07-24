@@ -154,18 +154,6 @@ public static partial class NBExtentions
         return panel;
     }
 
-    public static T Styles<T>(this T t, Action<T>[]? styles) where T : NBVisual
-    {
-        if (styles != null)
-        {
-            foreach (var style in styles)
-            {
-                style(t);
-            }
-        }
-        return t;
-    }
-
     public static Vector CalculateScaling(
         this Stretch stretch,
         SKSize destinationSize,

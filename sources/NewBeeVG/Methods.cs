@@ -473,7 +473,7 @@ public static class Methods
         _globalFontFaminy = name;
     }
 
-    public static NBText TextBlock(string text, float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1, Action<NBText>[]? styles = null)
+    public static NBText TextBlock(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)
     {
         var tb = new NBText { Text = text, FontFamily = fontFamily ?? GetDefaultFontFamily(), FontSize = fontSize, Foreground = color ?? SKColors.Black };
         tb.IsWrapText = wrap;
@@ -483,7 +483,6 @@ public static class Methods
             <0 => SKTextAlign.Left,
             >0 => SKTextAlign.Right
         };
-        tb.Styles(styles);
         return tb;
     }
 
