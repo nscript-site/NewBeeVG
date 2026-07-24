@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace NewBeeVG.Demo.Samples;
 
@@ -37,58 +36,23 @@ internal class TransformSample
         var clip2 = GetClip("translate", 1);
         var clip3 = GetClip("rotation", 2);
 
-        var clip4 = clip(
-                name: "filter",
-                frames: 30,
-                builder: (ctx, clip) =>
-                {
-                    var easing = Easing.SineInOut;
-                    float v = (float)easing(ctx.progress);
-                    
-                    // 滤镜链1：阴影
-                    var shadowFilter = SKImageFilter.CreateDropShadow(4, 4, 3, 3, SKColors.Black);
-                    // 滤镜链2：轻微整体模糊
-                    var blurFilter = SKImageFilter.CreateBlur(3.8f*v, 3.8f*v);
+        VGrid("*,*", [
+            Panel([
+                    TextBlock("filter").Align(0,0).Margin(20)
+                 ])
+                .Margin(200)
+                .OnFrame(e=>{ e.Sender.Filters(Filters.DropShadow(SKColors.Black, 4, 4, 3, 3), Filters.Blur(3.8f*e.p, 3.8f*e.p)); })
+                .Background(SKColors.Red),
+            Image("./Assets/snows.jpg").Margin(200)
+                .ColorFilters(ColorFilters.Gray())
+        ]).Background(SKColors.DeepSkyBlue)
+        .AsClip(out var clip4, 30, name: "filters");
 
-                    float[] grayMat = {
-                        0.299f,0.587f,0.114f,0,0,
-                        0.299f,0.587f,0.114f,0,0,
-                        0.299f,0.587f,0.114f,0,0,
-                        0,0,0,1,0
-                    };
-
-                    var filterGray = SKColorFilter.CreateColorMatrix(grayMat);
-
-                    return
-                    VGrid("*,*",[
-                            Panel([
-                                TextBlock("filter").Align(0,0).Margin(20).Filter()
-                                ]).Margin(200)
-                                .Filter(shadowFilter, blurFilter)
-                                .Background(SKColors.Red),
-                            Image("./Assets/snows.jpg").Margin(200)
-                            .ColorFilter(filterGray)
-                        ]).Background(SKColors.DeepSkyBlue);
-                }
-            );
-
-        var clip5 = clip(
-                name: "shader",
-                frames: 30,
-                builder: (ctx, clip) =>
-                {
-                    var shader = (SKRect rect) => SKShader.CreateLinearGradient(rect.LeftMiddle, rect.RightMiddle,
-                        new SKColor[] { SKColors.Red, SKColors.Green, SKColors.Blue },
-                        new float[] { 0, 0.5f, 1 },
-                        SKShaderTileMode.Clamp);
-
-                    return
-                    VGrid("*", [
-                            Rect(400,600).Align(0,0)
-                            .Shader(shader)
-                        ]).Background(SKColors.DeepSkyBlue);
-                }
-            );
+        VGrid("*", [
+                Rect(400,600).Align(0,0)
+                    .Shaders(Shaders.LinearGradientOnRect([ SKColors.Red, SKColors.Green, SKColors.Blue],[0, 0.5f, 1]))
+        ]).Background(SKColors.DeepSkyBlue)
+        .AsClip(out var clip5, 30, name: "shader");
 
         var clip6 = clip(
              name: "alpha shader",
@@ -104,19 +68,14 @@ internal class TransformSample
              ,
              mask: (ctx, clip) =>
              {
-                 var easing = Easing.SineInOut;
-                 double v = easing(ctx.progress);
-
-                 var alphaShader = (SKRect rect) =>
-                 {
-                     var pair = (rect.LeftMiddle, rect.RightMiddle);
-                     return SKShader.CreateAlphaLinearGradient(pair.Interpolate(0 + v), pair.Interpolate(1 + v), [0, 1], [0, 1]);
-                 };
-
                  return
-                    Panel([Rect(800,1200,cornerRadius:20).Align(0,0)
-                    .Shader(alphaShader)
-                ]);
+                    Panel([Rect(800,1200,cornerRadius:20)
+                    .Align(0,0)
+                        .OnFrame(e=>{
+                            float v = (float)Easing.SineInOut(e.p);
+                            e.Sender.Shaders(Shaders.AlphaLinearGradientOnRect([0,1],[0 + v,1 + v]));
+                        })
+                    ]);
              }
          );
 

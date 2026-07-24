@@ -5,54 +5,6 @@ namespace NewBeeVG;
 
 public static partial class NBExtentions
 {
-    extension(SKShader self)
-    {
-        public static SKShader CreateAlphaLinearGradient(SKPoint start, SKPoint end, float[] positions, float[] alphas,SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
-        {
-            SKColor[] colors = new SKColor[alphas.Length];
-            for (int i = 0; i < alphas.Length; i++)
-            {
-                colors[i] = new SKColor(255, 255, 255, (byte)(alphas[i] * 255));
-            }
-            return SKShader.CreateLinearGradient(start, end, colors, positions, tileMode);
-        }
-
-        //public static SKShader CreateAlphaLinearGradient(SKRect rect, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
-        //{
-        //    float[] positions = [0, 0, 1, 1];
-        //    SKColor[] colors = new SKColor[alphas.Length];
-        //    for (int i = 0; i < alphas.Length; i++)
-        //    {
-        //        colors[i] = new SKColor(255, 255, 255, (byte)(alphas[i] * 255));
-        //    }
-        //    return SKShader.CreateLinearGradient(start, end, colors, positions, tileMode);
-        //}
-
-        public static SKShader CreateAlphaRadialGradient(SKPoint center, float radius, float[] positions, float[] alphas, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
-        {
-            SKColor[] colors = new SKColor[alphas.Length];
-            for (int i = 0; i < alphas.Length; i++)
-            {
-                colors[i] = new SKColor(255, 255, 255, (byte)(alphas[i] * 255));
-            }
-            return SKShader.CreateRadialGradient(center, radius, colors, positions, tileMode);
-        }
-
-        public static SKShader CreateRadialGradient(SKRect rect, SKColor c1, SKColor c2, float p1, float p2, SKShaderTileMode tileMode = SKShaderTileMode.Clamp)
-        {
-            // 渐变色标：圆心透明 → 紫色 → 外圈黑色
-            SKColor[] colors = new[]
-            {
-                 c1, c1, c2, c2
-            };
-
-            // 对应每个颜色的径向位置 0~1
-            float[] colorPositions = new[] { 0f, p1, p2, 1f };
-
-            return SKShader.CreateRadialGradient(rect.Center, rect.MaxRadius, colors, colorPositions, tileMode);
-        }
-    }
-
     extension(SKRect self)
     {
         /// <summary>

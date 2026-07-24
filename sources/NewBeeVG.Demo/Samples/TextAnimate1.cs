@@ -20,21 +20,16 @@ internal class TextAnimate1
              name: "animate",
              frames: 40, blend: SKBlendMode.SrcOut,
              builder: (ctx, clip) => {
-                 float v = (float)ctx.progress;
-                 var shader = (SKRect rect) =>
-                 {
-                     return SKShader.CreateAlphaLinearGradient(rect.LeftMiddle, rect.RightMiddle,
-                         [0 - 0.4f, (v - 0.4f) / 0.6f, 0.1f + (v - 0.4f) / 0.6f, 1 + 0.2f],
-                         [0, 0, 1, 1]);
-                 };
                  return
                    VStack([
                        Layer([
                            TextBlock("输入你的文字").FontSize(120).Foreground(SKColors.Black).Align(0,0).Id("Text"),
-                           Rect().Bind("Text").Shader(shader)
+                           Rect().Bind("Text")
+                                .OnFrame(e=>e.Sender.Shaders(Shaders.AlphaLinearGradient(e.p)))
                        ]).Size(800,200),
                        Layer([TextBlock("……").FontSize(120).Foreground(SKColors.Black).Align(-1,-1).Id("Text2"),
-                            Rect().Bind("Text2").Shader(shader)
+                            Rect().Bind("Text2")
+                                .OnFrame(e=>e.Sender.Shaders(Shaders.AlphaLinearGradient(e.p)))
                        ]).Size(800,200),
                    ]).Spacing(10)
                    .Align(0, 0);
@@ -52,15 +47,16 @@ internal class TextAnimate1
              frames: 30,
              builder: (ctx, clip) =>
              {
-                 float v = 1 - (float)Easing.CubicOut(ctx.progress);
-
-                 var shader = (SKRect rect) => 
-                    SKShader.CreateRadialGradient(rect, SKColors.Transparent, SKColors.Black, v - 0.04f, v);
-
                  return
                  Panel([
                      content(),
-                     Ellipse(2400,2400).Align(0,0).Shader(shader),
+                     Ellipse(2400,2400).Align(0,0)
+                        .OnFrame(e=>
+                        {
+                            float v = 1 - (float)Easing.CubicOut(e.p);
+                            var shader = Shaders.RadialGradientOnRect([SKColors.Transparent, SKColors.Transparent, SKColors.Black, SKColors.Black],[0, v - 0.04f, v, 1]);
+                            e.Sender.Shaders(shader);
+                        })
                  ]);
              }
          );

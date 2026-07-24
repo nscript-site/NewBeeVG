@@ -9,7 +9,8 @@ internal class LayerSample
         VStack([
             Layer([
                 TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"),
-                Rect().Bind("Text").Shader(AlphaLinearGradientShader())
+                Rect().Bind("Text")
+                .OnFrame(e=>e.Sender.Shaders(Shaders.AlphaLinearGradient(e.p)))
             ]),
             TextBlock("输入你的文字").Font(120, SKColors.Black)
                 .OnFrame(

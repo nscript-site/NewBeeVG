@@ -6,13 +6,13 @@
 
 //ShapeSamples.Run();
 
-LottieSample.Run();
+//LottieSample.Run();
 
 //LayerSample.Run();
 
 //TextAnimate1.Run();
 
-//TransformSample.Run();
+TransformSample.Run();
 
 //ClipSample.Run();
 

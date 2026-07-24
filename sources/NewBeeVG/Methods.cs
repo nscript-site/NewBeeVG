@@ -154,13 +154,6 @@ public static class Methods
         return new NBTrack();
     }
 
-    #region shaders
-
-    public static NBShader AlphaLinearGradientShader()
-        { return new NBAlphaLinearGradientShader(); }
-
-    #endregion
-
     #region shapes
 
     public static NBRect Rect(double width = 100, double height = 100, SKColor? fill = null, double cornerRadius = 0)

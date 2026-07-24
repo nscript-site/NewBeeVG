@@ -15,7 +15,6 @@
 ```cs
 font("阿里巴巴普惠体 2.0");
 
-// clip1
 VStack([
     Layer([
         TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"),

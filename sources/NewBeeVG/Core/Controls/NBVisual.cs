@@ -18,8 +18,8 @@ public class NBVisual
     public SKPath? ClipPath { get; set; }
     public bool ClipToBounds { get; set; } = false;
 
-    public SKImageFilter? Filter { get; set; }
-    public SKColorFilter? ColorFilter { get; set; }
+    public NBImageFilterCollection Filters { get; private set; } = new NBImageFilterCollection();
+    public NBColorFilterCollection ColorFilters { get; private set; } = new NBColorFilterCollection();
     public NBShaderCollection Shaders { get; private set; } = new NBShaderCollection();
 
     public string? BoundedId { get; set; }
@@ -142,15 +142,15 @@ public class NBVisual
         }
 
         bool useOpacityLayer = Opacity < 1.0;
-        if (useOpacityLayer || Filter != null || ColorFilter != null)
+        if (useOpacityLayer || Filters.IsEmpty() == false || ColorFilters.IsEmpty() == false)
         {
             byte alpha = (byte)Math.Clamp(Opacity * 255.0, 0, 255);
             using var layerPaint = new SKPaint
             {
                 Color = SKColors.White.WithAlpha(alpha), 
                 IsAntialias = true,
-                ImageFilter = Filter,
-                ColorFilter = ColorFilter
+                ImageFilter = Filters.GetComposeFilter(),
+                ColorFilter = ColorFilters.GetComposeFilter()
             };
 
             context.SaveLayer(layerPaint);
@@ -314,15 +314,16 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static T Filter<T>(this T widget, params SKImageFilter?[] filters) where T : NBVisual
+    public static T Filters<T>(this T widget, params SKImageFilter?[] filters) where T : NBVisual
     {
-        if(filters == null || filters.Length == 0)
+        widget.Filters.ClearFilters();
+
+        if (filters == null || filters.Length == 0)
         {
-            widget.Filter = null;
         }
         else if (filters.Length == 1)
         {
-            widget.Filter = filters[0];
+            widget.Filters.AddFilter(new NBSimpleImageFilter(filters[0]));
         }
         else if (filters.Length > 1)
         {
@@ -337,7 +338,7 @@ public static partial class NBExtentions
 
             if (list.Count == 1)
             {
-                widget.Filter = list[0];
+                widget.Filters.AddFilter(new NBSimpleImageFilter(list[0]));
             }
             else if (list.Count > 1)
             {
@@ -347,21 +348,39 @@ public static partial class NBExtentions
                     // Compose filters in order, the last filter is applied first
                     f0 = SKImageFilter.CreateCompose(list[i], f0);
                 }
-                widget.Filter = f0;
+                widget.Filters.AddFilter(new NBSimpleImageFilter(f0));
             }
         }
         return widget;
     }
 
-    public static T ColorFilter<T>(this T widget, params SKColorFilter?[] filters) where T : NBVisual
+    public static T Filters<T>(this T widget, params NBImageFilter?[] filters) where T : NBVisual
     {
+        widget.Filters.ClearFilters();
+
+        if (filters != null)
+        {
+            foreach (var item in filters)
+            {
+                if (item != null)
+                {
+                    widget.Filters.AddFilter(item);
+                }
+            }
+        }
+        return widget;
+    }
+
+    public static T ColorFilters<T>(this T widget, params SKColorFilter?[] filters) where T : NBVisual
+    {
+        widget.ColorFilters.ClearFilters();
+
         if (filters == null || filters.Length == 0)
         {
-            widget.ColorFilter = null;
         }
         else if (filters.Length == 1)
         {
-            widget.ColorFilter = filters[0];
+            widget.ColorFilters.AddFilter(new NBSimpleColorFilter(filters[0]));
         }
         else if (filters.Length > 1)
         {
@@ -375,7 +394,7 @@ public static partial class NBExtentions
             }
             if (list.Count == 1)
             {
-                widget.ColorFilter = list[0];
+                widget.ColorFilters.AddFilter(new NBSimpleColorFilter(list[0]));
             }
             else if (list.Count > 1)
             {
@@ -385,20 +404,37 @@ public static partial class NBExtentions
                     // Compose color filters in order, the last filter is applied first
                     f0 = SKColorFilter.CreateCompose(list[i], f0);
                 }
-                widget.ColorFilter = f0;
+                widget.ColorFilters.AddFilter(new NBSimpleColorFilter(f0));
             }
         }
         return widget;
     }
 
-    public static T Shader<T>(this T widget, params Func<SKRect, SKShader>?[] shaderFuncs) where T : NBVisual
+    public static T ColorFilters<T>(this T widget, params NBColorFilter?[] filters) where T : NBVisual
     {
+        widget.ColorFilters.ClearFilters();
+
+        if (filters != null)
+        {
+            foreach (var item in filters)
+            {
+                if (item != null)
+                {
+                    widget.ColorFilters.AddFilter(item);
+                }
+            }
+        }
+        return widget;
+    }
+
+    public static T Shaders<T>(this T widget, params Func<SKRect, SKShader>?[] shaderFuncs) where T : NBVisual
+    {
+        widget.Shaders.ClearShaders();
+
         if (shaderFuncs == null || shaderFuncs.Length == 0)
         {
-            widget.Shaders.ClearShaders();
             return widget;
         }
-
 
         foreach (var shaderFunc in shaderFuncs)
         {
@@ -410,20 +446,18 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static T Shader<T>(this T widget, params NBShader?[] shaders) where T : NBVisual
+    public static T Shaders<T>(this T widget, params NBShader?[] shaders) where T : NBVisual
     {
-        if (shaders == null || shaders.Length == 0)
-        {
-            widget.Shaders.ClearShaders();
-            return widget;
-        }
+        widget.Shaders.ClearShaders();
 
-
-        foreach (var shaderFunc in shaders)
+        if (shaders != null)
         {
-            if (shaderFunc != null)
+            foreach (var item in shaders)
             {
-                widget.Shaders.AddShader(shaderFunc);
+                if (item != null)
+                {
+                    widget.Shaders.AddShader(item);
+                }
             }
         }
         return widget;
