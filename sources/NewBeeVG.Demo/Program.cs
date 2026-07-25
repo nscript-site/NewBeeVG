@@ -16,7 +16,9 @@
 
 //TexturesSample.Run();
 
-FiltersSample.Run();
+//FiltersSample.Run();
+
+ColorFiltersSample.Run();
 
 //ClipSample.Run();
 
