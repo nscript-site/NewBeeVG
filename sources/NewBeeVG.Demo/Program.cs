@@ -14,7 +14,9 @@
 
 //TransformSample.Run();
 
-TexturesSample.Run();
+//TexturesSample.Run();
+
+FiltersSample.Run();
 
 //ClipSample.Run();
 

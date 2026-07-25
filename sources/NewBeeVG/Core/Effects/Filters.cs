@@ -398,15 +398,15 @@ public static class Filters
 
     /// <summary>
     /// 平铺滤镜。
-    /// 将图像中的一个矩形区域（src）作为瓦片，平铺到另一个更大的矩形区域（dst）中。
+    /// 将输入图像中的一个矩形区域（src）作为瓦片，平铺到另一个更大的矩形区域（dst）中。
     /// 常用于制作无缝背景纹理或图案重复。
     /// </summary>
     /// <param name="src">源矩形区域，即被平铺的原始图像部分。</param>
     /// <param name="dst">目标矩形区域，即平铺后覆盖的范围。</param>
-    /// <returns>封装了 SKImageFilter 的 NBImageFilter 对象。</returns>
-    public static NBImageFilter Tile(SKRect src, SKRect dst)
+    /// <param name="input">输入图像滤镜（不能为 null）。</param>
+    public static NBImageFilter Tile(SKRect src, SKRect dst, NBImageFilter input)
     {
-        var filter = SKImageFilter.CreateTile(src, dst);
+        var filter = SKImageFilter.CreateTile(src, dst, input.CreateFilter());
         return new NBSimpleImageFilter(filter);
     }
 

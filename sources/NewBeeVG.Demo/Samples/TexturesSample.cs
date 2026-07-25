@@ -45,6 +45,7 @@ internal class TexturesSample
             {
                 Console.WriteLine(image.Id);
                 Panel([
+                    Image("./Assets/snows.jpg").Size(1920,1080).Stretch(Stretch.Fill).Align(null,null),
                     image.Align(null,null),
                     TextBlock(image.Id??"").Font(40, SKColors.White).Margin(50).Align(-1,-1)
                 ]).AsClip(out var clip1, frames: 40, name: image.Id ?? "image");
