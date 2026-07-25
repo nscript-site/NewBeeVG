@@ -12,7 +12,9 @@
 
 //TextAnimate1.Run();
 
-TransformSample.Run();
+//TransformSample.Run();
+
+TexturesSample.Run();
 
 //ClipSample.Run();
 
