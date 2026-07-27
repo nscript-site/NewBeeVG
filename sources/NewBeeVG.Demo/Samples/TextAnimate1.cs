@@ -9,17 +9,16 @@ internal class TextAnimate1
         var style = (NBVisual v) => { 
             v.As<NBText>()?
                 .AddStroke(SKColors.Orange, 55).AddStroke(SKColors.White, 50).AddStroke(SKColors.Red, 40)
-                .FontSize(120).Foreground(SKColors.Black).Align(0, 0)
-                .OnFrame(e => { e.SenderAs<NBText>()?.LetterSpacing(10 + 100 * e.pf).InvalidateMeasure(); });
+                .FontSize(120).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10)
+                .OnFrame(e => { e.SenderAs<NBText>()?.LetterSpacing(-80 + 100 * e.pf).InvalidateMeasure(); })
+                ;
         };
 
-        var content = () => {
-            return
-                VStack([
-                    TextBlock("求关注").Styles(style).Id("Text").FrameMask(FrameMasks.Scanlines()),
-                ]).Spacing(0)
-                .Align(0, 0);
-        };
+        var content = () => 
+            VStack([
+                TextBlock("求关注").Styles(style).Id("Text").FrameMask(FrameMasks.Scanlines()),
+            ]).Spacing(0)
+            .Align(0, 0);
 
         content().AsClip(out var clip1, 30, name: "qiuguanzhu 1");
 
@@ -48,17 +47,15 @@ internal class TextAnimate1
                 });
         };
 
-        var content2 = () => {
-            return
-                VStack([
-                    HStack([
-                            TextBlock("求").Styles(style2),
-                            TextBlock("关").Styles(style2),
-                            TextBlock("注").Styles(style2),
-                        ]).Spacing(20).FrameMask(FrameMasks.Scanlines()),
-                ]).Spacing(0)
-                .Align(0, 0);
-        };
+        var content2 =  () => 
+            VStack([
+                HStack([
+                        TextBlock("求").Styles(style2),
+                        TextBlock("关").Styles(style2),
+                        TextBlock("注").Styles(style2),
+                    ]).Spacing(20).FrameMask(FrameMasks.Scanlines()),
+            ]).Spacing(0)
+            .Align(0, 0);
 
         content2().AsClip(out var clip2, 30, name: "qiuguanzhu 2");
 
