@@ -29,6 +29,21 @@ public static class Shaders
     {
         return new NBRadialGradientShader(r => (r.Center, r.MaxRadius), colors, positions, tile);
     }
+
+    public static NBShader FromTexture(SKBitmap bitmap, SKShaderTileMode tileX = SKShaderTileMode.Clamp, SKShaderTileMode tileY = SKShaderTileMode.Clamp)
+    {
+        return new NBBitmapShader((ctx, rect) => bitmap, tileX, tileY);
+    }
+
+    public static NBShader FromTexture(Func<NBDrawContext, SKRect, SKBitmap> bitmapFunc, SKShaderTileMode tileX = SKShaderTileMode.Clamp, SKShaderTileMode tileY = SKShaderTileMode.Clamp)
+    {
+        return new NBBitmapShader(bitmapFunc, tileX, tileY);
+    }
+
+    public static NBShader FromTexture(Func<SKRect, SKBitmap> bitmapFunc, SKShaderTileMode tileX = SKShaderTileMode.Clamp, SKShaderTileMode tileY = SKShaderTileMode.Clamp)
+    {
+        return new NBBitmapShader((ctx, rect) => bitmapFunc(rect), tileX, tileY);
+    }
 }
 
 //public class NBAlphaLinearGradientShader : NBShader

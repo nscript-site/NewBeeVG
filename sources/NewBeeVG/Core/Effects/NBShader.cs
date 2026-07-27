@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using Geb.Image;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -17,6 +18,26 @@ public abstract class NBShader
             colors[i] = new SKColor(255, 255, 255, (byte)(alphas[i] * 255));
         }
         return colors;
+    }
+}
+
+public class NBBitmapShader : NBShader
+{
+    public Func<NBDrawContext, SKRect, SKBitmap> BitmapFunc { get; init; }
+    public SKShaderTileMode TileX { get; init; }
+    public SKShaderTileMode TileY { get; init; }
+
+    public NBBitmapShader(Func<NBDrawContext, SKRect, SKBitmap> bitmapFunc, SKShaderTileMode tileX = SKShaderTileMode.Clamp, SKShaderTileMode tileY = SKShaderTileMode.Clamp)
+    {
+        BitmapFunc = bitmapFunc;
+        TileX = tileX;
+        TileY = tileY;
+    }
+
+    public override SKShader? CreateShader(NBDrawContext ctx, SKRect rect)
+    {
+        var bmp = BitmapFunc(ctx,rect);
+        return SKShader.CreateBitmap(bmp, TileX, TileY);
     }
 }
 

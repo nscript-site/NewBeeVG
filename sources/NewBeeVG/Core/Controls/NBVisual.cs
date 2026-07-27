@@ -4,6 +4,7 @@
  ***********************/
 
 using Avalonia.Collections;
+using Geb.Image.Formats.Jpeg;
 using SkiaSharp;
 
 namespace NewBeeVG;
@@ -21,6 +22,10 @@ public class NBVisual
     public NBImageFilterCollection Filters { get; private set; } = new NBImageFilterCollection();
     public NBColorFilterCollection ColorFilters { get; private set; } = new NBColorFilterCollection();
     public NBShaderCollection Shaders { get; private set; } = new NBShaderCollection();
+
+    public NBFrameMask? FrameMask { get; set; }
+
+    public SKBlendMode FrameMaskBlendMode { get; set; } = SKBlendMode.SrcOut;
 
     public string? BoundedId { get; set; }
 
@@ -156,7 +161,14 @@ public class NBVisual
             context.SaveLayer(layerPaint);
         }
 
-        RenderCore(context);
+        if(FrameMask != null)
+        {
+            RenderCore(context, FrameMask);
+        }
+        else
+        {
+            RenderCore(context);
+        }
 
         if (useOpacityLayer)
         {
@@ -181,6 +193,45 @@ public class NBVisual
         }
 
         RenderDecorations(context);
+    }
+
+    protected void RenderCore(SKCanvas context, NBFrameMask mask)
+    {
+        var size = new SKSize(Bounds.Width, Bounds.Height);
+        if (size.Width <= 0 || size.Height <= 0) return;
+
+        using var maskBitmap = mask.BuildMaskBitmap(NBDrawContext.CurrentOrDefault, Bounds);
+        if(maskBitmap == null)
+        {
+            RenderCore(context);
+            return;
+        }
+
+        using var srcBitmap = new SKBitmap((int)size.Width, (int)size.Height);
+        var targetBitmap = new SKBitmap((int)size.Width, (int)size.Height);
+
+        using var srcCanvas = new SKCanvas(srcBitmap);
+        srcCanvas.Translate(-Bounds.Left, -Bounds.Top); // 将绘制原点移动到 Bounds 的左上角
+        RenderCore(srcCanvas);
+
+        using var targetCanvas = new SKCanvas(targetBitmap);
+        targetCanvas.Clear(SKColors.Transparent); // 确保目标位图初始透明
+        targetCanvas.DrawBitmap(maskBitmap, new SKPoint(0, 0));
+
+        using var p = new SKPaint
+        {
+            BlendMode = FrameMaskBlendMode,
+            IsAntialias = true // 抗锯齿，边缘更平滑
+        };
+
+        // 绘制遮罩位图（尺寸和目标图一致，保证覆盖）
+        targetCanvas.DrawBitmap(srcBitmap, new SKPoint(0, 0), p);
+
+        var width = (float)Bounds.Width;
+        var height = (float)Bounds.Height;
+        SKRect sourceRect = new SKRect(0, 0, width, height);
+        using var paint = new SKPaint { };
+        context.DrawBitmap(targetBitmap, sourceRect, this.Bounds, paint);
     }
 
     internal protected virtual void TryMeasure(Size availableSize)
@@ -306,13 +357,13 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static T RenderTransform<T>(this T widget, SKMatrix? m) where T : NBVisual
+    public static T RenderTransform<T>(this T widget, SKMatrix? m = null) where T : NBVisual
     {
         widget.RenderTransform = m;
         return widget;  
     }
 
-    public static T ClipPath<T>(this T widget, SKPath? path) where T : NBVisual
+    public static T ClipPath<T>(this T widget, SKPath? path = null) where T : NBVisual
     {
         widget.ClipPath = path;
         return widget;
@@ -489,5 +540,17 @@ public static partial class NBExtentions
             }
         }
         return t;
+    }
+
+    public static T FrameMask<T>(this T widget, NBFrameMask? mask) where T : NBVisual
+    {
+        widget.FrameMask = mask;
+        return widget;
+    }
+
+    public static T FrameMaskBlend<T>(this T widget, SKBlendMode blendMode) where T : NBVisual
+    {
+        widget.FrameMaskBlendMode = blendMode;
+        return widget;
     }
 }

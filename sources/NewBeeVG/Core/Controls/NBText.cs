@@ -112,10 +112,7 @@ public class NBText : NBLayoutable, IPaddingable
             contentHeight + padding.Top + padding.Bottom);
     }
 
-    /// <summary>
-    /// 在子元素绘制完成后绘制文本本身。
-    /// </summary>
-    protected override void RenderDecorations(SKCanvas context)
+    protected override void RenderCore(SKCanvas context)
     {
         RenderText(context);
     }
