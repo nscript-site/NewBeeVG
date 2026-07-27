@@ -122,9 +122,12 @@ internal class ColorFiltersSample
                     .Stretch(Stretch.Fill)
                     .Align(0, 0);
 
-                var panel = Panel([
+                var text = TextBlock("Text").Font(64, SKColors.Black).ColorFilters(filter).Align(0, 0);
+
+                var panel = VStack([
+                    TextBlock(name).Font(40, SKColors.White).Margin(50,50,0,0),
                     image,
-                    TextBlock(name).Font(40, SKColors.White).Margin(50).Align(-1, -1)
+                    text
                 ]);
 
                 panel.AsClip(out var clip, frames: 20, name: name);

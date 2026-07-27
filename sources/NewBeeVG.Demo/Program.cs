@@ -10,7 +10,7 @@
 
 //LayerSample.Run();
 
-//TextAnimate1.Run();
+TextAnimate1.Run();
 
 //TransformSample.Run();
 
@@ -18,7 +18,7 @@
 
 //FiltersSample.Run();
 
-ColorFiltersSample.Run();
+//ColorFiltersSample.Run();
 
 //ClipSample.Run();
 

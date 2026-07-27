@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace NewBeeVG.Demo.Samples;
 
@@ -86,11 +87,21 @@ internal class FiltersSample
             foreach (var filter in filters)
             {
                 Console.WriteLine(filter.Item1);
-                Panel([
-                    Image("./Assets/snows.jpg").Size(600,300).Filters(filter.Item2).Stretch(Stretch.Fill).Align(0,0),
-                    TextBlock(filter.Item1??"").Font(40, SKColors.White).Margin(50).Align(-1,-1)
-                ]).AsClip(out var clip1, frames: 20, name: filter.Item1 ?? "filter");
-                list.Add(clip1);
+                var image = Image("./Assets/snows.jpg")
+                                    .Size(600, 300)
+                                    .Stretch(Stretch.Fill)
+                                    .Align(0, 0);
+
+                var text = TextBlock("Text").Font(64, SKColors.Black).Align(0, 0);
+
+                var panel = VStack([
+                    TextBlock(filter.name).Font(40, SKColors.White).Margin(50,50,0,0),
+                    image,
+                    text
+                ]).Filters(filter.filter);
+
+                panel.AsClip(out var clip, frames: 10, name: filter.name);
+                list.Add(clip);
             }
             return list.ToArray();
         }

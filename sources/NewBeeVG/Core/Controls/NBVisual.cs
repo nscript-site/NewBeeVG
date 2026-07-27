@@ -288,6 +288,12 @@ public static partial class NBExtentions
         return widget;
     }
 
+    public static T ClearOnFrames<T>(this T widget) where T : NBVisual
+    {
+        widget.OnFrameUpdated = null;
+        return widget;
+    }
+
     public static T Id<T>(this T widget, string id) where T : NBVisual
     {
         widget.Id = id;
@@ -473,7 +479,7 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static T Styles<T>(this T t, params Action<T>[]? styles) where T : NBVisual
+    public static T Styles<T>(this T t, params Action<NBVisual>[]? styles) where T : NBVisual
     {
         if (styles != null)
         {

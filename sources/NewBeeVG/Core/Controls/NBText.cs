@@ -54,6 +54,10 @@ public class NBText : NBLayoutable, IPaddingable
     /// </summary>
     public SKColor Foreground { get; set; } = SKColors.Black;
 
+    public bool StrokesFirst { get; set; } = true;
+
+    public NBStrokeCollection Strokes { get; private set; } = new NBStrokeCollection();
+
     /// <summary>
     /// 行高；如果为 NaN，则自动按字体度量计算。
     /// </summary>
@@ -73,6 +77,11 @@ public class NBText : NBLayoutable, IPaddingable
     /// 文本水平对齐方式。
     /// </summary>
     public SKTextAlign TextAlign { get; set; } = SKTextAlign.Left;
+
+    private float GetLetterSpacingWithStroke()
+    {
+        return LetterSpacing + GetStrokeMargin();
+    }
 
     /// <summary>
     /// 测量文本控件在给定可用空间下所需的尺寸。
@@ -134,7 +143,7 @@ public class NBText : NBLayoutable, IPaddingable
 
         using var typeface = CreateTypeface();
         using var font = CreateFont(typeface);
-        using var paint = CreateTextPaint();
+        using var paint = CreateFillTextPaint();
 
         var metrics = font.Metrics;
         var lineHeight = GetLineHeight(font);
@@ -166,10 +175,36 @@ public class NBText : NBLayoutable, IPaddingable
             var lineWidth = MeasureLineWidth(line, font);
 
             // 根据 TextAlign 计算当前行的起始 X 坐标。
-            var x = GetLineX(innerLeft, innerWidth, lineWidth);
-            var y = lineTop - metrics.Ascent;
+            var x = GetLineX(innerLeft, innerWidth, lineWidth) + GetStrokeMargin() * 0.5f;
+            var y = lineTop - metrics.Ascent + GetStrokeMargin() * 0.5f;
 
-            DrawLine(context, font, paint, line, x, y);
+            if (Strokes.IsEmpty() == false)
+            {
+                if(StrokesFirst == true)
+                {
+                    Strokes.ForEachStroke(s =>
+                    {
+                        using var strokePaint = s.CreatePaint();
+                        DrawLine(context, font, strokePaint, line, x, y);
+                    });
+
+                    DrawLine(context, font, paint, line, x, y);
+                }
+                else
+                {
+                    DrawLine(context, font, paint, line, x, y);
+
+                    Strokes.ForEachStroke(s =>
+                    {
+                        using var strokePaint = s.CreatePaint();
+                        DrawLine(context, font, strokePaint, line, x, y);
+                    });
+                }
+            }
+            else
+            {
+                DrawLine(context, font, paint, line, x, y);
+            }
         }
 
         context.Restore();
@@ -196,7 +231,7 @@ public class NBText : NBLayoutable, IPaddingable
     /// <summary>
     /// 创建用于绘制的画笔。
     /// </summary>
-    private SKPaint CreateTextPaint()
+    private SKPaint CreateFillTextPaint()
     {
         return new SKPaint
         {
@@ -204,6 +239,11 @@ public class NBText : NBLayoutable, IPaddingable
             Color = Foreground, 
             IsDither = true,
         };
+    }
+
+    private float GetStrokeMargin()
+    {
+        return Strokes.GetMaxStrokeWidth();
     }
 
     /// <summary>
@@ -216,7 +256,7 @@ public class NBText : NBLayoutable, IPaddingable
             ? Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading)
             : LineHeight;
 
-        return lineHeight < 0 ? 0 : lineHeight;
+        return lineHeight < 0 ? 0 : lineHeight + GetStrokeMargin();
     }
 
     /// <summary>
@@ -297,10 +337,13 @@ public class NBText : NBLayoutable, IPaddingable
 
         // 字间距需要手动累加。
         int runeCount = CountRunes(value);
-        if (LetterSpacing != 0 && runeCount > 1)
-            width += LetterSpacing * (runeCount - 1);
 
-        return width;
+        var letterSpacing = GetLetterSpacingWithStroke();
+
+        if (letterSpacing != 0 && runeCount > 1)
+            width += letterSpacing * (runeCount - 1);
+
+        return width + GetStrokeMargin();
     }
 
     /// <summary>
@@ -382,21 +425,22 @@ public class NBText : NBLayoutable, IPaddingable
         if (string.IsNullOrEmpty(line))
             return;
 
-        // 没有字间距时，直接整体绘制即可。
-        if (LetterSpacing == 0 || CountRunes(line) <= 1)
+        var letterSpacingWithStroke = GetLetterSpacingWithStroke();
+
+        // 直接整体绘制即可。
+        if (letterSpacingWithStroke == 0 && Strokes.IsEmpty() && CountRunes(line) <= 1)
         {
             context.DrawText(line, x, y, font, paint);
             return;
         }
 
-        // 有字间距时，逐个 Rune 绘制。
         float currentX = x;
 
         foreach (var rune in line.EnumerateRunes())
         {
             var runeText = rune.ToString();
             context.DrawText(runeText, currentX, y, font, paint);
-            currentX += (float)font.MeasureText(runeText) + LetterSpacing;
+            currentX += (float)font.MeasureText(runeText) + letterSpacingWithStroke;
         }
     }
 
@@ -544,6 +588,33 @@ public static partial class NBExtentions
     public static TWidget Foreground<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
     {
         widget.Foreground = color;
+        return widget;
+    }
+
+    public static TWidget StrokeFirst<TWidget>(this TWidget widget, bool strokesFirst) where TWidget : NBText
+    {
+        widget.StrokesFirst = strokesFirst;
+        return widget;
+    }
+
+    public static TWidget Strokes<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Square, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
+    {
+        var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
+        widget.Strokes.ClearStrokes();
+        widget.Strokes.AddStroke(stroke);
+        return widget;
+    }
+
+    public static TWidget AddStroke<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Square, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
+    {
+        var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
+        widget.Strokes.AddStroke(stroke);
+        return widget;
+    }
+
+    public static TWidget ClearStrokes<TWidget>(this TWidget widget) where TWidget : NBText
+    {
+        widget.Strokes.ClearStrokes();
         return widget;
     }
 
