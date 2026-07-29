@@ -12,9 +12,9 @@
 
 //UtilsSample.Run();
 
-BitmapFiltersSample.Run();
+//BitmapFiltersSample.Run();
 
-//TextAnimate1.Run();
+TextAnimate1.Run();
 
 //TransformSample.Run();
 

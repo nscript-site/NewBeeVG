@@ -1,10 +1,10 @@
 ﻿namespace NewBeeVG;
 
-public class NBDisposableIf : IDisposable
+public readonly struct NBDisposableIf : IDisposable
 {
-    private IDisposable? _owner;
+    private readonly IDisposable? _owner;
 
-    private Func<bool>? _func;
+    private readonly Func<bool>? _func;
 
     public NBDisposableIf(IDisposable? owner, Func<bool>? predicate = null)
     {
@@ -12,35 +12,18 @@ public class NBDisposableIf : IDisposable
         _func = predicate;
     }
 
-    private bool disposedValue;
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!disposedValue)
-        {
-            if (disposing)
-            {
-                if(_func == null || _func() == true)
-                {
-                    _owner?.Dispose();
-                }
-            }
-
-            disposedValue = true;
-        }
-    }
-
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
+        if (_func == null || _func() == true)
+        {
+            _owner?.Dispose();
+        }
     }
 }
 
-public class NBDefer : IDisposable
+public readonly struct NBDefer : IDisposable
 {
-    private bool disposedValue;
-    private Action action;
+    private readonly Action action;
     public NBDefer(Action action)
     {
         this.action = action;
@@ -48,10 +31,6 @@ public class NBDefer : IDisposable
 
     public void Dispose()
     {
-        if (!disposedValue)
-        {
-            disposedValue = true;
-            action();
-        }
+        action();
     }
 }
