@@ -10,7 +10,9 @@
 
 //LayerSample.Run();
 
-UtilsSample.Run();
+//UtilsSample.Run();
+
+BitmapFiltersSample.Run();
 
 //TextAnimate1.Run();
 
