@@ -73,6 +73,11 @@ public static partial class NBExtentions
         }
     }
 
+    public static IDisposable DisposableIf(this IDisposable self, Func<bool>? predicate = null)
+    {
+        return new NBDisposableIf(self, predicate);
+    }
+
     public static SKPoint Interpolate(this ValueTuple<SKPoint, SKPoint> self, double t)
     {
         return self.Interpolate((float)t);

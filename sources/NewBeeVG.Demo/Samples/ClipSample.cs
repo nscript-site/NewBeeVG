@@ -235,7 +235,6 @@ internal class ClipSample
             }
         );
 
-
         //run(stage(bg: Brushes.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
         run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip_mask1, clip_mask2, logo, logo2, footer]);
     }

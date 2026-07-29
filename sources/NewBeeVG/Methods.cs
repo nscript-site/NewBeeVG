@@ -28,6 +28,11 @@ public static class Methods
         return new NBWork();
     }
 
+    public static NBDefer defer(Action action)
+    {
+        return new NBDefer(action);
+    }
+
     public static Func<NBDrawContext, NBClip, NBVisual?>? build(Func<NBDrawContext, NBClip, NBVisual?>? builder)
     {
         return builder;

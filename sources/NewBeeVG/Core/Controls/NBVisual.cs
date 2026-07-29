@@ -242,18 +242,12 @@ public class NBVisual
         srcCanvas.Translate(-Bounds.Left, -Bounds.Top); // 将绘制原点移动到 Bounds 的左上角
         SKBitmap? output = null;
         RenderContent(srcCanvas);
-        try
-        {
-            var (currentBitmap, offset) = BitmapFilters.Filter(NBDrawContext.CurrentOrDefault, Bounds, srcBitmap);
-            output = currentBitmap;
-            return (currentBitmap, offset);
-        }
-        finally
-        {
-            // 避免内存泄露
-            if (output != srcBitmap)
-                srcBitmap.Dispose();
-        }
+        
+        using var _ = srcBitmap.DisposableIf(()=> output != srcBitmap);  // 避免内存泄露，如果 output != srcBitmap，则在 using 结束时释放 srcBitmap
+
+        var (currentBitmap, offset) = BitmapFilters.Filter(NBDrawContext.CurrentOrDefault, Bounds, srcBitmap);
+        output = currentBitmap;
+        return (currentBitmap, offset);
     }
 
     /// <summary>
