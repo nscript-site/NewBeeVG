@@ -4,11 +4,29 @@
  ***********************/
 
 using Avalonia.Collections;
-using Geb.Image.Formats.Jpeg;
 using SkiaSharp;
 
 namespace NewBeeVG;
 
+/// <summary>
+/// NBVisual 是 NewBeeVG 中的基础可视元素类，提供了基本的渲染、布局和事件处理功能。它可以包含子元素，并支持各种
+/// 视觉效果，如滤镜、颜色滤镜、着色器和位图滤镜。
+/// 
+/// 生命周期：
+///     - 先调用 OnFrameUpdate 事件处理器（如果有），用于更新元素的状态。
+///     - 再进行布局和排列
+///     - 再进行渲染，渲染顺序为：Content -> BitmapFilters -> FrameMask -> Filters/ColorFilters/Opacity/RenderTransform。
+/// 
+/// 渲染逻辑：
+///     - 先渲染 Content（包括背景、子元素和装饰物），子类可通过重写 RenderContent 方法来实现自定义内容的渲染。
+///     - 然后应用 BitmapFilters, 如果存在 BitmapFilters，则会先将 Content 渲染到一个临时位图上，然后对该位
+///       图应用 BitmapFilters，最后将处理后的位图绘制到目标画布上。有的 BitmapFilter 可能会改变位图的大小，
+///       因此最终绘制的 Bounds (这里称之为 ExtendBounds ) 可能后布局安排的 Bounds 不一致。
+///     - 然后应用 FrameMask，如果存在 FrameMask，则会先将 Content 渲染到一个临时位图上，然后将 FrameMask 的
+///       遮罩位图绘制到该位图上，最后将处理后的位图绘制到目标画布上。FrameMask 构建 Mask 时输入的 rect 是 
+///       ExtendBounds。
+///     - 然后应用滤镜、颜色滤镜 和 Opacity、RenderTransform。
+/// </summary>
 public class NBVisual
 {
     public string? Id { get; set; }
@@ -26,6 +44,8 @@ public class NBVisual
     public NBFrameMask? FrameMask { get; set; }
 
     public SKBlendMode FrameMaskBlendMode { get; set; } = SKBlendMode.SrcOut;
+
+    public NBBitmapFilterCollection BitmapFilters { get; private set; } = new NBBitmapFilterCollection();
 
     public string? BoundedId { get; set; }
 
@@ -163,11 +183,11 @@ public class NBVisual
 
         if(FrameMask != null)
         {
-            RenderCore(context, FrameMask);
+            RenderContentWithBitmapFilters(context, FrameMask);
         }
         else
         {
-            RenderCore(context);
+            RenderContentWithBitmapFilters(context);
         }
 
         if (useOpacityLayer)
@@ -178,7 +198,69 @@ public class NBVisual
         context.Restore();
     }
 
-    protected virtual void RenderCore(SKCanvas context)
+    protected void RenderContentWithBitmapFilters(SKCanvas context)
+    {
+        if(BitmapFilters.IsEmpty)
+        {
+            RenderContent(context);
+            return;
+        }
+
+        var (currentBitmap, offset) = BuildContentBitmap(context);
+        using var result = RenderContentBitmap(context, (currentBitmap, offset));
+    }
+
+    protected SKBitmap? RenderContentBitmap(SKCanvas context, (SKBitmap?, SKPoint) bitmapInfo)
+    {
+        var (currentBitmap, offset) = bitmapInfo;
+        if (currentBitmap != null)
+        {
+            var width = (float)currentBitmap.Width;
+            var height = (float)currentBitmap.Height;
+            if (width > 0 && height > 0)
+            {
+                var sourceRect = new SKRect(0, 0, width, height);
+                var dstRect = GetExtendBounds(currentBitmap, offset);
+                using var paint = new SKPaint { };
+                context.DrawBitmap(currentBitmap, sourceRect, dstRect, paint);
+            }
+        }
+        return currentBitmap;
+    }
+
+    protected SKRect GetExtendBounds(SKBitmap bmp, SKPoint offset)
+    {
+        return new SKRect(Bounds.Left + offset.X, Bounds.Top + offset.Y, Bounds.Left + offset.X + bmp.Width, Bounds.Top + offset.Y + bmp.Height);
+    }
+
+    protected (SKBitmap?, SKPoint) BuildContentBitmap(SKCanvas context)
+    {
+        var size = new SKSize(Bounds.Width, Bounds.Height);
+        if (size.Width <= 0 || size.Height <= 0) return(null,new SKPoint());
+        var srcBitmap = new SKBitmap((int)size.Width, (int)size.Height);
+        using var srcCanvas = new SKCanvas(srcBitmap);
+        srcCanvas.Translate(-Bounds.Left, -Bounds.Top); // 将绘制原点移动到 Bounds 的左上角
+        SKBitmap? output = null;
+        RenderContent(srcCanvas);
+        try
+        {
+            var (currentBitmap, offset) = BitmapFilters.Filter(NBDrawContext.CurrentOrDefault, Bounds, srcBitmap);
+            output = currentBitmap;
+            return (currentBitmap, offset);
+        }
+        finally
+        {
+            // 避免内存泄露
+            if (output != srcBitmap)
+                srcBitmap.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 绘制内容。一般子类会重写此方法来绘制自己的内容。默认实现会绘制背景、子元素和装饰物。
+    /// </summary>
+    /// <param name="context"></param>
+    protected virtual void RenderContent(SKCanvas context)
     {
         RenderBackground(context);
 
@@ -195,24 +277,26 @@ public class NBVisual
         RenderDecorations(context);
     }
 
-    protected void RenderCore(SKCanvas context, NBFrameMask mask)
+    protected void RenderContentWithBitmapFilters(SKCanvas context, NBFrameMask mask)
     {
         var size = new SKSize(Bounds.Width, Bounds.Height);
         if (size.Width <= 0 || size.Height <= 0) return;
 
-        using var maskBitmap = mask.BuildMaskBitmap(NBDrawContext.CurrentOrDefault, Bounds);
+        var (currentBitmap, offset) = BuildContentBitmap(context);
+        using var srcBitmap = currentBitmap;
+
+        if (srcBitmap == null) return;
+
+        var newBounds = GetExtendBounds(srcBitmap, offset);
+
+        using var maskBitmap = mask.BuildMaskBitmap(NBDrawContext.CurrentOrDefault, newBounds);
         if(maskBitmap == null)
         {
-            RenderCore(context);
+            RenderContentBitmap(context, (srcBitmap, offset));
             return;
         }
 
-        using var srcBitmap = new SKBitmap((int)size.Width, (int)size.Height);
-        var targetBitmap = new SKBitmap((int)size.Width, (int)size.Height);
-
-        using var srcCanvas = new SKCanvas(srcBitmap);
-        srcCanvas.Translate(-Bounds.Left, -Bounds.Top); // 将绘制原点移动到 Bounds 的左上角
-        RenderCore(srcCanvas);
+        var targetBitmap = new SKBitmap(srcBitmap.Width, srcBitmap.Height);
 
         using var targetCanvas = new SKCanvas(targetBitmap);
         targetCanvas.Clear(SKColors.Transparent); // 确保目标位图初始透明
@@ -227,11 +311,7 @@ public class NBVisual
         // 绘制遮罩位图（尺寸和目标图一致，保证覆盖）
         targetCanvas.DrawBitmap(srcBitmap, new SKPoint(0, 0), p);
 
-        var width = (float)Bounds.Width;
-        var height = (float)Bounds.Height;
-        SKRect sourceRect = new SKRect(0, 0, width, height);
-        using var paint = new SKPaint { };
-        context.DrawBitmap(targetBitmap, sourceRect, this.Bounds, paint);
+        RenderContentBitmap(context, (targetBitmap, offset));
     }
 
     internal protected virtual void TryMeasure(Size availableSize)
@@ -551,6 +631,22 @@ public static partial class NBExtentions
     public static T FrameMaskBlend<T>(this T widget, SKBlendMode blendMode) where T : NBVisual
     {
         widget.FrameMaskBlendMode = blendMode;
+        return widget;
+    }
+
+    public static T BitmapFilters<T>(this T widget, params NBBitmapFilter?[] filters) where T : NBVisual
+    {
+        widget.BitmapFilters.ClearFilters();
+        if (filters != null)
+        {
+            foreach (var item in filters)
+            {
+                if (item != null)
+                {
+                    widget.BitmapFilters.AddFilter(item);
+                }
+            }
+        }
         return widget;
     }
 }

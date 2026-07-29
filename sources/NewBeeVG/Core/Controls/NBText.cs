@@ -112,7 +112,7 @@ public class NBText : NBLayoutable, IPaddingable
             contentHeight + padding.Top + padding.Bottom);
     }
 
-    protected override void RenderCore(SKCanvas context)
+    protected override void RenderContent(SKCanvas context)
     {
         RenderText(context);
     }

@@ -12,7 +12,7 @@ public class NBLayer : NBDecorator
 
     public SKBlendMode MaskBlendMode { get; set; } = SKBlendMode.SrcIn;
 
-    protected override void RenderCore(SKCanvas context)
+    protected override void RenderContent(SKCanvas context)
     {
         var width = (float)Bounds.Width;
         var height = (float)Bounds.Height;

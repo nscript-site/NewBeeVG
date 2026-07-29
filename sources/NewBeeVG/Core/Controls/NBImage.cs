@@ -95,11 +95,11 @@ public class NBBaseImage : NBLayoutable, INBImage
         }
     }
 
-    protected override void RenderCore(SKCanvas context)
+    protected override void RenderContent(SKCanvas context)
     {
         if(_exceptionText != null)
         {
-            base.RenderCore(context);
+            base.RenderContent(context);
             return;
         }
 

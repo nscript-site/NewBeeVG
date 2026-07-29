@@ -10,7 +10,7 @@ public class NBEllipse : NBAlignableShape
         Height = height;
     }
 
-    protected override void RenderCore(SKCanvas context)
+    protected override void RenderContent(SKCanvas context)
     {
         if (Shaders.IsEmpty() == true)
         {
