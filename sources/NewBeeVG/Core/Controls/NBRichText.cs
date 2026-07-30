@@ -19,6 +19,11 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation
     /// <summary>行高；NaN 时自动取各 Run 的最大值。</summary>
     public float LineHeight { get; set; } = float.NaN;
 
+    /// <summary>
+    /// 如果设置了行高，则该值无效；如果未设置行高，则该值为额外的行间距。
+    /// </summary>
+    public float LineSpacing { get; set; } = 0f;
+
     /// <summary>字间距（全局）。</summary>
     public float LetterSpacing { get; set; } = 0f;
 

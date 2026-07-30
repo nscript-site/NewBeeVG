@@ -472,7 +472,7 @@ public class NBLayoutable : NBVisual
         return new Size(Math.Max(size.Width, 0), Math.Max(size.Height, 0));
     }
 
-    protected static double GetInnerAvailableWidth(double availableWidth, Thickness padding)
+    internal protected static double GetInnerAvailableWidth(double availableWidth, Thickness padding)
     {
         if (double.IsPositiveInfinity(availableWidth))
             return double.PositiveInfinity;
@@ -480,7 +480,7 @@ public class NBLayoutable : NBVisual
         return Math.Max(0, availableWidth - padding.Left - padding.Right);
     }
 
-    protected static double GetInnerAvailableHeight(double availableHeight, Thickness padding)
+    internal protected static double GetInnerAvailableHeight(double availableHeight, Thickness padding)
     {
         if (double.IsPositiveInfinity(availableHeight))
             return double.PositiveInfinity;
