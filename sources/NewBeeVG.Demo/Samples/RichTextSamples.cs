@@ -8,18 +8,14 @@
 
             var style1 = (NBVisual v) => {
                 v.As<NBTextRun>()?
-                    .AddStroke(SKColors.Orange, 15)
-                    .AddStroke(SKColors.White, 13)
-                    .AddStroke(SKColors.Red, 10)
-                    .FontSize(30).Foreground(SKColors.Black);
+                    .FontSize(30).Foreground(SKColors.Black).FontSlant(SKFontStyleSlant.Italic).LetterSpacing(2);
             };
 
             var style2 = (NBVisual v) => {
                 v.As<NBTextRun>()?
-                    .AddStroke(SKColors.Orange, 15)
-                    .AddStroke(SKColors.White, 13)
-                    .AddStroke(SKColors.Red, 10)
-                    .FontSize(30).Foreground(SKColors.Black);
+                    //.AddStroke(SKColors.Red, 10)
+                    .FontSize(50)
+                    .Foreground(SKColors.Blue).LetterSpacing(30);
             };
 
             var vertical = (NBVisual v) =>
@@ -28,15 +24,18 @@
             };
 
             var s1 = "求关注";
-            var s2 = "ABCDEDFHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
-            //var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZ";
-            
+            //var s2 = "ABCDEDFHIJKLMNOPQRS\nTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
+            var s2 = "求关注求关注";
+            //var s2 = "ABCD";
+            //s2 = "";
+
             var hcontent = () =>
                 VStack([
                     RichText([
                         TextRun(s1).Styles(style1),
-                        TextRun(s2).Styles(style2),
-                        ]),
+                        TextRun(s1).Styles(style2),
+                        TextRun(s1).Styles(style1),
+                        ]).CrossAxisAlign(0).Padding(100),
                 ]).Spacing(0).Background(SKColors.Yellow)
                 .Align(0, -1);
 

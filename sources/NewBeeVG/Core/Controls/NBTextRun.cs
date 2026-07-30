@@ -1,6 +1,5 @@
 ﻿using SkiaSharp;
 using static NewBeeVG.NBTextUtils;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace NewBeeVG;
 
@@ -39,6 +38,8 @@ public class NBTextRun : NBVisual, INBTextRun
 
     internal List<NBTextRunClipInfo> Clips { get; set; } = new List<NBTextRunClipInfo>();
 
+    internal SKPoint Origin { get; set; } = new SKPoint();
+
     internal void UpdateLayout(SKPoint origin)
     {
         SKRect? maxRect = null;
@@ -52,6 +53,7 @@ public class NBTextRun : NBVisual, INBTextRun
             else maxRect = SKRect.Union(maxRect.Value, b);
         }
         this.Bounds = maxRect ?? new SKRect(origin.X, origin.Y, origin.X, origin.Y);
+        Origin = origin;
     }
 
     /// <summary>
@@ -70,15 +72,19 @@ public class NBTextRun : NBVisual, INBTextRun
     protected override void RenderContent(SKCanvas context)
     {
         context.Save();
-        SKPoint origin = new SKPoint(Bounds.Left, Bounds.Top);
+
+        //var pbg = new NBColorBrush(SKColors.Green).GetPaint();
+        //context.DrawRect(Bounds, pbg);
+
+        SKPoint origin = Origin;
         foreach (var clip in Clips)
         {
             using var paint = CreateFillTextPaint();
             using var typeface = CreateTypeface();
             using var font = CreateFont(typeface);
             var line = clip.Text;
-            float x = clip.X + origin.X;
-            float y = clip.Y + origin.Y;
+            float x = clip.X + origin.X + clip.DeltaX;
+            float y = clip.Y + origin.Y + clip.DeltaY;
             if (Strokes.IsEmpty() == false)
             {
                 if (StrokesFirst == true)
@@ -157,19 +163,21 @@ public class NBTextRun : NBVisual, INBTextRun
     }
 
     /// <summary>
-    /// 计算文本在可用宽度下生成的最终行列表。返回值为 (content, lineLength, lineHeight, isNewLine) 的列表。
+    /// 计算文本在可用宽度下生成的最终行列表。返回值为 (content, lineLength, lineHeight, isNewLine, ascent) 的列表。
     /// </summary>
-    internal List<(string, float, float,bool)> BuildLines(double firstLineAvailableLength, double innerAvailableLength)
+    internal List<(string, float, float,bool,float)> BuildLines(double firstLineAvailableLength, double innerAvailableLength)
     {
         var text = Text;
         using var typeface = CreateTypeface();
-        using var font = CreateFont(typeface);
+        using var font = CreateFont(typeface);  
 
-        var lines = new List<(string, float, float,bool)>();
+        float ascent = font.Metrics.Ascent;
+
+        var lines = new List<(string, float, float,bool,float)>();
 
         if (string.IsNullOrEmpty(text))
         {
-            lines.Add((string.Empty, 0, 0,false));
+            lines.Add((string.Empty, 0, 0,false, ascent));
             return lines;
         }
 
@@ -179,13 +187,13 @@ public class NBTextRun : NBVisual, INBTextRun
         {
             if (innerAvailableLength <= 0)
             {
-                lines.Add((string.Empty, 0, 0,false));
+                lines.Add((string.Empty, 0, 0,false, ascent));
                 continue;
             }
 
             if (paragraph.Length == 0)
             {
-                lines.Add((string.Empty, 0, 0,false));   
+                lines.Add((string.Empty, 0, 0,false, ascent));   
                 continue;
             }
 
@@ -203,7 +211,7 @@ public class NBTextRun : NBVisual, INBTextRun
                     var lineLength = (float)MeasureLineLength(str, font);
                     var maxLineWidth = (float)MeasureLineHeight(str, font);
                     bool isNewLine = lines.Count > 0;
-                    lines.Add((str, lineLength, maxLineWidth, isNewLine));
+                    lines.Add((str, lineLength, maxLineWidth, isNewLine, ascent));
                     rest = RemovePrefixByRunes(rest, count);
                 }
                 else
@@ -233,7 +241,7 @@ public class NBTextRun : NBVisual, INBTextRun
                     var str = SubstringByRunes(rest, count);
                     var lineLength = (float)MeasureLineLength(str, font);
                     var maxLineWidth = (float)MeasureLineHeight(str, font);
-                    lines.Add((str, lineLength, maxLineWidth, isNewLine));
+                    lines.Add((str, lineLength, maxLineWidth, isNewLine, ascent));
                     rest = RemovePrefixByRunes(rest, count);
                 }
             }

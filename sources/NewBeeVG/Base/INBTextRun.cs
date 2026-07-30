@@ -17,6 +17,16 @@ public interface INBTextRun
     public bool StrokesFirst { get; set; }
 
     public NBStrokeCollection Strokes { get; }
+
+    /// <summary>
+    /// 行高；如果为 NaN，则自动按字体度量计算。
+    /// </summary>
+    public float LineHeight { get; set; }
+
+    /// <summary>
+    /// 字间距。
+    /// </summary>
+    public float LetterSpacing { get; set; }
 }
 
 public static partial class NBExtentions
@@ -106,13 +116,13 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static TWidget LineHeight<TWidget>(this TWidget widget, float lineHeight) where TWidget : NBText
+    public static TWidget LineHeight<TWidget>(this TWidget widget, float lineHeight) where TWidget : INBTextRun
     {
         widget.LineHeight = lineHeight;
         return widget;
     }
 
-    public static TWidget LetterSpacing<TWidget>(this TWidget widget, float letterSpacing) where TWidget : NBText
+    public static TWidget LetterSpacing<TWidget>(this TWidget widget, float letterSpacing) where TWidget : INBTextRun
     {
         widget.LetterSpacing = letterSpacing;
         return widget;

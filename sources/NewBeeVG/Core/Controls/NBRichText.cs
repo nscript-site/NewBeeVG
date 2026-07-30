@@ -14,7 +14,10 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation
     public bool IsWrapText { get; set; } = false;
     public bool IsTrimming { get; set; } = false;
     public int? MaxLines { get; set; }
+
     public NBTextAlign TextAlign { get; set; } = NBTextAlign.LeftOrTop;
+
+    public NBTextAlign CrossAxisAlign { get; set; } = NBTextAlign.LeftOrTop;
 
     /// <summary>行高；NaN 时自动取各 Run 的最大值。</summary>
     public float LineHeight { get; set; } = float.NaN;
@@ -71,12 +74,12 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation
 
         _lines = Layout.Measure(availableSize, Padding);
         var s = _lines.Bound.Size;
-        return new Size(s.Width, s.Height);
+        return new Size(s.Width + Padding.Left + Padding.Right, s.Height + Padding.Top + Padding.Bottom);
     }
 
     protected override void ArrangeCore(Rect finalRect)
     {
-        SKPoint origin = new SKPoint((float)finalRect.X, (float)finalRect.Y);
+        SKPoint origin = new SKPoint((float)(finalRect.X + Padding.Left), (float)(finalRect.Y + Padding.Top));
         foreach(var item in Runs)
         {
             item.UpdateLayout(origin);
@@ -89,6 +92,12 @@ public static partial class NBExtentions
     public static TWidget AddRun<TWidget>(this TWidget rich, NBTextRun run) where TWidget : NBRichText
     {
         rich.Add(run);
+        return rich;
+    }
+
+    public static TWidget CrossAxisAlign<TWidget>(this TWidget rich, int align) where TWidget : NBRichText
+    {
+        rich.CrossAxisAlign = align.ToNBTextAlign();
         return rich;
     }
 

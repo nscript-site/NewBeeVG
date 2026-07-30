@@ -26,6 +26,28 @@ internal class NBRichTextLineInfo
     }
 
     public bool IsEmpty() { return Length == 0; }
+
+    public void UpdateCrossAxis(NBTextAlign align)
+    {
+        foreach (var c in Clips) 
+            c.UpdateCrossAxis(align, Height);
+    }
+
+    public void ChangeMainAxis(float delta)
+    {
+        if (Orientation == Orientation.Horizontal)
+        {
+            X += delta;
+            foreach(var c in Clips)
+                c.X += delta;
+        }
+        else
+        {
+            Y += delta;
+            foreach (var c in Clips)
+                c.Y += delta;
+        }
+    }
 }
 
 internal class NBTextRunReceiveResult
@@ -40,13 +62,38 @@ internal class NBRichBoxLineLayoutInfo
     public SKRect Bound { get; internal set; }
     public List<NBRichTextLineInfo> Lines { get; init; }
 
-    public NBRichBoxLineLayoutInfo(List<NBRichTextLineInfo> lines)
+    public NBRichBoxLineLayoutInfo(List<NBRichTextLineInfo> lines, NBRichText owner)
     {
         Lines = lines;
         UpdateBounds();
+        UpdateMainAxis(owner.TextAlign);
+        UpdateCrossAxis(owner.CrossAxisAlign);
     }
 
-    private void UpdateBounds()
+    internal void UpdateCrossAxis(NBTextAlign align)
+    {
+        foreach (var line in Lines)
+        {
+            line.UpdateCrossAxis(align);
+        }
+    }
+
+    internal void UpdateMainAxis(NBTextAlign align)
+    {
+        float max = 0;
+        foreach(var line in Lines)
+        {
+            max = Math.Max(max, line.Length);
+        }
+        foreach(var line in Lines)
+        {
+            float delta = (max - line.Length)*0.5f;
+            if (delta <= 0) continue;
+            line.ChangeMainAxis(delta);
+        }
+    }
+
+    internal void UpdateBounds()
     {
         SKRect? maxRect = null;
         foreach (var clip in Lines)
@@ -56,6 +103,19 @@ internal class NBRichBoxLineLayoutInfo
             else maxRect = SKRect.Union(maxRect.Value, b);
         }
         if(maxRect != null) this.Bound = maxRect.Value;
+    }
+
+    internal void PrintLines()
+    {
+        Console.WriteLine("==== NBRichBoxLineLayoutInfo ====");
+        foreach (var line in Lines)
+        {
+            Console.WriteLine($"Line: X={line.X}, Y={line.Y}, Length={line.Length}, Height={line.Height}, Clips={line.Clips.Count}");
+            foreach (var clip in line.Clips)
+            {
+                Console.WriteLine($"  Clip: Text='{clip.Text}', X={clip.X}, Y={clip.Y}, Length={clip.Length}, Height={clip.Height}");
+            }
+        }
     }
 }
 
@@ -146,6 +206,7 @@ internal class NBRichBoxLayout
                 var text = line.Item1;
                 var length = line.Item2;
                 var maxHeight = line.Item3;
+                var ascent = line.Item5;
 
                 if (length <= 0) continue;
                 if(isNewLine == true)
@@ -166,11 +227,15 @@ internal class NBRichBoxLayout
                 {
                     clip.X = current.X + current.Length - length;
                     clip.Y = current.Y;
+                    clip.DeltaX = run.GetStrokeMargin() * 0.5f;
+                    clip.DeltaY = run.GetStrokeMargin() * 0.5f - ascent;
                 }
                 else
                 {
                     clip.X = current.Length;
                     clip.Y = current.Y + current.Length - length;
+                    clip.DeltaX = run.GetStrokeMargin() * 0.5f;
+                    clip.DeltaY = run.GetStrokeMargin() * 0.5f - ascent;
                 }
                 clip.Height = maxHeight;
                 clip.Length = length;
@@ -183,7 +248,12 @@ internal class NBRichBoxLayout
         if(current.IsEmpty() == false)
             lines.Add(current);
 
-        NBRichBoxLineLayoutInfo layout = new NBRichBoxLineLayoutInfo(lines);
+        NBRichBoxLineLayoutInfo layout = new NBRichBoxLineLayoutInfo(lines, Owner);
+
+#if DEBUG
+        layout.PrintLines();
+#endif
+
         return layout;
     }
 }
