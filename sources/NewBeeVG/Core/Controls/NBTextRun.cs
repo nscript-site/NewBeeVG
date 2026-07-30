@@ -1,5 +1,6 @@
 ﻿using SkiaSharp;
 using static NewBeeVG.NBTextUtils;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace NewBeeVG;
 
@@ -8,7 +9,9 @@ namespace NewBeeVG;
 /// </summary>
 public class NBTextRun : NBVisual, INBTextRun
 {
-    public string Text { get; set; } = string.Empty;
+    public string Text { get; set {
+            field = NormalizeText(value);
+        } } = string.Empty;
 
     public string FontFamily { get; set; } = "Arial";
     public float FontSize { get; set; } = 40;
@@ -21,6 +24,8 @@ public class NBTextRun : NBVisual, INBTextRun
     public bool StrokesFirst { get; set; } = true;
 
     public NBStrokeCollection Strokes { get; set; } = new NBStrokeCollection();
+    
+    internal Orientation Orientation { get; set; } = Orientation.Horizontal;
 
     /// <summary>
     /// 行高；如果为 NaN，则自动按字体度量计算。
@@ -149,5 +154,188 @@ public class NBTextRun : NBVisual, INBTextRun
     public float GetStrokeMargin()
     {
         return Strokes?.GetMaxStrokeWidth() ?? 0;
+    }
+
+    /// <summary>
+    /// 计算文本在可用宽度下生成的最终行列表。返回值为 (content, lineLength, lineHeight, isNewLine) 的列表。
+    /// </summary>
+    internal List<(string, float, float,bool)> BuildLines(double firstLineAvailableLength, double innerAvailableLength)
+    {
+        var text = Text;
+        using var typeface = CreateTypeface();
+        using var font = CreateFont(typeface);
+
+        var lines = new List<(string, float, float,bool)>();
+
+        if (string.IsNullOrEmpty(text))
+        {
+            lines.Add((string.Empty, 0, 0,false));
+            return lines;
+        }
+
+        var paragraphs = text.Split('\n');
+
+        foreach (var paragraph in paragraphs)
+        {
+            if (innerAvailableLength <= 0)
+            {
+                lines.Add((string.Empty, 0, 0,false));
+                continue;
+            }
+
+            if (paragraph.Length == 0)
+            {
+                lines.Add((string.Empty, 0, 0,false));   
+                continue;
+            }
+
+            // 按宽度不断切分，生成多行。
+            var rest = paragraph;
+            while (rest.Length > 0)
+            {
+                if(Math.Abs((firstLineAvailableLength - innerAvailableLength)) < 0.0001)
+                {
+                    int count = FitPrefix(rest, (float)innerAvailableLength, font);
+                    if (count <= 0)
+                        count = 1;
+
+                    var str = SubstringByRunes(rest, count);
+                    var lineLength = (float)MeasureLineLength(str, font);
+                    var maxLineWidth = (float)MeasureLineHeight(str, font);
+                    bool isNewLine = lines.Count > 0;
+                    lines.Add((str, lineLength, maxLineWidth, isNewLine));
+                    rest = RemovePrefixByRunes(rest, count);
+                }
+                else
+                {
+                    int count1 = lines.Count == 0 ? FitPrefix(rest, (float)firstLineAvailableLength, font): 0;
+                    int count2 = FitPrefix(rest, (float)innerAvailableLength, font);
+                    int count = 0;
+                    bool isNewLine = lines.Count > 0;
+
+                    if (count1 <= 0)
+                    {
+                        isNewLine = true;
+                        if (count2 <= 0)
+                        {
+                            count = 1;
+                        }
+                        else
+                        {
+                            count = count2;
+                        }
+                    }
+                    else
+                    {
+                        count = count1;
+                    }
+
+                    var str = SubstringByRunes(rest, count);
+                    var lineLength = (float)MeasureLineLength(str, font);
+                    var maxLineWidth = (float)MeasureLineHeight(str, font);
+                    lines.Add((str, lineLength, maxLineWidth, isNewLine));
+                    rest = RemovePrefixByRunes(rest, count);
+                }
+            }
+        }
+
+        return lines;
+    }
+
+    /// <summary>
+    /// 计算在指定尺寸内最多可容纳多少个“字符单元”（按 Rune 切分，避免拆坏代理项）。
+    /// </summary>
+    private int FitPrefix(string value, float maxLength, SKFont font)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
+
+        if (MeasureLineLength(value, font) <= maxLength)
+            return CountRunes(value);
+
+        int lo = 1;
+        int hi = CountRunes(value);
+        int best = 1;
+
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            var prefix = SubstringByRunes(value, mid);
+            float width = (float)MeasureLineLength(prefix, font);
+
+            if (width <= maxLength)
+            {
+                best = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// 计算单行文本的长度。
+    /// </summary>
+    private double MeasureLineLength(string value, SKFont font)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
+
+        if (Orientation == Orientation.Horizontal)
+        {
+            // 使用新的 SkiaSharp API 进行测量，避免使用已废弃的 SKPaint.MeasureText。
+            double len = font.MeasureText(value);
+
+            // 字间距需要手动累加。
+            int runeCount = CountRunes(value);
+
+            var letterSpacing = GetLetterSpacingWithStroke();
+
+            if (letterSpacing != 0 && runeCount > 1)
+                len += letterSpacing * (runeCount - 1);
+
+            return len + GetStrokeMargin();
+        }
+        else
+        {
+            var metrics = font.Metrics;
+            float lineHeight = Math.Abs(metrics.Ascent - metrics.Descent + metrics.Leading);
+            int runeCount = CountRunes(value);
+            double len = runeCount * lineHeight + (runeCount - 1) * GetLetterSpacingWithStroke();
+            return len + GetStrokeMargin();
+        }
+    }
+
+    /// <summary>
+    /// 获得单行文本的高度（横向为字体度量高度，纵向为最大字符宽度）。
+    /// </summary>
+    /// <param name="text"></param>
+    /// <param name="font"></param>
+    /// <returns></returns>
+    private double MeasureLineHeight(string text, SKFont font)
+    {
+        if (Orientation == Orientation.Horizontal)
+        {
+            var metrics = font.Metrics;
+            float lineHeight = Math.Abs(metrics.Ascent - metrics.Descent + metrics.Leading);
+            return lineHeight + GetStrokeMargin();
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(text))
+                return 0;
+            float maxWidth = 0;
+            foreach (var rune in text.EnumerateRunes())
+            {
+                float w = font.MeasureText(rune.ToString());
+                if (w > maxWidth)
+                    maxWidth = w;
+            }
+            return maxWidth;
+        }
     }
 }

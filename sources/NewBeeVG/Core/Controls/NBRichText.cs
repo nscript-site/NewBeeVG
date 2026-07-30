@@ -57,6 +57,12 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation
 
     protected override Size MeasureOverride(Size availableSize)
     {
+        foreach (var run in Runs)
+        {
+            if(run.Orientation != this.Orientation)
+                run.Orientation = this.Orientation;
+        }
+
         _lines = Layout.Measure(availableSize, Padding);
         var s = _lines.Bound.Size;
         return new Size(s.Width, s.Height);

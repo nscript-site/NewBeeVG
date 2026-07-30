@@ -9,55 +9,13 @@ internal class NBRichTextLineInfo
     public float Height { get; set; } = 0;
     public float Length { get; set; } = 0;
     public List<NBTextRunClipInfo> Clips { get; set; } = new List<NBTextRunClipInfo>();
-    public float FilledLength { get; set; } = 0;
     public bool RTL { get; set; }
     public Orientation Orientation { get; set; }
 
-    public NBTextRunReceiveResult TryReceive(NBTextRun clip, string content, float availableLength)
-    {
-        if(Orientation == Orientation.Horizontal)
-        {
-            return TryReceiveHorizontal(clip, content, availableLength);
-        }
-        else
-        {
-            return TryReceiveVertical(clip, content, availableLength);
-        }
-    }
-
-    private float GetLetterSpacing()
+    internal float GetLetterSpacing()
     {
         return Clips.Count == 0 ? 0 : Clips[Clips.Count - 1].Run.LetterSpacing;
     }
-
-    private NBTextRunReceiveResult TryReceiveHorizontal(NBTextRun clip, string content, float availableLength)
-    {
-        var r = new NBTextRunReceiveResult();
-        if(availableLength <= FilledLength && IsEmpty() == false)
-        {
-            r.Input = content;
-            r.Output = content;
-            r.Received = false;
-            return r;
-        }
-
-        var runes = content.EnumerateRunes();
-        var input = "";
-        var output = "";
-        foreach(var run in runes)
-        {
-            input += run.ToString();
-            output = content.Substring(input.Length);
-        }
-
-        return r;
-    }
-
-    private NBTextRunReceiveResult TryReceiveVertical(NBTextRun clip, string content, float availableLength)
-    {
-        throw new NotImplementedException();
-    }
-
 
     public SKRect GetBound()
     {
@@ -148,42 +106,65 @@ internal class NBRichBoxLayout
 
         var lines = new List<NBRichTextLineInfo>();
         NBRichTextLineInfo current = CreateLineInfo();
-        foreach (var run in runs)
+
+        void FlushCurrent()
         {
-            var content = run.Text;
-            while(!String.IsNullOrEmpty(content))
+            lines.Add(current);
+
+            NBRichTextLineInfo last = current;
+            current = CreateLineInfo();
+
+            float delta = lineheight;
+            if (delta == float.NaN)
+                delta = last.Height + linespacing;
+
+            if (Owner.Orientation == Orientation.Horizontal)
             {
-                var result = current.TryReceive(run, content, availableLength);
-                if (result.Received)
+                current.Y = last.Y + delta;
+            }
+            else
+            {
+                if (Owner.RightToLeft == false)
                 {
-                    content = result.Output;
+                    current.X = last.X + delta;
                 }
                 else
                 {
-                    lines.Add(current);
-                    NBRichTextLineInfo last = current;
-                    current = CreateLineInfo();
-
-                    float delta = lineheight;
-                    if(delta == float.NaN)
-                        delta = last.Height + linespacing;
-
-                    if (Owner.Orientation == Orientation.Horizontal)
-                    {
-                        current.Y = last.Y + delta;
-                    }
-                    else
-                    {
-                        if(Owner.RightToLeft == false)
-                        {
-                            current.X = last.X + delta;
-                        }
-                        else
-                        {
-                            current.X = last.X - delta;
-                        }
-                    }
+                    current.X = last.X - delta;
                 }
+            }
+        }
+
+        foreach (var run in runs)
+        {
+            var availableLengthFirstLine = availableLength - current.Length;
+            var currentLetterSpacing = Math.Max(current.GetLetterSpacing(), run.LetterSpacing);
+            availableLengthFirstLine += currentLetterSpacing;
+            availableLengthFirstLine = Math.Max(0, availableLengthFirstLine);
+
+            var list = run.BuildLines(availableLengthFirstLine, availableLength);
+            foreach (var line in list)
+            {
+                bool isNewLine = line.Item4;
+                var text = line.Item1;
+                var length = line.Item2;
+                var maxHeight = line.Item3;
+
+                if (length <= 0) continue;
+                if(isNewLine == true)
+                {
+                    if(current.IsEmpty() == false)
+                        FlushCurrent();
+                }
+
+                double letterSpacing = 0;
+                if(current.IsEmpty() == false)
+                    letterSpacing = Math.Max(current.GetLetterSpacing(), run.LetterSpacing);
+
+                current.Length += (float)letterSpacing + length;
+                current.Height = Math.Max(current.Height, maxHeight);
+                var clip = new NBTextRunClipInfo() { Run = run, Text = text };
+                current.Clips.Add(clip);
             }
         }
 
