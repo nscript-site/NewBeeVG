@@ -62,4 +62,76 @@ internal static class NBTextUtils
             currentY += lineHeight + letterSpacingWithStroke;
         }
     }
+
+    /// <summary>
+    /// 按 Rune 数量删除前缀，返回剩余文本。
+    /// </summary>
+    internal static string RemovePrefixByRunes(string value, int runeCount)
+    {
+        if (string.IsNullOrEmpty(value) || runeCount <= 0)
+            return value;
+
+        int utf16Length = 0;
+        int taken = 0;
+
+        foreach (var rune in value.EnumerateRunes())
+        {
+            if (taken >= runeCount)
+                break;
+
+            utf16Length += rune.Utf16SequenceLength;
+            taken++;
+        }
+
+        if (utf16Length >= value.Length)
+            return string.Empty;
+
+        return value.Substring(utf16Length);
+    }
+
+    /// <summary>
+    /// 按 Rune 数量截取前缀，不会截断代理项。
+    /// </summary>
+    internal static string SubstringByRunes(string value, int runeCount)
+    {
+        if (string.IsNullOrEmpty(value) || runeCount <= 0)
+            return string.Empty;
+
+        int utf16Length = 0;
+        int taken = 0;
+
+        foreach (var rune in value.EnumerateRunes())
+        {
+            if (taken >= runeCount)
+                break;
+
+            utf16Length += rune.Utf16SequenceLength;
+            taken++;
+        }
+
+        return value.Substring(0, utf16Length);
+    }
+
+    /// <summary>
+    /// 统一文本换行符，便于后续处理。
+    /// </summary>
+    internal static string NormalizeText(string text)
+    {
+        return text.Replace("\r\n", "\n").Replace('\r', '\n');
+    }
+
+    /// <summary>
+    /// 计算字符串中 Rune 的数量。
+    /// </summary>
+    internal static int CountRunes(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
+
+        int count = 0;
+        foreach (var _ in value.EnumerateRunes())
+            count++;
+
+        return count;
+    }
 }

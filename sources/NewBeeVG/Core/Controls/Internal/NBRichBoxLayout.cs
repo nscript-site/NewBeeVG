@@ -15,8 +15,49 @@ internal class NBRichTextLineInfo
 
     public NBTextRunReceiveResult TryReceive(NBTextRun clip, string content, float availableLength)
     {
+        if(Orientation == Orientation.Horizontal)
+        {
+            return TryReceiveHorizontal(clip, content, availableLength);
+        }
+        else
+        {
+            return TryReceiveVertical(clip, content, availableLength);
+        }
+    }
+
+    private float GetLetterSpacing()
+    {
+        return Clips.Count == 0 ? 0 : Clips[Clips.Count - 1].Run.LetterSpacing;
+    }
+
+    private NBTextRunReceiveResult TryReceiveHorizontal(NBTextRun clip, string content, float availableLength)
+    {
+        var r = new NBTextRunReceiveResult();
+        if(availableLength <= FilledLength && IsEmpty() == false)
+        {
+            r.Input = content;
+            r.Output = content;
+            r.Received = false;
+            return r;
+        }
+
+        var runes = content.EnumerateRunes();
+        var input = "";
+        var output = "";
+        foreach(var run in runes)
+        {
+            input += run.ToString();
+            output = content.Substring(input.Length);
+        }
+
+        return r;
+    }
+
+    private NBTextRunReceiveResult TryReceiveVertical(NBTextRun clip, string content, float availableLength)
+    {
         throw new NotImplementedException();
     }
+
 
     public SKRect GetBound()
     {

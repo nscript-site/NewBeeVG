@@ -251,7 +251,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
 
             if (Strokes.IsEmpty() == false)
             {
-                if(StrokesFirst == true)
+                if (StrokesFirst == true)
                 {
                     DrawStrokes(context, font, line, x, y);
                     DrawLine(context, font, paint, line, x, y);
@@ -355,7 +355,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
                 DrawLine(context, font, paint, line, x, y, false, maxLineWidth);
             }
 
-            if(rightToLeft)
+            if (rightToLeft)
                 xStart -= (maxLineWidth + GetLetterSpacingWithStroke());
             else
                 xStart += (maxLineWidth + GetLetterSpacingWithStroke());
@@ -390,7 +390,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
         return new SKPaint
         {
             IsAntialias = true,
-            Color = Foreground, 
+            Color = Foreground,
             IsDither = true,
         };
     }
@@ -496,7 +496,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
         if (string.IsNullOrEmpty(value))
             return 0;
 
-        if(Orientation == Orientation.Horizontal)
+        if (Orientation == Orientation.Horizontal)
         {
             // 使用新的 SkiaSharp API 进行测量，避免使用已废弃的 SKPaint.MeasureText。
             double len = font.MeasureText(value);
@@ -618,79 +618,6 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
             DrawHorizontalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke());
         else
             DrawVerticalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke(), maxLineWidth);
-    }
-
-
-    /// <summary>
-    /// 统一文本换行符，便于后续处理。
-    /// </summary>
-    private static string NormalizeText(string text)
-    {
-        return text.Replace("\r\n", "\n").Replace('\r', '\n');
-    }
-
-    /// <summary>
-    /// 计算字符串中 Rune 的数量。
-    /// </summary>
-    private static int CountRunes(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-            return 0;
-
-        int count = 0;
-        foreach (var _ in value.EnumerateRunes())
-            count++;
-
-        return count;
-    }
-
-    /// <summary>
-    /// 按 Rune 数量截取前缀，不会截断代理项。
-    /// </summary>
-    private static string SubstringByRunes(string value, int runeCount)
-    {
-        if (string.IsNullOrEmpty(value) || runeCount <= 0)
-            return string.Empty;
-
-        int utf16Length = 0;
-        int taken = 0;
-
-        foreach (var rune in value.EnumerateRunes())
-        {
-            if (taken >= runeCount)
-                break;
-
-            utf16Length += rune.Utf16SequenceLength;
-            taken++;
-        }
-
-        return value.Substring(0, utf16Length);
-    }
-
-    /// <summary>
-    /// 按 Rune 数量删除前缀，返回剩余文本。
-    /// </summary>
-    private static string RemovePrefixByRunes(string value, int runeCount)
-    {
-        if (string.IsNullOrEmpty(value) || runeCount <= 0)
-            return value;
-
-        int utf16Length = 0;
-        int taken = 0;
-
-        foreach (var rune in value.EnumerateRunes())
-        {
-            if (taken >= runeCount)
-                break;
-
-            utf16Length += rune.Utf16SequenceLength;
-            taken++;
-        }
-
-        if (utf16Length >= value.Length)
-            return string.Empty;
-
-        return value.Substring(utf16Length);
     }
 }
 
