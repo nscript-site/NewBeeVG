@@ -9,7 +9,7 @@ internal class TextAnimate1
         var style = (NBVisual v) => { 
             v.As<NBText>()?
                 .AddStroke(SKColors.Orange, 55).AddStroke(SKColors.White, 50).AddStroke(SKColors.Red, 40)
-                .FontSize(120).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10)
+                .FontSize(120).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10).Padding(100)
                 .OnFrame(e => { e.SenderAs<NBText>()?.LetterSpacing(-80 + 100 * e.pf).InvalidateMeasure(); })
                 ;
         };
@@ -17,7 +17,7 @@ internal class TextAnimate1
         var content = () => 
             VStack([
                 TextBlock("求关注").Styles(style).Id("Text").FrameMask(FrameMasks.Scanlines()),
-            ]).Spacing(0)
+            ]).Spacing(0).Background(SKColors.Yellow)
             .Align(0, 0);
 
         content().AsClip(out var clip1, 30, name: "qiuguanzhu 1");
@@ -64,7 +64,7 @@ internal class TextAnimate1
                 TextBlock("求关注").Styles(style).ClearOnFrames().Id("Text"),
                 Rect().Bind("Text")
                     .OnFrame(e=>e.Sender.Shaders(Shaders.AlphaLinearGradient(e.p)))
-            ]).Size(800,double.NaN),
+            ]).Size(double.NaN,double.NaN),
         ]).Spacing(10).Align(0, 0)
         .AsClip(out var clip3, 30, name: "qiuguanzhu 3");
 

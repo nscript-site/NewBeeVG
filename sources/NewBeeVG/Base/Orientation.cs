@@ -36,3 +36,26 @@ public enum SnapPointsAlignment
     /// </summary>
     Far
 }
+
+public interface IOrientation
+{
+    /// <summary>
+    /// Gets or sets the orientation of the object.
+    /// </summary>
+    Orientation Orientation { get; set; }
+}
+
+public static partial class NBExtentions
+{
+    public static T Horizontal<T>(this T self) where T : IOrientation
+    {
+        self.Orientation = NewBeeVG.Orientation.Horizontal;
+        return self;
+    }
+
+    public static T Vertical<T>(this T self) where T : IOrientation
+    {
+        self.Orientation = NewBeeVG.Orientation.Vertical;
+        return self;
+    }
+}

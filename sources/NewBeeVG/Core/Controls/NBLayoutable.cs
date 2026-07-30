@@ -471,6 +471,22 @@ public class NBLayoutable : NBVisual
     {
         return new Size(Math.Max(size.Width, 0), Math.Max(size.Height, 0));
     }
+
+    protected static double GetInnerAvailableWidth(double availableWidth, Thickness padding)
+    {
+        if (double.IsPositiveInfinity(availableWidth))
+            return double.PositiveInfinity;
+
+        return Math.Max(0, availableWidth - padding.Left - padding.Right);
+    }
+
+    protected static double GetInnerAvailableHeight(double availableHeight, Thickness padding)
+    {
+        if (double.IsPositiveInfinity(availableHeight))
+            return double.PositiveInfinity;
+
+        return Math.Max(0, availableHeight - padding.Top - padding.Bottom);
+    }
 }
 
 public static class NBLayoutable_Extentions

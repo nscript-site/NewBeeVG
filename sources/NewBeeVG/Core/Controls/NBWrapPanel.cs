@@ -7,7 +7,7 @@ using SkiaSharp;
 
 namespace NewBeeVG;
 
-public class NBWrapPanel : NBPanel
+public class NBWrapPanel : NBPanel, IOrientation
 {
     public double ItemSpacing { get; set; } = 20;
 
@@ -231,18 +231,6 @@ public static partial class NBExtentions
     public static T ItemHeight<T>(this T panel, double height) where T : NBWrapPanel
     {
         panel.ItemHeight = height;
-        return panel;
-    }
-
-    public static T Horizontal<T> (this T panel) where T : NBWrapPanel
-    {
-        panel.Orientation = NewBeeVG.Orientation.Horizontal;
-        return panel;
-    }
-
-    public static T Vertical<T>(this T panel) where T : NBWrapPanel
-    {
-        panel.Orientation = NewBeeVG.Orientation.Vertical;
         return panel;
     }
 }
