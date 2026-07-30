@@ -28,7 +28,13 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation
     public float LetterSpacing { get; set; } = 0f;
 
     /// <summary>文本运行列表。</summary>
-    public List<NBTextRun> Runs { get; } = new List<NBTextRun>();
+    protected internal List<NBTextRun> Runs { get; } = new List<NBTextRun>();
+
+    public void Add(NBTextRun run)
+    {
+        Runs.Add(run);
+        VisualChildren.Add(run);
+    }
 
     private NBRichBoxLayout? _layout = null;
     internal NBRichBoxLayout Layout
@@ -70,7 +76,7 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation
 
     protected override void ArrangeCore(Rect finalRect)
     {
-        SKPoint origin = new SKPoint(0, 0);
+        SKPoint origin = new SKPoint((float)finalRect.X, (float)finalRect.Y);
         foreach(var item in Runs)
         {
             item.UpdateLayout(origin);
@@ -82,8 +88,7 @@ public static partial class NBExtentions
 {
     public static TWidget AddRun<TWidget>(this TWidget rich, NBTextRun run) where TWidget : NBRichText
     {
-        rich.Runs.Add(run);
-        rich.VisualChildren.Add(run);
+        rich.Add(run);
         return rich;
     }
 
@@ -106,8 +111,7 @@ public static partial class NBExtentions
             Foreground = foreground ?? SKColors.Black,
             Strokes = strokes ?? new NBStrokeCollection()
         };
-        rich.Runs.Add(run);
-        rich.VisualChildren.Add(run);
+        rich.Add(run);
         return rich;
     }
 }

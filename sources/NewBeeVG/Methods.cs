@@ -509,7 +509,7 @@ public static class Methods
             {
                 if (run != null)
                 {
-                    tb.Runs.Add(run);
+                    tb.Add(run);
                 }
             }
         }

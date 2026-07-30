@@ -52,9 +52,6 @@ internal class NBRichBoxLineLayoutInfo
         foreach (var clip in Lines)
         {
             var b = clip.GetBound();
-            var x = b.Left;
-            var y = b.Top;
-            b = new SKRect(x, y, x + b.Width, y + b.Height);
             if (maxRect == null) maxRect = b;
             else maxRect = SKRect.Union(maxRect.Value, b);
         }
@@ -115,7 +112,7 @@ internal class NBRichBoxLayout
             current = CreateLineInfo();
 
             float delta = lineheight;
-            if (delta == float.NaN)
+            if (float.IsNaN(delta))
                 delta = last.Height + linespacing;
 
             if (Owner.Orientation == Orientation.Horizontal)
@@ -141,7 +138,7 @@ internal class NBRichBoxLayout
             var currentLetterSpacing = Math.Max(current.GetLetterSpacing(), run.LetterSpacing);
             availableLengthFirstLine += currentLetterSpacing;
             availableLengthFirstLine = Math.Max(0, availableLengthFirstLine);
-
+            run.Clips.Clear();
             var list = run.BuildLines(availableLengthFirstLine, availableLength);
             foreach (var line in list)
             {
@@ -163,7 +160,22 @@ internal class NBRichBoxLayout
 
                 current.Length += (float)letterSpacing + length;
                 current.Height = Math.Max(current.Height, maxHeight);
-                var clip = new NBTextRunClipInfo() { Run = run, Text = text };
+
+                var clip = new NBTextRunClipInfo() { Run = run, Text = text };                
+                if(Owner.Orientation  == Orientation.Horizontal)
+                {
+                    clip.X = current.X + current.Length - length;
+                    clip.Y = current.Y;
+                }
+                else
+                {
+                    clip.X = current.Length;
+                    clip.Y = current.Y + current.Length - length;
+                }
+                clip.Height = maxHeight;
+                clip.Length = length;
+
+                run.Clips.Add(clip);
                 current.Clips.Add(clip);
             }
         }
