@@ -1,0 +1,23 @@
+﻿using SkiaSharp;
+
+namespace NewBeeVG;
+
+internal class NBTextRunClipInfo
+{
+    public float Height { get; set; } = 0;
+    public float Length { get; set; } = 0;
+    public NBTextRun Run { get; set; } = default!;
+    public String Text { get; set; } = string.Empty;
+    public float X { get; set; }
+    public float Y { get; set; }
+    public bool RTL { get; set; }
+    public Orientation Orientation { get; set; }
+
+    public SKRect GetBound()
+    {
+        if (Orientation == Orientation.Horizontal)
+            return new SKRect(X, Y, X + Length, Y + Height);
+        else
+            return new SKRect(X, Y, X + Height, Y + Length);
+    }
+}

@@ -14,9 +14,9 @@
 
 //BitmapFiltersSample.Run();
 
-//TextSamples.Run();
+TextSamples.Run();
 
-RichTextSamples.Run();
+//RichTextSamples.Run();
 
 //TextAnimate1.Run();
 

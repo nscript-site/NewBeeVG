@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using static NewBeeVG.NBTextUtils;
 
 namespace NewBeeVG;
 
@@ -275,7 +276,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
         Strokes.ForEachStroke(s =>
         {
             using var strokePaint = s.CreatePaint();
-            DrawLine(context, font, strokePaint, line, x, y, isStroke: true, maxLineWidth);
+            DrawLine(context, font, strokePaint, line, x, y, true, maxLineWidth);
         });
     }
 
@@ -614,80 +615,11 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
     private void DrawLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke = false, float? maxLineWidth = null)
     {
         if (Orientation == Orientation.Horizontal)
-            DrawHorizontalLine(context, font, paint, line, x, y, isStroke);
+            DrawHorizontalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke());
         else
-            DrawVerticalLine(context, font, paint, line, x, y, isStroke,maxLineWidth);
+            DrawVerticalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke(), maxLineWidth);
     }
 
-    private void DrawHorizontalLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke)
-    {
-        if (string.IsNullOrEmpty(line))
-            return;
-
-        var letterSpacingWithStroke = GetLetterSpacingWithStroke();
-
-        // 直接整体绘制即可。
-        if (letterSpacingWithStroke == 0 && Strokes.IsEmpty() && CountRunes(line) <= 1)
-        {
-            context.DrawText(line, x, y, font, paint);
-            return;
-        }
-
-        float currentX = x;
-
-        foreach (var rune in line.EnumerateRunes())
-        {
-            var runeText = rune.ToString();
-            DrawRune(context, font, paint, runeText, currentX, y, isStroke);
-            currentX += (float)font.MeasureText(runeText) + letterSpacingWithStroke;
-        }
-    }
-
-    private void DrawVerticalLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke, float? maxLineWidth = null)
-    {
-        if (string.IsNullOrEmpty(line))
-            return;
-
-        var letterSpacingWithStroke = GetLetterSpacingWithStroke();
-
-        float currentY = y;
-        var metrics = font.Metrics;
-        var lineHeight = Math.Abs(metrics.Ascent - metrics.Descent + metrics.Leading);
-
-        foreach (var rune in line.EnumerateRunes())
-        {
-            var runeText = rune.ToString();
-            float offset = 0;
-            if(maxLineWidth != null)
-            {
-                var w = font.MeasureText(runeText);
-                offset  = (float)(maxLineWidth.Value - w) * 0.5f; // 居中对齐
-            }
-            DrawRune(context, font, paint, runeText, x + offset, currentY, isStroke);
-            currentY += lineHeight + letterSpacingWithStroke;
-        }
-    }
-
-    private void DrawRune(SKCanvas context, SKFont font, SKPaint paint, string rune, float x, float y, bool isStroke)
-    {
-        if (isStroke == false)
-            context.DrawText(rune, x, y, font, paint);
-        else
-        {
-            using var strokePaint = new SKPaint
-            {
-                IsAntialias = true,
-                Style = SKPaintStyle.Stroke,
-                StrokeWidth = 1,
-                StrokeCap = paint.StrokeCap,
-                StrokeJoin = paint.StrokeJoin
-            };
-
-            using var path = font.GetTextPath(rune, new SKPoint(x, y));
-            using var fillPath = strokePaint.GetFillPath(path);
-            context.DrawPath(fillPath, paint);
-        }
-    }
 
     /// <summary>
     /// 统一文本换行符，便于后续处理。
