@@ -2,7 +2,7 @@
 
 namespace NewBeeVG;
 
-public class NBText : NBLayoutable, IPaddingable, IOrientation
+public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
 {
     /// <summary>
     /// 文本方向：横向或纵向。
@@ -764,51 +764,90 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
 
 public static partial class NBExtentions
 {
-    public static TWidget FontSize<TWidget>(this TWidget widget, float fontSize) where TWidget : NBText
-    {
-        widget.FontSize = fontSize;
-        return widget;
-    }
+    //public static TWidget FontSize<TWidget>(this TWidget widget, float fontSize) where TWidget : NBText
+    //{
+    //    widget.FontSize = fontSize;
+    //    return widget;
+    //}
 
-    public static TWidget Font<TWidget>(this TWidget widget, float size, SKColor? color = null) where TWidget : NBText
-    {
-        widget.FontSize = size;
-        if(color.HasValue)
-        {
-            widget.Foreground = color.Value;
-        }
-        return widget;
-    }
+    //public static TWidget Font<TWidget>(this TWidget widget, float size, SKColor? color = null) where TWidget : NBText
+    //{
+    //    widget.FontSize = size;
+    //    if(color.HasValue)
+    //    {
+    //        widget.Foreground = color.Value;
+    //    }
+    //    return widget;
+    //}
 
-    public static TWidget Text<TWidget>(this TWidget widget, string text) where TWidget : NBText
-    {
-        widget.Text = text;
-        return widget;
-    }
+    //public static TWidget Text<TWidget>(this TWidget widget, string text) where TWidget : NBText
+    //{
+    //    widget.Text = text;
+    //    return widget;
+    //}
 
-    public static TWidget FontFamily<TWidget>(this TWidget widget, string fontFamily) where TWidget : NBText
-    {
-        widget.FontFamily = fontFamily;
-        return widget;
-    }
+    //public static TWidget FontFamily<TWidget>(this TWidget widget, string fontFamily) where TWidget : NBText
+    //{
+    //    widget.FontFamily = fontFamily;
+    //    return widget;
+    //}
 
-    public static TWidget FontWeight<TWidget>(this TWidget widget, SKFontStyleWeight fontWeight) where TWidget : NBText
-    {
-        widget.FontWeight = fontWeight;
-        return widget;
-    }
+    //public static TWidget FontWeight<TWidget>(this TWidget widget, SKFontStyleWeight fontWeight) where TWidget : NBText
+    //{
+    //    widget.FontWeight = fontWeight;
+    //    return widget;
+    //}
 
-    public static TWidget FontWidth<TWidget>(this TWidget widget, SKFontStyleWidth fontWidth) where TWidget : NBText
-    {
-        widget.FontWidth = fontWidth;
-        return widget;
-    }
+    //public static TWidget FontWidth<TWidget>(this TWidget widget, SKFontStyleWidth fontWidth) where TWidget : NBText
+    //{
+    //    widget.FontWidth = fontWidth;
+    //    return widget;
+    //}
 
-    public static TWidget FontSlant<TWidget>(this TWidget widget, SKFontStyleSlant fontSlant) where TWidget : NBText
-    {
-        widget.FontSlant = fontSlant;
-        return widget;
-    }
+    //public static TWidget FontSlant<TWidget>(this TWidget widget, SKFontStyleSlant fontSlant) where TWidget : NBText
+    //{
+    //    widget.FontSlant = fontSlant;
+    //    return widget;
+    //}
+
+    //public static TWidget Foreground<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
+    //{
+    //    widget.Foreground = color;
+    //    return widget;
+    //}
+
+    //public static TWidget StrokeFirst<TWidget>(this TWidget widget, bool strokesFirst) where TWidget : NBText
+    //{
+    //    widget.StrokesFirst = strokesFirst;
+    //    return widget;
+    //}
+
+    //public static TWidget Strokes<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Round, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
+    //{
+    //    var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
+    //    widget.Strokes.ClearStrokes();
+    //    widget.Strokes.AddStroke(stroke);
+    //    return widget;
+    //}
+
+    //public static TWidget AddStroke<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Round, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
+    //{
+    //    var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
+    //    widget.Strokes.AddStroke(stroke);
+    //    return widget;
+    //}
+
+    //public static TWidget ClearStrokes<TWidget>(this TWidget widget) where TWidget : NBText
+    //{
+    //    widget.Strokes.ClearStrokes();
+    //    return widget;
+    //}
+
+    //public static TWidget Fg<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
+    //{
+    //    widget.Foreground = color;
+    //    return widget;
+    //}
 
     public static TWidget WrapText<TWidget>(this TWidget widget, bool wrap = true) where TWidget : NBText
     {
@@ -822,57 +861,6 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static TWidget Foreground<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
-    {
-        widget.Foreground = color;
-        return widget;
-    }
-
-    public static TWidget StrokeFirst<TWidget>(this TWidget widget, bool strokesFirst) where TWidget : NBText
-    {
-        widget.StrokesFirst = strokesFirst;
-        return widget;
-    }
-
-    public static TWidget Strokes<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Round, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
-    {
-        var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
-        widget.Strokes.ClearStrokes();
-        widget.Strokes.AddStroke(stroke);
-        return widget;
-    }
-
-    public static TWidget AddStroke<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Round, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
-    {
-        var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
-        widget.Strokes.AddStroke(stroke);
-        return widget;
-    }
-
-    public static TWidget ClearStrokes<TWidget>(this TWidget widget) where TWidget : NBText
-    {
-        widget.Strokes.ClearStrokes();
-        return widget;
-    }
-
-    public static TWidget Fg<TWidget>(this TWidget widget, SKColor color) where TWidget : NBText
-    {
-        widget.Foreground = color;
-        return widget;
-    }
-
-    public static TWidget LineHeight<TWidget>(this TWidget widget, float lineHeight) where TWidget : NBText
-    {
-        widget.LineHeight = lineHeight;
-        return widget;
-    }
-
-    public static TWidget LetterSpacing<TWidget>(this TWidget widget, float letterSpacing) where TWidget : NBText
-    {
-        widget.LetterSpacing = letterSpacing;
-        return widget;
-    }
-
     public static TWidget MaxLines<TWidget>(this TWidget widget, int? maxLines) where TWidget : NBText
     {
         widget.MaxLines = maxLines;
@@ -881,12 +869,7 @@ public static partial class NBExtentions
 
     public static TWidget TextAlign<TWidget>(this TWidget widget, int textAlign) where TWidget : NBText
     {
-        if (textAlign < 0)
-            widget.TextAlign = NBTextAlign.LeftOrTop;
-        else if (textAlign == 0)
-            widget.TextAlign = NBTextAlign.Center;
-        else
-            widget.TextAlign = NBTextAlign.RightOrBottom;
+        widget.TextAlign =textAlign.ToNBTextAlign();
         return widget;
     }
 

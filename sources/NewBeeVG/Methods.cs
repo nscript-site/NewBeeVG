@@ -1,4 +1,5 @@
-﻿using NewBeeMedia;
+﻿using Avalonia.Media.TextFormatting;
+using NewBeeMedia;
 using NewBeeVG.Internal;
 using Python.Runtime;
 using SkiaSharp;
@@ -478,16 +479,40 @@ public static class Methods
         _globalFontFaminy = name;
     }
 
+    public static NBText Text(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)
+    {
+        return TextBlock(text, fontSize, color, fontFamily, wrap, textAlign);
+    }
+
     public static NBText TextBlock(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)
     {
         var tb = new NBText { Text = text, FontFamily = fontFamily ?? GetDefaultFontFamily(), FontSize = fontSize, Foreground = color ?? SKColors.Black };
         tb.IsWrapText = wrap;
-        tb.TextAlign = textAlign switch
+        tb.TextAlign = textAlign.ToNBTextAlign();
+        return tb;
+    }
+
+    public static NBTextRun TextRun(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null)
+    {
+        var tb = new NBTextRun { Text = text, FontFamily = fontFamily ?? GetDefaultFontFamily(), FontSize = fontSize, Foreground = color ?? SKColors.Black };
+        return tb;
+    }
+
+    public static NBRichText RichText(NBTextRun?[]? runs = null, bool wrap = true, int textAlign = -1)
+    {
+        var tb = new NBRichText();
+        tb.IsWrapText = wrap;
+        tb.TextAlign = textAlign.ToNBTextAlign();
+        if(runs != null)
         {
-            0 => NBTextAlign.Center,
-            <0 => NBTextAlign.LeftOrTop,
-            >0 => NBTextAlign.RightOrBottom
-        };
+            foreach(var run in runs)
+            {
+                if (run != null)
+                {
+                    tb.Runs.Add(run);
+                }
+            }
+        }
         return tb;
     }
 

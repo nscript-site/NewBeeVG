@@ -7,5 +7,5 @@ public enum NBTextAlign
     // CENTER_SK_TEXT_ALIGN = 1
     Center = 1,
     // RIGHT_SK_TEXT_ALIGN = 2
-    RightOrBottom = 2,
+    RightOrBottom = 2
 }

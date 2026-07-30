@@ -73,6 +73,16 @@ public static partial class NBExtentions
         }
     }
 
+    public static NBTextAlign ToNBTextAlign(this int val)
+    {
+        return val switch
+        {
+            0 => NBTextAlign.Center,
+            < 0 => NBTextAlign.LeftOrTop,
+            > 0 => NBTextAlign.RightOrBottom
+        };
+    }
+
     public static IDisposable DisposableIf(this IDisposable self, Func<bool>? predicate = null)
     {
         return new NBDisposableIf(self, predicate);

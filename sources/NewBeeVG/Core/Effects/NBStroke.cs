@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Collections;
 
 namespace NewBeeVG;
 
@@ -27,9 +28,13 @@ public class NBStroke
     }
 }
 
-public class NBStrokeCollection
+public class NBStrokeCollection : ICollection<NBStroke>
 {
     public List<NBStroke> Strokes { get; private set; } = new List<NBStroke>();
+
+    public int Count => ((ICollection<NBStroke>)Strokes).Count;
+
+    public bool IsReadOnly => ((ICollection<NBStroke>)Strokes).IsReadOnly;
 
     public void AddStroke(NBStroke stroke)
     {
@@ -67,5 +72,40 @@ public class NBStrokeCollection
         {
             action(stroke);
         }
+    }
+
+    public void Add(NBStroke item)
+    {
+        ((ICollection<NBStroke>)Strokes).Add(item);
+    }
+
+    public void Clear()
+    {
+        ((ICollection<NBStroke>)Strokes).Clear();
+    }
+
+    public bool Contains(NBStroke item)
+    {
+        return ((ICollection<NBStroke>)Strokes).Contains(item);
+    }
+
+    public void CopyTo(NBStroke[] array, int arrayIndex)
+    {
+        ((ICollection<NBStroke>)Strokes).CopyTo(array, arrayIndex);
+    }
+
+    public bool Remove(NBStroke item)
+    {
+        return ((ICollection<NBStroke>)Strokes).Remove(item);
+    }
+
+    public IEnumerator<NBStroke> GetEnumerator()
+    {
+        return ((IEnumerable<NBStroke>)Strokes).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable)Strokes).GetEnumerator();
     }
 }

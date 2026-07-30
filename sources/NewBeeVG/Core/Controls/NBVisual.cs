@@ -379,7 +379,7 @@ public class NBVisual
         ParamsInGrid.RowSpan = rowSpan;
     }
 
-    public T? As<T>() where T : NBVisual
+    public T? As<T>() where T : class
     {
         return this as T;
     }
