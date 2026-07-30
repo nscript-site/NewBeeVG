@@ -86,7 +86,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
     /// <summary>
     /// 文本水平对齐方式。
     /// </summary>
-    public SKTextAlign TextAlign { get; set; } = SKTextAlign.Left;
+    public NBTextAlign TextAlign { get; set; } = NBTextAlign.LeftOrTop;
 
     private float GetLetterSpacingWithStroke()
     {
@@ -325,12 +325,13 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         int direction = rightToLeft ? -1 : 1;
         for (int i = 0; i < lines.Count; i++)
         {
-            var lineTop = innerTop;
 
             var line = lines[i];
 
             var maxLineWidth = GetMaxTextWidth(font, line);
             var lineHeight = MeasureLineLength(line, font);
+
+            var lineTop = GetLineY(innerTop, innerHeight, lineHeight);
 
             var x = (rightToLeft ? xStart - maxLineWidth : xStart);
             var y = lineTop - metrics.Ascent + GetStrokeMargin() * 0.5f;
@@ -584,9 +585,26 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
     {
         return TextAlign switch
         {
-            SKTextAlign.Center => left + (float)((width - lineWidth) / 2.0),
-            SKTextAlign.Right => left + (float)(width - lineWidth),
+            NBTextAlign.Center => left + (float)((width - lineWidth) / 2.0),
+            NBTextAlign.RightOrBottom => left + (float)(width - lineWidth),
             _ => left
+        };
+    }
+
+    /// <summary>
+    /// 获取文本行的起始 Y 坐标，支持上对齐 / 居中 / 下对齐。
+    /// </summary>
+    /// <param name="top"></param>
+    /// <param name="height"></param>
+    /// <param name="lineHeight"></param>
+    /// <returns></returns>
+    private float GetLineY(float top, float height, double lineHeight)
+    {
+        return TextAlign switch
+        {
+            NBTextAlign.Center => top + (float)((height - lineHeight) / 2.0),
+            NBTextAlign.RightOrBottom => top + (float)(height - lineHeight),
+            _ => top
         };
     }
 
@@ -639,12 +657,13 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         foreach (var rune in line.EnumerateRunes())
         {
             var runeText = rune.ToString();
+            float offset = 0;
             if(maxLineWidth != null)
             {
                 var w = font.MeasureText(runeText);
-                x += (float)(maxLineWidth.Value - w) * 0.5f; // 居中对齐
+                offset  = (float)(maxLineWidth.Value - w) * 0.5f; // 居中对齐
             }
-            DrawRune(context, font, paint, runeText, x, currentY, isStroke);
+            DrawRune(context, font, paint, runeText, x + offset, currentY, isStroke);
             currentY += lineHeight + letterSpacingWithStroke;
         }
     }
@@ -860,9 +879,14 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static TWidget TextAlign<TWidget>(this TWidget widget, SKTextAlign textAlign) where TWidget : NBText
+    public static TWidget TextAlign<TWidget>(this TWidget widget, int textAlign) where TWidget : NBText
     {
-        widget.TextAlign = textAlign;
+        if (textAlign < 0)
+            widget.TextAlign = NBTextAlign.LeftOrTop;
+        else if (textAlign == 0)
+            widget.TextAlign = NBTextAlign.Center;
+        else
+            widget.TextAlign = NBTextAlign.RightOrBottom;
         return widget;
     }
 

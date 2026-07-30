@@ -8,10 +8,10 @@ internal class TextSamples
 
         var style = (NBVisual v) => {
             v.As<NBText>()?
-                .AddStroke(SKColors.Orange, 55)
-                .AddStroke(SKColors.White, 50)
-                .AddStroke(SKColors.Red, 40)
-                .FontSize(80).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10).Padding(10);
+                .AddStroke(SKColors.Orange, 15)
+                .AddStroke(SKColors.White, 13)
+                .AddStroke(SKColors.Red, 10).TextAlign(0)
+                .FontSize(30).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(2).Padding(10);
         };
 
         var vertical = (NBVisual v) =>
@@ -19,8 +19,8 @@ internal class TextSamples
             v.As<NBText>()?.Vertical();
         };
 
-        //var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
-        var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZ";
+        var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
+        //var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZ";
 
         var hcontent = () =>
             VStack([

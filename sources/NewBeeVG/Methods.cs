@@ -484,9 +484,9 @@ public static class Methods
         tb.IsWrapText = wrap;
         tb.TextAlign = textAlign switch
         {
-            0 => SKTextAlign.Center,
-            <0 => SKTextAlign.Left,
-            >0 => SKTextAlign.Right
+            0 => NBTextAlign.Center,
+            <0 => NBTextAlign.LeftOrTop,
+            >0 => NBTextAlign.RightOrBottom
         };
         return tb;
     }
