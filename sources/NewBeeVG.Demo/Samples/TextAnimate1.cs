@@ -9,14 +9,19 @@ internal class TextAnimate1
         var style = (NBVisual v) => { 
             v.As<NBText>()?
                 .AddStroke(SKColors.Orange, 55).AddStroke(SKColors.White, 50).AddStroke(SKColors.Red, 40)
-                .FontSize(120).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10).Padding(100)
+                .FontSize(80).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10).Padding(100)
                 .OnFrame(e => { e.SenderAs<NBText>()?.LetterSpacing(-80 + 100 * e.pf).InvalidateMeasure(); })
                 ;
         };
 
+        var vertical = (NBVisual v) =>
+        {
+            v.As<NBText>()?.Vertical();
+        };
+
         var content = () => 
             VStack([
-                TextBlock("求关注").Styles(style).Id("Text").FrameMask(FrameMasks.Scanlines()),
+                TextBlock("求关注").Styles(style, vertical).Id("Text").FrameMask(FrameMasks.Scanlines()),
             ]).Spacing(0).Background(SKColors.Yellow)
             .Align(0, 0);
 

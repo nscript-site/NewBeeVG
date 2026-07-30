@@ -604,13 +604,13 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static T Styles<T>(this T t, params Action<NBVisual>[]? styles) where T : NBVisual
+    public static T Styles<T>(this T t, params Action<NBVisual?>[]? styles) where T : NBVisual
     {
         if (styles != null)
         {
             foreach (var style in styles)
             {
-                style(t);
+                style?.Invoke(t);
             }
         }
         return t;

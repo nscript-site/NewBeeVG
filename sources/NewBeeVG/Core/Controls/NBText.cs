@@ -1,5 +1,4 @@
-﻿using Avalonia.Controls.Shapes;
-using SkiaSharp;
+﻿using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -9,6 +8,11 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
     /// 文本方向：横向或纵向。
     /// </summary>
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
+
+    /// <summary>
+    /// 是否右向左阅读。目前仅 Orientation = Orientation.Vertical 时生效。
+    /// </summary>
+    public bool RightToLeft { get; set; } = false;
 
     /// <summary>
     /// 文本内容的内边距。
@@ -108,19 +112,19 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
 
     private Size MeasureHorizontal(Size availableSize, Thickness padding)
     {
-        var innerAvailableWidth = GetInnerAvailableWidth(availableSize.Width, padding);
+        var innerAvailableLength = GetInnerAvailableWidth(availableSize.Width, padding);
 
         using var typeface = CreateTypeface();
         using var font = CreateFont(typeface);
 
         float eps = 0.001f;
         var lineHeight = GetLineHeight(font);
-        var lines = BuildLines(Text, innerAvailableWidth + eps, font);
+        var lines = BuildLines(Text, innerAvailableLength + eps, font);
 
         float contentWidth = 0;
         foreach (var line in lines)
         {
-            contentWidth = (float)Math.Max(contentWidth, MeasureLineWidth(line, font));
+            contentWidth = (float)Math.Max(contentWidth, MeasureLineLength(line, font));
         }
 
         double contentHeight = lines.Count * lineHeight;
@@ -132,37 +136,47 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
 
     private Size MeasureVertical(Size availableSize, Thickness padding)
     {
-        var innerWidth = GetInnerAvailableWidth(availableSize.Width, padding);
-        var innerHeight = GetInnerAvailableHeight(availableSize.Height, padding);
+        var innerAvailableLength = GetInnerAvailableHeight(availableSize.Height, padding);
 
         using var typeface = CreateTypeface();
         using var font = CreateFont(typeface);
 
-        if (string.IsNullOrEmpty(Text))
+        float eps = 0.001f;
+        var lines = BuildLines(Text, innerAvailableLength + eps, font);
+
+        float contentHeight = 0;
+        float contentWidth = 0;
+        foreach (var line in lines)
         {
-            return new Size(padding.Left + padding.Right, padding.Top + padding.Bottom);
+            contentHeight = (float)Math.Max(contentHeight, MeasureLineLength(line, font));
+            contentWidth += GetMaxTextWidth(font, line);
         }
 
-        var columns = BuildColumns(Text, innerWidth, innerHeight, font);
-        if (columns.Count == 0)
-            return new Size(padding.Left + padding.Right, padding.Top + padding.Bottom);
-
-        float columnWidth = CalcColumnWidth(Text, font);
-        float contentWidth = columnWidth * columns.Count;
-        float lineHeight = (float)GetLineHeight(font);
-        float verticalSpacing = GetLetterSpacingWithStroke();
-
-        // 实际内容高度取所有列中最高的那一列
-        float contentHeight = columns.Max(col =>
-        {
-            int charCount = col.Count;
-            if (charCount == 0) return 0;
-            return charCount * lineHeight + (charCount - 1) * verticalSpacing;
-        });
+        contentWidth += (lines.Count - 1) * GetLetterSpacingWithStroke() + GetStrokeMargin();
 
         return new Size(
             contentWidth + padding.Left + padding.Right,
             contentHeight + padding.Top + padding.Bottom);
+    }
+
+    /// <summary>
+    /// 计算文本中单个字符的最大宽度，用于纵向排版时确定列宽。
+    /// </summary>
+    /// <param name="font"></param>
+    /// <param name="text"></param>
+    /// <returns></returns>
+    private float GetMaxTextWidth(SKFont font, string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+        float maxWidth = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            float w = font.MeasureText(rune.ToString());
+            if (w > maxWidth)
+                maxWidth = w;
+        }
+        return maxWidth;
     }
 
     protected override void RenderContent(SKCanvas context)
@@ -215,7 +229,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
 
             if (IsTrimming && innerWidth > 0)
             {
-                lines[^1] = TrimToWidth(lines[^1], innerWidth, font);
+                lines[^1] = TrimToLength(lines[^1], innerWidth, font);
             }
         }
 
@@ -229,9 +243,8 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
                 break;
 
             var line = lines[i];
-            var lineWidth = MeasureLineWidth(line, font);
+            var lineWidth = MeasureLineLength(line, font);
 
-            // 根据 TextAlign 计算当前行的起始 X 坐标。
             var x = GetLineX(innerLeft, innerWidth, lineWidth) + GetStrokeMargin() * 0.5f;
             var y = lineTop - metrics.Ascent + GetStrokeMargin() * 0.5f;
 
@@ -257,12 +270,12 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         context.Restore();
     }
 
-    private void DrawStrokes(SKCanvas context, SKFont font, string line, float x, float y)
+    private void DrawStrokes(SKCanvas context, SKFont font, string line, float x, float y, float? maxLineWidth = null)
     {
         Strokes.ForEachStroke(s =>
         {
             using var strokePaint = s.CreatePaint();
-            DrawLine(context, font, strokePaint, line, x, y);
+            DrawLine(context, font, strokePaint, line, x, y, isStroke: true, maxLineWidth);
         });
     }
 
@@ -287,77 +300,63 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         using var font = CreateFont(typeface);
         using var paint = CreateFillTextPaint();
 
-        float lineHeight = (float)GetLineHeight(font);
-        float verticalSpacing = GetLetterSpacingWithStroke();
-        float columnWidth = CalcColumnWidth(Text, font);
+        var metrics = font.Metrics;
+        var maxLength = innerHeight;
 
-        var columns = BuildColumns(Text, innerWidth, innerHeight, font);
+        // 先按当前高度排版出最终可绘制的行。
+        var lines = BuildLines(Text, maxLength, font);
 
-        // 最大列数限制（复用 MaxLines）
-        if (MaxLines.HasValue && MaxLines.Value > 0 && columns.Count > MaxLines.Value)
+        // 限制最大行数。
+        if (MaxLines.HasValue && MaxLines.Value > 0 && lines.Count > MaxLines.Value)
         {
-            columns = columns.GetRange(0, MaxLines.Value);
+            lines = lines.GetRange(0, MaxLines.Value);
 
-            // 截断最后一列，并在末尾添加省略号（垂直方向）
-            if (IsTrimming && innerHeight > 0 && columns.Count > 0)
+            if (IsTrimming && maxLength > 0)
             {
-                columns[^1] = TrimColumnToHeight(columns[^1], innerHeight, font);
+                lines[^1] = TrimToLength(lines[^1], maxLength, font);
             }
         }
 
         context.Save();
         context.ClipRect(bounds);
 
-        float innerRight = innerLeft + innerWidth;
-        // 从右向左排列列
-        for (int colIndex = 0; colIndex < columns.Count; colIndex++)
+        bool rightToLeft = RightToLeft;
+        var xStart = rightToLeft ? innerLeft + innerWidth - GetStrokeMargin() * 0.5f : innerLeft + GetStrokeMargin() * 0.5f;
+        int direction = rightToLeft ? -1 : 1;
+        for (int i = 0; i < lines.Count; i++)
         {
-            float colX = innerRight - (colIndex + 1) * columnWidth;
-            var column = columns[colIndex];
-            if (column.Count == 0) continue;
+            var lineTop = innerTop;
 
-            // 计算本列实际高度
-            float columnContentHeight = column.Count * lineHeight + (column.Count - 1) * verticalSpacing;
+            var line = lines[i];
 
-            // 垂直对齐，将 TextAlign 映射为垂直对齐
-            float startY = innerTop;
-            switch (TextAlign)
+            var maxLineWidth = GetMaxTextWidth(font, line);
+            var lineHeight = MeasureLineLength(line, font);
+
+            var x = (rightToLeft ? xStart - maxLineWidth : xStart);
+            var y = lineTop - metrics.Ascent + GetStrokeMargin() * 0.5f;
+
+            if (Strokes.IsEmpty() == false)
             {
-                case SKTextAlign.Center:
-                    startY += (innerHeight - columnContentHeight) / 2f;
-                    break;
-                case SKTextAlign.Right:
-                    startY += innerHeight - columnContentHeight;
-                    break;
-            }
-
-            for (int i = 0; i < column.Count; i++)
-            {
-                float charY = startY + i * (lineHeight + verticalSpacing) + lineHeight * 0.5f; // 近似字符垂直居中
-                // 计算字符水平居中于列内
-                string runeStr = column[i];
-                float charWidth = font.MeasureText(runeStr);
-                float charX = colX + (columnWidth - charWidth) / 2f;
-
-                // 处理描边
-                if (!Strokes.IsEmpty())
+                if (StrokesFirst == true)
                 {
-                    if (StrokesFirst)
-                    {
-                        DrawStrokes(context, font, runeStr, charX, charY);
-                        context.DrawText(runeStr, charX, charY, font, paint);
-                    }
-                    else
-                    {
-                        context.DrawText(runeStr, charX, charY, font, paint);
-                        DrawStrokes(context, font, runeStr, charX, charY);
-                    }
+                    DrawStrokes(context, font, line, x, y, maxLineWidth);
+                    DrawLine(context, font, paint, line, x, y, false, maxLineWidth);
                 }
                 else
                 {
-                    context.DrawText(runeStr, charX, charY, font, paint);
+                    DrawLine(context, font, paint, line, x, y, false, maxLineWidth);
+                    DrawStrokes(context, font, line, x, y, maxLineWidth);
                 }
             }
+            else
+            {
+                DrawLine(context, font, paint, line, x, y, false, maxLineWidth);
+            }
+
+            if(rightToLeft)
+                xStart -= (maxLineWidth + GetLetterSpacingWithStroke());
+            else
+                xStart += (maxLineWidth + GetLetterSpacingWithStroke());
         }
 
         context.Restore();
@@ -412,10 +411,20 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         return lineHeight < 0 ? 0 : lineHeight + GetStrokeMargin();
     }
 
+    private double GetLineWidth(SKFont font)
+    {
+        var metrics = font.Metrics;
+        var lineWidth = double.IsNaN(LineHeight)
+            ? Math.Ceiling(metrics.MaxCharacterWidth)
+            : LineHeight;
+
+        return lineWidth < 0 ? 0 : lineWidth + GetStrokeMargin();
+    }
+
     /// <summary>
     /// 计算文本在可用宽度下生成的最终行列表。
     /// </summary>
-    private List<string> BuildLines(string text, double innerAvailableWidth, SKFont font)
+    private List<string> BuildLines(string text, double innerAvailableLength, SKFont font)
     {
         var lines = new List<string>();
 
@@ -431,13 +440,13 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         foreach (var paragraph in paragraphs)
         {
             // 不换行，或者宽度无限大时，直接作为一行。
-            if (!IsWrapText || double.IsPositiveInfinity(innerAvailableWidth))
+            if (!IsWrapText || double.IsPositiveInfinity(innerAvailableLength))
             {
                 lines.Add(paragraph);
                 continue;
             }
 
-            if (innerAvailableWidth <= 0)
+            if (innerAvailableLength <= 0)
             {
                 lines.Add(string.Empty);
                 continue;
@@ -453,7 +462,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
             var rest = paragraph;
             while (rest.Length > 0)
             {
-                int count = FitPrefix(rest, (float)innerAvailableWidth, font);
+                int count = FitPrefix(rest, (float)innerAvailableLength, font);
                 if (count <= 0)
                     count = 1;
 
@@ -468,182 +477,57 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
             lines = lines.GetRange(0, MaxLines.Value);
 
             // 如果需要截断，最后一行要补省略号。
-            if (IsTrimming && !double.IsPositiveInfinity(innerAvailableWidth) && innerAvailableWidth > 0)
+            if (IsTrimming && !double.IsPositiveInfinity(innerAvailableLength) && innerAvailableLength > 0)
             {
-                lines[^1] = TrimToWidth(lines[^1], (float)innerAvailableWidth, font);
+                lines[^1] = TrimToLength(lines[^1], (float)innerAvailableLength, font);
             }
         }
 
         return lines;
     }
 
-    // ---------- 纵向排版方法（新增） ----------
     /// <summary>
-    /// 将文本按纵向列排布。每一列是一个 <see cref="List{String}"/>，每个字符串为单个 rune。
+    /// 计算单行文本的长度。
     /// </summary>
-    private List<List<string>> BuildColumns(string text, double innerWidth, double innerHeight, SKFont font)
-    {
-        var columns = new List<List<string>>();
-
-        if (string.IsNullOrEmpty(text))
-        {
-            columns.Add(new List<string>());
-            return columns;
-        }
-
-        float lineHeight = (float)GetLineHeight(font);
-        float verticalSpacing = GetLetterSpacingWithStroke();
-        float columnWidth = CalcColumnWidth(text, font);
-
-        // 可用高度最多容纳的字符数
-        int maxCharsPerColumn = IsWrapText && !double.IsPositiveInfinity(innerHeight) && innerHeight > 0
-            ? (int)Math.Floor((innerHeight + verticalSpacing) / (lineHeight + verticalSpacing))
-            : int.MaxValue;
-
-        if (maxCharsPerColumn < 1)
-            maxCharsPerColumn = 1;
-
-        // 可用宽度最多容纳的列数
-        int maxColumnCount = !double.IsPositiveInfinity(innerWidth) && innerWidth > 0
-            ? (int)Math.Floor(innerWidth / columnWidth)
-            : int.MaxValue;
-
-        if (maxColumnCount < 1)
-            maxColumnCount = 1;
-
-        // 按换行符分段
-        var paragraphs = NormalizeText(text).Split('\n');
-
-        foreach (var paragraph in paragraphs)
-        {
-            if (paragraph.Length == 0)
-            {
-                // 空段对应一个空列
-                if (columns.Count < maxColumnCount)
-                    columns.Add(new List<string>());
-                continue;
-            }
-
-            // 将段落拆为 rune 字符串列表
-            var runes = new List<string>();
-            foreach (var rune in paragraph.EnumerateRunes())
-                runes.Add(rune.ToString());
-
-            int index = 0;
-            while (index < runes.Count)
-            {
-                if (columns.Count >= maxColumnCount)
-                {
-                    // 超出最大列数，忽略剩余字符
-                    return columns;
-                }
-
-                int take = Math.Min(maxCharsPerColumn, runes.Count - index);
-                var col = new List<string>();
-                for (int i = 0; i < take; i++)
-                {
-                    col.Add(runes[index + i]);
-                }
-                columns.Add(col);
-                index += take;
-            }
-        }
-
-        // 应用 MaxLines 限制列数（与横向一致）
-        if (MaxLines.HasValue && MaxLines.Value > 0 && columns.Count > MaxLines.Value)
-        {
-            columns = columns.GetRange(0, MaxLines.Value);
-
-            // 截断最后一列
-            if (IsTrimming && !double.IsPositiveInfinity(innerHeight) && innerHeight > 0)
-            {
-                columns[^1] = TrimColumnToHeight(columns[^1], innerHeight, font);
-            }
-        }
-
-        return columns;
-    }
-
-    /// <summary>
-    /// 计算纵向排版时单列的宽度（所有字符中最宽的宽度 + 描边边距）。
-    /// </summary>
-    private float CalcColumnWidth(string text, SKFont font)
-    {
-        float maxCharWidth = 0;
-        foreach (var rune in text.EnumerateRunes())
-        {
-            float w = font.MeasureText(rune.ToString());
-            if (w > maxCharWidth)
-                maxCharWidth = w;
-        }
-        return maxCharWidth + GetStrokeMargin();
-    }
-
-    /// <summary>
-    /// 在纵向排版中将一列截断到指定高度，并在末尾追加省略号。
-    /// </summary>
-    private List<string> TrimColumnToHeight(List<string> column, double maxHeight, SKFont font)
-    {
-        const string ellipsis = "\u2026"; // '…'
-        float lineHeight = (float)GetLineHeight(font);
-        float verticalSpacing = GetLetterSpacingWithStroke();
-
-        float ellipsisHeight = lineHeight; // 省略号本身占一个字符高度
-        float ellipsisSpacing = verticalSpacing; // 省略号与前一个字符的间距
-
-        // 空列或无法容纳省略号
-        if (maxHeight < ellipsisHeight)
-            return new List<string>();
-
-        if (column.Count == 0)
-            return new List<string> { ellipsis };
-
-        // 依次从尾部删除字符，直到剩余高度能容纳省略号
-        var trimmed = new List<string>(column);
-        while (trimmed.Count > 0)
-        {
-            float currentHeight = trimmed.Count * lineHeight + (trimmed.Count - 1) * verticalSpacing;
-            float needed = currentHeight + ellipsisSpacing + ellipsisHeight; // 追加省略号后的总高度
-            if (needed <= maxHeight)
-                break;
-            trimmed.RemoveAt(trimmed.Count - 1);
-        }
-
-        trimmed.Add(ellipsis);
-        return trimmed;
-    }
-
-    /// <summary>
-    /// 计算单行文本的宽度。
-    /// </summary>
-    private double MeasureLineWidth(string value, SKFont font)
+    private double MeasureLineLength(string value, SKFont font)
     {
         if (string.IsNullOrEmpty(value))
             return 0;
 
-        // 使用新的 SkiaSharp API 进行测量，避免使用已废弃的 SKPaint.MeasureText。
-        double width = font.MeasureText(value);
+        if(Orientation == Orientation.Horizontal)
+        {
+            // 使用新的 SkiaSharp API 进行测量，避免使用已废弃的 SKPaint.MeasureText。
+            double len = font.MeasureText(value);
 
-        // 字间距需要手动累加。
-        int runeCount = CountRunes(value);
+            // 字间距需要手动累加。
+            int runeCount = CountRunes(value);
 
-        var letterSpacing = GetLetterSpacingWithStroke();
+            var letterSpacing = GetLetterSpacingWithStroke();
 
-        if (letterSpacing != 0 && runeCount > 1)
-            width += letterSpacing * (runeCount - 1);
+            if (letterSpacing != 0 && runeCount > 1)
+                len += letterSpacing * (runeCount - 1);
 
-        return width + GetStrokeMargin();
+            return len + GetStrokeMargin();
+        }
+        else
+        {
+            var metrics = font.Metrics;
+            float lineHeight = Math.Abs(metrics.Ascent - metrics.Descent + metrics.Leading);
+            int runeCount = CountRunes(value);
+            double len = runeCount * lineHeight + (runeCount - 1) * GetLetterSpacingWithStroke();
+            return len + GetStrokeMargin();
+        }
     }
 
     /// <summary>
-    /// 计算在指定宽度内最多可容纳多少个“字符单元”（按 Rune 切分，避免拆坏代理项）。
+    /// 计算在指定尺寸内最多可容纳多少个“字符单元”（按 Rune 切分，避免拆坏代理项）。
     /// </summary>
-    private int FitPrefix(string value, float maxWidth, SKFont font)
+    private int FitPrefix(string value, float maxLength, SKFont font)
     {
         if (string.IsNullOrEmpty(value))
             return 0;
 
-        if (MeasureLineWidth(value, font) <= maxWidth)
+        if (MeasureLineLength(value, font) <= maxLength)
             return CountRunes(value);
 
         int lo = 1;
@@ -654,9 +538,9 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         {
             int mid = lo + ((hi - lo) >> 1);
             var prefix = SubstringByRunes(value, mid);
-            float width = (float)MeasureLineWidth(prefix, font);
+            float width = (float)MeasureLineLength(prefix, font);
 
-            if (width <= maxWidth)
+            if (width <= maxLength)
             {
                 best = mid;
                 lo = mid + 1;
@@ -673,18 +557,18 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
     /// <summary>
     /// 将文本裁剪到指定宽度，并在末尾附加省略号。
     /// </summary>
-    private string TrimToWidth(string value, float maxWidth, SKFont font)
+    private string TrimToLength(string value, float max, SKFont font)
     {
         const string ellipsis = "…";
 
-        if (MeasureLineWidth(ellipsis, font) > maxWidth)
+        if (MeasureLineLength(ellipsis, font) > max)
             return string.Empty;
 
-        if (MeasureLineWidth(value, font) <= maxWidth)
+        if (MeasureLineLength(value, font) <= max)
             return value;
 
-        float ellipsisWidth = (float)MeasureLineWidth(ellipsis, font);
-        float prefixWidth = maxWidth - ellipsisWidth;
+        float ellipsisWidth = (float)MeasureLineLength(ellipsis, font);
+        float prefixWidth = max - ellipsisWidth;
 
         if (prefixWidth <= 0)
             return ellipsis;
@@ -709,7 +593,15 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
     /// <summary>
     /// 绘制单行文本；如果设置了字间距，则按 Rune 逐个绘制。
     /// </summary>
-    private void DrawLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y)
+    private void DrawLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke = false, float? maxLineWidth = null)
+    {
+        if (Orientation == Orientation.Horizontal)
+            DrawHorizontalLine(context, font, paint, line, x, y, isStroke);
+        else
+            DrawVerticalLine(context, font, paint, line, x, y, isStroke,maxLineWidth);
+    }
+
+    private void DrawHorizontalLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke)
     {
         if (string.IsNullOrEmpty(line))
             return;
@@ -728,8 +620,53 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation
         foreach (var rune in line.EnumerateRunes())
         {
             var runeText = rune.ToString();
-            context.DrawText(runeText, currentX, y, font, paint);
+            DrawRune(context, font, paint, runeText, currentX, y, isStroke);
             currentX += (float)font.MeasureText(runeText) + letterSpacingWithStroke;
+        }
+    }
+
+    private void DrawVerticalLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke, float? maxLineWidth = null)
+    {
+        if (string.IsNullOrEmpty(line))
+            return;
+
+        var letterSpacingWithStroke = GetLetterSpacingWithStroke();
+
+        float currentY = y;
+        var metrics = font.Metrics;
+        var lineHeight = Math.Abs(metrics.Ascent - metrics.Descent + metrics.Leading);
+
+        foreach (var rune in line.EnumerateRunes())
+        {
+            var runeText = rune.ToString();
+            if(maxLineWidth != null)
+            {
+                var w = font.MeasureText(runeText);
+                x += (float)(maxLineWidth.Value - w) * 0.5f; // 居中对齐
+            }
+            DrawRune(context, font, paint, runeText, x, currentY, isStroke);
+            currentY += lineHeight + letterSpacingWithStroke;
+        }
+    }
+
+    private void DrawRune(SKCanvas context, SKFont font, SKPaint paint, string rune, float x, float y, bool isStroke)
+    {
+        if (isStroke == false)
+            context.DrawText(rune, x, y, font, paint);
+        else
+        {
+            using var strokePaint = new SKPaint
+            {
+                IsAntialias = true,
+                Style = SKPaintStyle.Stroke,
+                StrokeWidth = 1,
+                StrokeCap = paint.StrokeCap,
+                StrokeJoin = paint.StrokeJoin
+            };
+
+            using var path = font.GetTextPath(rune, new SKPoint(x, y));
+            using var fillPath = strokePaint.GetFillPath(path);
+            context.DrawPath(fillPath, paint);
         }
     }
 
@@ -878,7 +815,7 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static TWidget Strokes<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Square, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
+    public static TWidget Strokes<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Round, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
     {
         var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
         widget.Strokes.ClearStrokes();
@@ -886,7 +823,7 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static TWidget AddStroke<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Square, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
+    public static TWidget AddStroke<TWidget>(this TWidget widget, SKColor color, float width, SKStrokeCap cap = SKStrokeCap.Round, SKStrokeJoin join = SKStrokeJoin.Bevel) where TWidget : NBText
     {
         var stroke = new NBStroke { StrokeCap = cap, StrokeColor = color, StrokeJoin = join, StrokeWidth = width * 2 };
         widget.Strokes.AddStroke(stroke);
@@ -926,6 +863,12 @@ public static partial class NBExtentions
     public static TWidget TextAlign<TWidget>(this TWidget widget, SKTextAlign textAlign) where TWidget : NBText
     {
         widget.TextAlign = textAlign;
+        return widget;
+    }
+
+    public static TWidget RightToLeft<TWidget>(this TWidget widget, bool rightToLeft = true) where TWidget : NBText
+    {
+        widget.RightToLeft = rightToLeft;
         return widget;
     }
 }
