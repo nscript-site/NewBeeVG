@@ -3,7 +3,7 @@ using static NewBeeVG.NBTextUtils;
 
 namespace NewBeeVG;
 
-public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun
+public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRightToLeft
 {
     /// <summary>
     /// 文本方向：横向或纵向。
@@ -729,12 +729,6 @@ public static partial class NBExtentions
     public static TWidget TextAlign<TWidget>(this TWidget widget, int textAlign) where TWidget : NBText
     {
         widget.TextAlign =textAlign.ToNBTextAlign();
-        return widget;
-    }
-
-    public static TWidget RightToLeft<TWidget>(this TWidget widget, bool rightToLeft = true) where TWidget : NBText
-    {
-        widget.RightToLeft = rightToLeft;
         return widget;
     }
 }

@@ -33,6 +33,22 @@ internal class NBRichTextLineInfo
             c.UpdateCrossAxis(align, Height);
     }
 
+    public void ChangeCrossAxis(float delta)
+    {
+        if (Orientation == Orientation.Horizontal)
+        {
+            Y += delta;
+            foreach (var c in Clips)
+                c.Y += delta;
+        }
+        else
+        {
+            X += delta;
+            foreach (var c in Clips)
+                c.X += delta;
+        }
+    }
+
     public void ChangeMainAxis(float delta)
     {
         if (Orientation == Orientation.Horizontal)
@@ -68,6 +84,24 @@ internal class NBRichBoxLineLayoutInfo
         UpdateBounds();
         UpdateMainAxis(owner.TextAlign);
         UpdateCrossAxis(owner.CrossAxisAlign);
+        UpdateCrossAxisWhenRTL(owner);
+    }
+
+    internal void UpdateCrossAxisWhenRTL(NBRichText owner)
+    {
+        if(owner.RightToLeft == false || owner.Orientation == Orientation.Horizontal) return;
+        float min = 0;
+        foreach (var line in Lines)
+        {
+            min = Math.Min(min, line.X);
+        }
+        if (min < 0)
+        {
+            foreach (var line in Lines)
+            {
+                line.ChangeCrossAxis(-min);
+            }
+        }
     }
 
     internal void UpdateCrossAxis(NBTextAlign align)
@@ -222,8 +256,9 @@ internal class NBRichBoxLayout
                 current.Length += (float)letterSpacing + length;
                 current.Height = Math.Max(current.Height, maxHeight);
 
-                var clip = new NBTextRunClipInfo() { Run = run, Text = text };                
-                if(Owner.Orientation  == Orientation.Horizontal)
+                var clip = new NBTextRunClipInfo() { Run = run, Text = text };   
+                clip.Orientation = Owner.Orientation;
+                if (Owner.Orientation  == Orientation.Horizontal)
                 {
                     clip.X = current.X + current.Length - length;
                     clip.Y = current.Y;
@@ -232,7 +267,7 @@ internal class NBRichBoxLayout
                 }
                 else
                 {
-                    clip.X = current.Length;
+                    clip.X = current.X;
                     clip.Y = current.Y + current.Length - length;
                     clip.DeltaX = run.GetStrokeMargin() * 0.5f;
                     clip.DeltaY = run.GetStrokeMargin() * 0.5f - ascent;

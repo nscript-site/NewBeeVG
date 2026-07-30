@@ -5,7 +5,7 @@ namespace NewBeeVG;
 /// <summary>
 /// 富文本控件，包含多个 NBTextRun，支持独立样式。
 /// </summary>
-public class NBRichText : NBLayoutable, IPaddingable, IOrientation
+public class NBRichText : NBLayoutable, IPaddingable, IOrientation, IRightToLeft
 {
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
     public bool RightToLeft { get; set; } = false;

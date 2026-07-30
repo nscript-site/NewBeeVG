@@ -29,8 +29,19 @@ public interface INBTextRun
     public float LetterSpacing { get; set; }
 }
 
+public interface IRightToLeft
+{
+    public bool RightToLeft { get; set; }
+}
+
 public static partial class NBExtentions
 {
+    public static TWidget RightToLeft<TWidget>(this TWidget widget, bool rightToLeft = true) where TWidget : IRightToLeft
+    {
+        widget.RightToLeft = rightToLeft;
+        return widget;
+    }
+
     public static TWidget FontSize<TWidget>(this TWidget widget, float fontSize) where TWidget : INBTextRun
     {
         widget.FontSize = fontSize;

@@ -8,7 +8,9 @@
 
             var style1 = (NBVisual v) => {
                 v.As<NBTextRun>()?
-                    .FontSize(30).Foreground(SKColors.Black).FontSlant(SKFontStyleSlant.Italic).LetterSpacing(2);
+                    .FontSize(30).Foreground(SKColors.Black)
+                    //.FontSlant(SKFontStyleSlant.Italic)
+                    .LetterSpacing(2);
             };
 
             var style2 = (NBVisual v) => {
@@ -23,7 +25,7 @@
                 v.As<IOrientation>()?.Vertical();
             };
 
-            var s1 = "求关注";
+            var s1 = "abcdefgdffss求关注求关注求关注求关注求关注";
             //var s2 = "ABCDEDFHIJKLMNOPQRS\nTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
             var s2 = "求关注求关注";
             //var s2 = "ABCD";
@@ -43,8 +45,9 @@
                 HStack([
                     RichText([
                         TextRun(s1).Styles(style1),
-                        TextRun(s2).Styles(style2),
-                        ]).Styles(vertical),
+                        TextRun(s1).Styles(style2),
+                        TextRun(s1).Styles(style1),
+                        ]).Styles(vertical).CrossAxisAlign(0).RightToLeft(rtl).Padding(100),
                 ]).Spacing(0).Background(SKColors.Yellow)
                 .Align(0, -1);
 
