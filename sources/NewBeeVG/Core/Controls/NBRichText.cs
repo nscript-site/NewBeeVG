@@ -79,7 +79,11 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation, IRightToLeft
 
     protected override void ArrangeCore(Rect finalRect)
     {
-        SKPoint origin = new SKPoint((float)(finalRect.X + Padding.Left), (float)(finalRect.Y + Padding.Top));
+        base.ArrangeCore(finalRect);
+
+        var bound = this.Bounds;
+
+        SKPoint origin = new SKPoint((float)(bound.Left + Padding.Left), (float)(bound.Top + Padding.Top));
         foreach(var item in Runs)
         {
             item.UpdateLayout(origin);

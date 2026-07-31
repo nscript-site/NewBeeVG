@@ -28,14 +28,20 @@
 
             var style3 = (NBVisual v) => {
                 v.As<NBText>()?
-                    .FontSize(30).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(2)
+                    .FontSize(30).Foreground(SKColors.Black)
+                    //.Align(null, 1)
+                    .Align(0, 0)
+                    .LetterSpacing(2)
                     .LineSpacing(10)
                     .Padding(10);
             };
 
 
             var s1 = "abcdefgdffss求关注求关注求关注求关注求关注";
+            //var s1 = "abcdefgdffss求关注求关注求关注求关注求关注";
             var s2 = "求关注求关注";
+            //var s1 = "ab求";
+            //var s2 = "关注";
 
             // rich text clips
             var hrich = () =>
@@ -44,7 +50,7 @@
                         TextRun(s1).Styles(style1),
                         TextRun(s1).Styles(style2),
                         TextRun(s1).Styles(style1),
-                        ]).CrossAxisAlign(0).Padding(100).LineSpacing(10),
+                        ]).CrossAxisAlign(0).Padding(20).LineSpacing(10).Align(0,0),
                 ]).Spacing(0).Background(SKColors.Yellow)
                 .Align(null, 0);
 
@@ -54,7 +60,9 @@
                         TextRun(s1).Styles(style1),
                         TextRun(s1).Styles(style2),
                         TextRun(s1).Styles(style1),
-                        ]).Styles(vertical).CrossAxisAlign(0).RightToLeft(rtl).Padding(100).LineSpacing(10),
+                        //TextRun(s1).Styles(style1),
+                        ]).Styles(vertical).CrossAxisAlign(0).RightToLeft(rtl).Padding(20).LineSpacing(10)
+                        .Align(null,0),
                 ]).Spacing(0).Background(SKColors.Yellow)
                 .Align(0, null);
 
@@ -64,6 +72,7 @@
 
             // normal text clips
             var s3 = "ABCDEDFHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
+            //var s3 = "ABCDED关注";
             var htext = () =>
                 VStack([
                     TextBlock(s3).Styles(style3),

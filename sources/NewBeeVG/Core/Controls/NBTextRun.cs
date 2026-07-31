@@ -211,16 +211,15 @@ public class NBTextRun : NBVisual, INBTextRun
                     var str = SubstringByRunes(rest, count);
                     var lineLength = (float)MeasureLineLength(str, font);
                     var maxLineWidth = (float)MeasureLineHeight(str, font);
-                    bool isNewLine = lines.Count > 0;
-                    lines.Add((str, lineLength, maxLineWidth, isNewLine, ascent));
+                    lines.Add((str, lineLength, maxLineWidth, true, ascent));
                     rest = RemovePrefixByRunes(rest, count);
                 }
                 else
                 {
-                    int count1 = lines.Count == 0 ? FitPrefix(rest, (float)firstLineAvailableLength, font): 0;
+                    bool isNewLine = lines.Count > 0;
+                    int count1 = isNewLine ? 0 : MustFitPrefix(rest, (float)firstLineAvailableLength, font);
                     int count2 = FitPrefix(rest, (float)innerAvailableLength, font);
                     int count = 0;
-                    bool isNewLine = lines.Count > 0;
 
                     if (count1 <= 0)
                     {
@@ -286,6 +285,17 @@ public class NBTextRun : NBVisual, INBTextRun
         return best;
     }
 
+    private int MustFitPrefix(string value, float maxLength, SKFont font)
+    {
+        if (string.IsNullOrEmpty(value))
+            return 0;
+
+        if (MeasureLineLength(value, font) <= maxLength)
+            return CountRunes(value);
+
+        return 0;
+    }
+
     /// <summary>
     /// 计算单行文本的长度。
     /// </summary>
@@ -344,7 +354,7 @@ public class NBTextRun : NBVisual, INBTextRun
                 if (w > maxWidth)
                     maxWidth = w;
             }
-            return maxWidth;
+            return maxWidth + GetStrokeMargin();
         }
     }
 }

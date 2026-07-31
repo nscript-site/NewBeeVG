@@ -77,7 +77,6 @@ internal class NBRichBoxLineLayoutInfo
 {
     public SKRect Bound { get; internal set; }
     public List<NBRichTextLineInfo> Lines { get; init; }
-
     public NBRichBoxLineLayoutInfo(List<NBRichTextLineInfo> lines, NBRichText owner)
     {
         Lines = lines;
@@ -115,11 +114,11 @@ internal class NBRichBoxLineLayoutInfo
     internal void UpdateMainAxis(NBTextAlign align)
     {
         float max = 0;
-        foreach(var line in Lines)
+        foreach (var line in Lines)
         {
             max = Math.Max(max, line.Length);
         }
-        foreach(var line in Lines)
+        foreach (var line in Lines)
         {
             float delta = (max - line.Length)*0.5f;
             if (delta <= 0) continue;
@@ -271,7 +270,7 @@ internal class NBRichBoxLayout
                 {
                     clip.X = current.X;
                     clip.Y = current.Y + current.Length - length;
-                    clip.DeltaX = run.GetStrokeMargin() * 0.5f;
+                    //clip.DeltaX = run.GetStrokeMargin() * 0.5f;
                     clip.DeltaY = run.GetStrokeMargin() * 0.5f - ascent;
                 }
                 clip.Height = maxHeight;
