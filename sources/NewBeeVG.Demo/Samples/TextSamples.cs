@@ -6,12 +6,22 @@ internal class TextSamples
     {
         font("阿里巴巴普惠体 2.0");
 
-        var style = (NBVisual v) => {
+        var style1 = (NBVisual v) => {
             v.As<NBText>()?
-                .AddStroke(SKColors.Orange, 15)
-                .AddStroke(SKColors.White, 13)
-                .AddStroke(SKColors.Red, 10).TextAlign(0)
-                .FontSize(30).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(2).Padding(10);
+                .AddStroke(SKColors.Orange, 55)
+                .AddStroke(SKColors.White, 50)
+                .AddStroke(SKColors.Red, 40)
+                .TextAlign(0)
+                .LineSpacing(10)
+                .FontSize(50)
+                .Foreground(SKColors.Black)
+                .Align(0, 0);
+        };
+
+        var style2 = (NBVisual v) => {
+            v.As<NBText>()?
+                .TextAlign(0)
+                .FontSize(80).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(2).Padding(10);
         };
 
         var vertical = (NBVisual v) =>
@@ -19,25 +29,27 @@ internal class TextSamples
             v.As<NBText>()?.Vertical();
         };
 
-        var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注求关注";
-        //var s = "ABCDEDFHIJKLMNOPQRSTUVWXYZ";
+        var s = "ABCDEDFHIvwxyz1234567890.求关注求关注求关注求关注求关注求关注";
 
-        var hcontent = () =>
+        var htxt = (int idx) =>
             VStack([
-                TextBlock(s).Styles(style).Id("Text"),
+                TextBlock(s).Styles( idx == 0 ? style1 : style2).LineSpacing(20),
             ]).Spacing(0).Background(SKColors.Yellow)
-            .Align(0, -1);
+            .Align(null, 0);
 
-        var vcontent = (bool rtl) =>
+        var vtxt = (int idx, bool rtl) =>
             HStack([
-                TextBlock(s).Styles(style, vertical).RightToLeft(rtl).Id("Text"),
+                TextBlock(s).Styles(idx == 0 ? style1 : style2, vertical).RightToLeft(rtl),
             ]).Spacing(0).Background(SKColors.Yellow)
-            .Align(0, -1);
+            .Align(0, null);
 
-        hcontent().AsClip(out var clip1, 30, name: "htext");
-        vcontent(false).AsClip(out var clip2, 30, name: "vtext");
-        vcontent(true).AsClip(out var clip3, 30, name: "vtext(rtl)");
+        htxt(0).AsClip(out var clip1, 30, name: "htext1");
+        htxt(1).AsClip(out var clip2, 30, name: "htext2");
+        vtxt(0, false).AsClip(out var clip3, 30, name: "vtext1");
+        vtxt(0, true).AsClip(out var clip4, 30, name: "vtext1(rtl)");
+        vtxt(1, false).AsClip(out var clip5, 30, name: "vtext2");
+        vtxt(1, true).AsClip(out var clip6, 30, name: "vtext2(rtl)");
 
-        run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, clip3]);
+        run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, clip3, clip4, clip5, clip6]);
     }
 }

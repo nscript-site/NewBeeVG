@@ -32,14 +32,14 @@ internal static class NBTextUtils
 
         float currentX = x;
         var metrics = font.Metrics;
+        var w = Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading);
         foreach (var rune in line.EnumerateRunes())
         {
             var runeText = rune.ToString();
             float offset = 0;
-            
+
             if (maxLineWidth != null)
             {
-                var w = Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading);
                 offset = (float)(maxLineWidth.Value - w) * 0.5f; // 居中对齐
             }
 

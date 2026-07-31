@@ -155,8 +155,6 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
             contentWidth += (float)GetLineWidth(font, line);
         }
 
-        contentWidth += (lines.Count - 1) * GetLetterSpacingWithStroke() + GetStrokeMargin();
-
         return new Size(
             contentWidth + padding.Left + padding.Right,
             contentHeight + padding.Top + padding.Bottom);
@@ -249,7 +247,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
             var lineWidth = MeasureLineLength(line, font);
 
             var x = GetLineX(innerLeft, innerWidth, lineWidth) + GetStrokeMargin() * 0.5f;
-            var y = lineTop - metrics.Ascent + GetStrokeMargin() * 0.5f;
+            var y = lineTop - metrics.Ascent;
 
             if (Strokes.IsEmpty() == false)
             {
@@ -324,7 +322,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
         context.ClipRect(bounds);
 
         bool rightToLeft = RightToLeft;
-        var xStart = rightToLeft ? innerLeft + innerWidth - GetStrokeMargin() * 0.5f : innerLeft + GetStrokeMargin() * 0.5f;
+        var xStart = rightToLeft ? innerLeft + innerWidth : innerLeft;
         int direction = rightToLeft ? -1 : 1;
         for (int i = 0; i < lines.Count; i++)
         {
@@ -357,9 +355,9 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
             }
 
             if (rightToLeft)
-                xStart -= (maxLineWidth + GetLetterSpacingWithStroke());
+                xStart -= (maxLineWidth);
             else
-                xStart += (maxLineWidth + GetLetterSpacingWithStroke());
+                xStart += (maxLineWidth);
         }
 
         context.Restore();
@@ -406,21 +404,20 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
     /// </summary>
     private double GetLineHeight(SKFont font)
     {
-        var metrics = font.Metrics;
-        var lineHeight = double.IsNaN(LineHeight)
-            ? Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading) + LineSpacing
-            : LineHeight;
+        if (double.IsNaN(LineHeight) == false) return LineHeight;
 
-        return lineHeight < 0 ? 0 : lineHeight + GetStrokeMargin();
+        var metrics = font.Metrics;
+        var lineHeight = Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading) + LineSpacing;
+        return lineHeight + GetStrokeMargin();
     }
 
     private double GetLineWidth(SKFont font, string txt)
     {
+        if (double.IsNaN(LineHeight) == false) return LineHeight;
+
         var metrics = font.Metrics;
-        var lineWidth = double.IsNaN(LineHeight)
-            ? GetMaxTextWidth(font, txt) + LineSpacing
-            : LineHeight;
-        return lineWidth < 0 ? 0 : lineWidth + GetStrokeMargin();
+        var lineWidth = GetMaxTextWidth(font, txt) + LineSpacing;
+        return lineWidth + GetStrokeMargin();
     }
 
     /// <summary>
