@@ -21,12 +21,12 @@ public interface INBTextRun
     /// <summary>
     /// 行高；如果为 NaN，则自动按字体度量计算。
     /// </summary>
-    public float LineHeight { get; set; }
+    public double LineHeight { get; set; }
 
     /// <summary>
     /// 字间距。
     /// </summary>
-    public float LetterSpacing { get; set; }
+    public double LetterSpacing { get; set; }
 }
 
 public interface IRightToLeft
@@ -41,7 +41,24 @@ public static partial class NBExtentions
         widget.RightToLeft = rightToLeft;
         return widget;
     }
+}
 
+public interface ILineSpacing
+{
+    public double LineSpacing { get; set; }
+}
+
+public static partial class NBExtentions
+{
+    public static T LineSpacing<T>(this T panel, double spacing) where T : ILineSpacing
+    {
+        panel.LineSpacing = spacing;
+        return panel;
+    }
+}
+
+public static partial class NBExtentions
+{
     public static TWidget FontSize<TWidget>(this TWidget widget, float fontSize) where TWidget : INBTextRun
     {
         widget.FontSize = fontSize;

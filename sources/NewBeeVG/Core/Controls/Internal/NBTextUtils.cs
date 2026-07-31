@@ -25,17 +25,25 @@ internal static class NBTextUtils
         }
     }
 
-    internal static void DrawHorizontalLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke, float letterSpacingWithStroke)
+    internal static void DrawHorizontalLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke, float letterSpacingWithStroke, float? maxLineWidth = null)
     {
         if (string.IsNullOrEmpty(line))
             return;
 
         float currentX = x;
-
+        var metrics = font.Metrics;
         foreach (var rune in line.EnumerateRunes())
         {
             var runeText = rune.ToString();
-            DrawRune(context, font, paint, runeText, currentX, y, isStroke);
+            float offset = 0;
+            
+            if (maxLineWidth != null)
+            {
+                var w = Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading);
+                offset = (float)(maxLineWidth.Value - w) * 0.5f; // 居中对齐
+            }
+
+            DrawRune(context, font, paint, runeText, currentX, y + offset, isStroke);
             currentX += (float)font.MeasureText(runeText) + letterSpacingWithStroke;
         }
     }

@@ -14,7 +14,7 @@ internal class NBRichTextLineInfo
 
     internal float GetLetterSpacing()
     {
-        return Clips.Count == 0 ? 0 : Clips[Clips.Count - 1].Run.LetterSpacing;
+        return Clips.Count == 0 ? 0 : (float)Clips[Clips.Count - 1].Run.LetterSpacing;
     }
 
     public SKRect GetBound()
@@ -192,8 +192,8 @@ internal class NBRichBoxLayout
 
     private NBRichBoxLineLayoutInfo BuildLines(List<NBTextRun> runs, float availableLength)
     {
-        float linespacing = Owner.LineSpacing;
-        float lineheight = Owner.LineHeight;
+        float linespacing = (float)Owner.LineSpacing;
+        float lineheight = (float)Owner.LineHeight;
 
         var lines = new List<NBRichTextLineInfo>();
         NBRichTextLineInfo current = CreateLineInfo();
@@ -221,7 +221,7 @@ internal class NBRichBoxLayout
                 }
                 else
                 {
-                    current.X = last.X - delta;
+                    // For RTL vertical, we invoke AdjustLinesWhenRTLVertical
                 }
             }
         }
@@ -229,9 +229,11 @@ internal class NBRichBoxLayout
         foreach (var run in runs)
         {
             var availableLengthFirstLine = availableLength - current.Length;
-            var currentLetterSpacing = Math.Max(current.GetLetterSpacing(), run.LetterSpacing);
-            availableLengthFirstLine += currentLetterSpacing;
+            if(current.IsEmpty() == false)
+                availableLengthFirstLine -= Math.Max(current.GetLetterSpacing(), (float)run.LetterSpacing);
+
             availableLengthFirstLine = Math.Max(0, availableLengthFirstLine);
+            availableLengthFirstLine = Math.Min(availableLengthFirstLine, availableLength);
             run.Clips.Clear();
             var list = run.BuildLines(availableLengthFirstLine, availableLength);
             foreach (var line in list)
@@ -283,6 +285,8 @@ internal class NBRichBoxLayout
         if(current.IsEmpty() == false)
             lines.Add(current);
 
+        AdjustLinesWhenRTLVertical(lines, Owner);
+
         NBRichBoxLineLayoutInfo layout = new NBRichBoxLineLayoutInfo(lines, Owner);
 
 #if DEBUG
@@ -290,5 +294,25 @@ internal class NBRichBoxLayout
 #endif
 
         return layout;
+    }
+
+    private void AdjustLinesWhenRTLVertical(List<NBRichTextLineInfo> lines, NBRichText owner)
+    {
+        if (Owner.Orientation == Orientation.Horizontal || Owner.RightToLeft == false) return;
+
+        float linespacing = (float)Owner.LineSpacing;
+        float lineheight = (float)Owner.LineHeight;
+
+        for (int i = 1; i < lines.Count; i++)
+        {
+            NBRichTextLineInfo last = lines[i - 1];
+            NBRichTextLineInfo current = lines[i];
+
+            float delta = lineheight;
+            if (float.IsNaN(delta))
+                delta = current.Height + linespacing;
+
+            current.ChangeCrossAxis(last.X - delta - current.X);
+        }
     }
 }

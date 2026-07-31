@@ -29,12 +29,12 @@ public class NBTextRun : NBVisual, INBTextRun
     /// <summary>
     /// 行高；如果为 NaN，则自动按字体度量计算。
     /// </summary>
-    public float LineHeight { get; set; } = float.NaN;
+    public double LineHeight { get; set; } = double.NaN;
 
     /// <summary>
     /// 字间距。
     /// </summary>
-    public float LetterSpacing { get; set; } = 0f;
+    public double LetterSpacing { get; set; } = 0f;
 
     internal List<NBTextRunClipInfo> Clips { get; set; } = new List<NBTextRunClipInfo>();
 
@@ -85,22 +85,23 @@ public class NBTextRun : NBVisual, INBTextRun
             var line = clip.Text;
             float x = clip.X + origin.X + clip.DeltaX;
             float y = clip.Y + origin.Y + clip.DeltaY;
+            float maxLineWidth = clip.Height;
             if (Strokes.IsEmpty() == false)
             {
                 if (StrokesFirst == true)
                 {
-                    DrawStrokes(context, clip.Orientation, font, line, x, y);
-                    DrawLine(context, clip.Orientation, font, paint, line, x, y);
+                    DrawStrokes(context, clip.Orientation, font, line, x, y, maxLineWidth);
+                    DrawLine(context, clip.Orientation, font, paint, line, x, y, false, maxLineWidth);
                 }
                 else
                 {
-                    DrawLine(context, clip.Orientation, font, paint, line, x, y);
-                    DrawStrokes(context, clip.Orientation, font, line, x, y);
+                    DrawLine(context, clip.Orientation, font, paint, line, x, y, false, maxLineWidth);
+                    DrawStrokes(context, clip.Orientation, font, line, x, y, maxLineWidth);
                 }
             }
             else
             {
-                DrawLine(context, clip.Orientation, font, paint, line, x, y);
+                DrawLine(context, clip.Orientation, font, paint, line, x, y, false, maxLineWidth);
             }
 
         }
@@ -117,7 +118,7 @@ public class NBTextRun : NBVisual, INBTextRun
 
     private float GetLetterSpacingWithStroke()
     {
-        return LetterSpacing + GetStrokeMargin();
+        return (float)LetterSpacing + GetStrokeMargin();
     }
 
     /// <summary>

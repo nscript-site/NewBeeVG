@@ -3,7 +3,7 @@ using static NewBeeVG.NBTextUtils;
 
 namespace NewBeeVG;
 
-public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRightToLeft
+public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRightToLeft,ILineSpacing
 {
     /// <summary>
     /// 文本方向：横向或纵向。
@@ -72,12 +72,14 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
     /// <summary>
     /// 行高；如果为 NaN，则自动按字体度量计算。
     /// </summary>
-    public float LineHeight { get; set; } = float.NaN;
+    public double LineHeight { get; set; } = float.NaN;
 
     /// <summary>
     /// 字间距。
     /// </summary>
-    public float LetterSpacing { get; set; } = 0f;
+    public double LetterSpacing { get; set; }
+
+    public double LineSpacing { get; set; }
 
     /// <summary>
     /// 最大行数；如果为 null 表示不限行。
@@ -91,7 +93,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
 
     private float GetLetterSpacingWithStroke()
     {
-        return LetterSpacing + GetStrokeMargin();
+        return (float)LetterSpacing + GetStrokeMargin();
     }
 
     /// <summary>
@@ -150,7 +152,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
         foreach (var line in lines)
         {
             contentHeight = (float)Math.Max(contentHeight, MeasureLineLength(line, font));
-            contentWidth += GetMaxTextWidth(font, line);
+            contentWidth += (float)GetLineWidth(font, line);
         }
 
         contentWidth += (lines.Count - 1) * GetLetterSpacingWithStroke() + GetStrokeMargin();
@@ -253,18 +255,18 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
             {
                 if (StrokesFirst == true)
                 {
-                    DrawStrokes(context, font, line, x, y);
-                    DrawLine(context, font, paint, line, x, y);
+                    DrawStrokes(context, font, line, x, y, (float)lineHeight);
+                    DrawLine(context, font, paint, line, x, y, false, (float)lineHeight);
                 }
                 else
                 {
-                    DrawLine(context, font, paint, line, x, y);
-                    DrawStrokes(context, font, line, x, y);
+                    DrawLine(context, font, paint, line, x, y, false, (float)lineHeight);
+                    DrawStrokes(context, font, line, x, y, (float)lineHeight);
                 }
             }
             else
             {
-                DrawLine(context, font, paint, line, x, y);
+                DrawLine(context, font, paint, line, x, y, false, (float)lineHeight);
             }
         }
 
@@ -326,10 +328,9 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
         int direction = rightToLeft ? -1 : 1;
         for (int i = 0; i < lines.Count; i++)
         {
-
             var line = lines[i];
 
-            var maxLineWidth = GetMaxTextWidth(font, line);
+            var maxLineWidth = (float)GetLineWidth(font, line);
             var lineHeight = MeasureLineLength(line, font);
 
             var lineTop = GetLineY(innerTop, innerHeight, lineHeight);
@@ -407,19 +408,18 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
     {
         var metrics = font.Metrics;
         var lineHeight = double.IsNaN(LineHeight)
-            ? Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading)
+            ? Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading) + LineSpacing
             : LineHeight;
 
         return lineHeight < 0 ? 0 : lineHeight + GetStrokeMargin();
     }
 
-    private double GetLineWidth(SKFont font)
+    private double GetLineWidth(SKFont font, string txt)
     {
         var metrics = font.Metrics;
         var lineWidth = double.IsNaN(LineHeight)
-            ? Math.Ceiling(metrics.MaxCharacterWidth)
+            ? GetMaxTextWidth(font, txt) + LineSpacing
             : LineHeight;
-
         return lineWidth < 0 ? 0 : lineWidth + GetStrokeMargin();
     }
 
@@ -615,7 +615,7 @@ public class NBText : NBLayoutable, IPaddingable, IOrientation, INBTextRun, IRig
     private void DrawLine(SKCanvas context, SKFont font, SKPaint paint, string line, float x, float y, bool isStroke = false, float? maxLineWidth = null)
     {
         if (Orientation == Orientation.Horizontal)
-            DrawHorizontalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke());
+            DrawHorizontalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke(), maxLineWidth);
         else
             DrawVerticalLine(context, font, paint, line, x, y, isStroke, GetLetterSpacingWithStroke(), maxLineWidth);
     }

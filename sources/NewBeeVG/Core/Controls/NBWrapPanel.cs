@@ -7,7 +7,7 @@ using SkiaSharp;
 
 namespace NewBeeVG;
 
-public class NBWrapPanel : NBPanel, IOrientation
+public class NBWrapPanel : NBPanel, IOrientation, ILineSpacing
 {
     public double ItemSpacing { get; set; } = 20;
 
@@ -204,15 +204,15 @@ public class NBWrapPanel : NBPanel, IOrientation
 
 public static partial class NBExtentions
 {
-    public static T ItemSpacing<T>(this T panel, double spacing) where T : NBWrapPanel
+    public static T ItemSpacing<T>(this T panel, float spacing) where T : NBWrapPanel
     {
         panel.ItemSpacing = spacing;
         return panel;
     }
 
-    public static T LineSpacing<T>(this T panel, double spacing) where T : NBWrapPanel
+    public static T ItemSpacing<T>(this T panel, double spacing) where T : NBWrapPanel
     {
-        panel.LineSpacing = spacing;
+        panel.ItemSpacing = (float)spacing;
         return panel;
     }
 

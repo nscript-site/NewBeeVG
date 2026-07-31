@@ -5,7 +5,7 @@ namespace NewBeeVG;
 /// <summary>
 /// 富文本控件，包含多个 NBTextRun，支持独立样式。
 /// </summary>
-public class NBRichText : NBLayoutable, IPaddingable, IOrientation, IRightToLeft
+public class NBRichText : NBLayoutable, IPaddingable, IOrientation, IRightToLeft, ILineSpacing
 {
     public Orientation Orientation { get; set; } = Orientation.Horizontal;
     public bool RightToLeft { get; set; } = false;
@@ -20,15 +20,15 @@ public class NBRichText : NBLayoutable, IPaddingable, IOrientation, IRightToLeft
     public NBTextAlign CrossAxisAlign { get; set; } = NBTextAlign.LeftOrTop;
 
     /// <summary>行高；NaN 时自动取各 Run 的最大值。</summary>
-    public float LineHeight { get; set; } = float.NaN;
+    public double LineHeight { get; set; } = double.NaN;
 
     /// <summary>
     /// 如果设置了行高，则该值无效；如果未设置行高，则该值为额外的行间距。
     /// </summary>
-    public float LineSpacing { get; set; } = 0f;
+    public double LineSpacing { get; set; } = 0;
 
     /// <summary>字间距（全局）。</summary>
-    public float LetterSpacing { get; set; } = 0f;
+    public double LetterSpacing { get; set; } = 0;
 
     /// <summary>文本运行列表。</summary>
     protected internal List<NBTextRun> Runs { get; } = new List<NBTextRun>();

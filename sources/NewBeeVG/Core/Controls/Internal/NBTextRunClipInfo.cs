@@ -35,10 +35,20 @@ internal class NBTextRunClipInfo
         }
         else
         {
-            if (align == NBTextAlign.Center)
-                X += (maxHeight - Height) / 2;
-            else if (align == NBTextAlign.RightOrBottom)
-                X += maxHeight - Height;
+            if(RTL == false)
+            {
+                if (align == NBTextAlign.Center)
+                    X += (maxHeight - Height) / 2;
+                else if (align == NBTextAlign.RightOrBottom)
+                    X += maxHeight - Height;
+            }
+            else
+            {
+                if (align == NBTextAlign.Center)
+                    X -= (maxHeight - Height) / 2;
+                else if (align == NBTextAlign.RightOrBottom)
+                    X -= maxHeight - Height;
+            }
         }
     }
 }
