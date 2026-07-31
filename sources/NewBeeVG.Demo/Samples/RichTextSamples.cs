@@ -37,7 +37,7 @@
             };
 
 
-            var s1 = "abcdefgdffss求关注求关注求关注求关注求关注";
+            var s1 = "abcdefgdffss求关注求关注求";
             //var s1 = "abcdefgdffss求关注求关注求关注求关注求关注";
             var s2 = "求关注求关注";
             //var s1 = "ab求";

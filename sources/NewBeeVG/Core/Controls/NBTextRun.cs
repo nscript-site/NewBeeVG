@@ -293,7 +293,33 @@ public class NBTextRun : NBVisual, INBTextRun
         if (MeasureLineLength(value, font) <= maxLength)
             return CountRunes(value);
 
-        return 0;
+        int lo = 1;
+        int hi = CountRunes(value);
+        int best = 1;
+
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            var prefix = SubstringByRunes(value, mid);
+            float width = (float)MeasureLineLength(prefix, font);
+
+            if (width <= maxLength)
+            {
+                best = mid;
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+
+        var lastPrefix = SubstringByRunes(value, best);
+        var lastWidth = (float)MeasureLineLength(lastPrefix, font);
+        if(lastWidth  <= maxLength) 
+            return best;
+        else
+            return best - 1;
     }
 
     /// <summary>
