@@ -4,7 +4,7 @@
 
 //WidgetsSample.Run();
 
-//ShapeSamples.Run();
+ShapeSamples.Run();
 
 //LottieSample.Run();
 
@@ -16,7 +16,7 @@
 
 //TextSamples.Run();
 
-RichTextSamples.Run();
+//RichTextSamples.Run();
 
 //TextAnimate1.Run();
 

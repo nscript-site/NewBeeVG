@@ -10,14 +10,15 @@ internal class ShapeSamples
            builder: (ctx, clip) =>
            {
                var easing = Easing.SineInOut;
-               double v = easing(ctx.progress);
+               float v = (float)easing(ctx.progress);
 
                return
-                HGrid("*,*,*",
+                HGrid("*,*,*,*",
                 [
                     Rect(v*100,200,SKColors.Green,20).Align(0,0),
                     Rect(v*100,0,SKColors.Green).Align(0,null),
                     Ellipse(v*100,v*200,SKColors.Green).Align(0,0),
+                    VecPath(p=>p.AddRect(new SKRect(0,0,v*100,v*200)),SKColors.Green, new NBBorder(2,SKColors.Red)).Align(0,0)
                 ]);
            }
         );

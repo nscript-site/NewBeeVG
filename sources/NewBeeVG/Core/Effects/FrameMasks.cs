@@ -34,6 +34,53 @@ public static class FrameMasks
     }
 
     /// <summary>
+    /// 单向渐进裁切遮罩
+    /// </summary>
+    /// <param name="horizontal"></param>
+    /// <param name="prog"></param>
+    /// <param name="blend"></param>
+    /// <param name="alpha"></param>
+    /// <returns></returns>
+    public static NBFrameMask RectExpandMask(
+        bool horizontal = true,
+        Func<NBDrawContext,float>? prog = null,
+        SKBlendMode blend = SKBlendMode.SrcIn,
+        byte alpha = 255)
+    {
+        return new NBBitmapFrameMask((ctx, rect) =>
+        {
+            int w = (int)rect.Width;
+            int h = (int)rect.Height;
+
+            if (w < 1 || h < 1) return null;
+            
+            var progress = prog?.Invoke(ctx) ?? ctx.progress;
+            var width = horizontal ? (int)(w * progress) : w;
+            var height = horizontal ? h : (int)(h * progress);
+
+            var info = new SKImageInfo(w, h);
+            using var surface = SKSurface.Create(info);
+            using var canvas = surface.Canvas;
+            canvas.Clear(SKColors.Transparent);
+
+            using var paint = new SKPaint
+            {
+                Color = new SKColor(255,255,255, alpha)
+            };
+
+            canvas.DrawRect(0, 0, width, height, paint);
+
+            // 4. 从画布中提取 SKBitmap
+            using var image = surface.Snapshot();
+            var bitmap = SKBitmap.FromImage(image);  // 复制一份独立的位图
+            return bitmap;
+        })
+        {
+            FrameMaskBlendMode = blend
+        };
+    }
+
+    /// <summary>
     /// 生成 Perlin 噪声帧遮罩。
     /// </summary>
     /// <param name="useTurbulence">true 使用湍流噪声，false 使用分形噪声（更柔和）</param>

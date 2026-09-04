@@ -43,8 +43,6 @@ public class NBVisual
 
     public NBFrameMask? FrameMask { get; set; }
 
-    public SKBlendMode FrameMaskBlendMode { get; set; } = SKBlendMode.SrcOut;
-
     public NBBitmapFilterCollection BitmapFilters { get; private set; } = new NBBitmapFilterCollection();
 
     public string? BoundedId { get; set; }
@@ -298,7 +296,7 @@ public class NBVisual
 
         using var p = new SKPaint
         {
-            BlendMode = FrameMaskBlendMode,
+            BlendMode = mask.FrameMaskBlendMode,
             IsAntialias = true // 抗锯齿，边缘更平滑
         };
 
@@ -604,7 +602,7 @@ public static partial class NBExtentions
         return widget;
     }
 
-    public static T Styles<T>(this T t, params Action<NBVisual?>[]? styles) where T : NBVisual
+    public static T Styles<T>(this T t, params Action<NBVisual>?[] styles) where T : NBVisual
     {
         if (styles != null)
         {
@@ -619,12 +617,6 @@ public static partial class NBExtentions
     public static T FrameMask<T>(this T widget, NBFrameMask? mask) where T : NBVisual
     {
         widget.FrameMask = mask;
-        return widget;
-    }
-
-    public static T FrameMaskBlend<T>(this T widget, SKBlendMode blendMode) where T : NBVisual
-    {
-        widget.FrameMaskBlendMode = blendMode;
         return widget;
     }
 

@@ -9,9 +9,12 @@ internal class TextAnimate1
         var style = (NBVisual v) => { 
             v.As<NBText>()?
                 .AddStroke(SKColors.Orange, 55).AddStroke(SKColors.White, 50).AddStroke(SKColors.Red, 40)
-                .FontSize(80).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10).Padding(100)
-                .OnFrame(e => { e.SenderAs<NBText>()?.LetterSpacing(-80 + 100 * e.pf).InvalidateMeasure(); })
-                ;
+                .FontSize(80).Foreground(SKColors.Black).Align(0, 0).LetterSpacing(10).Padding(100);
+        };
+
+        var animate1 = (NBVisual v) =>
+        {
+            v.As<NBText>()?.OnFrame(e => { e.SenderAs<NBText>()?.LetterSpacing(-80 + 100 * e.pf).InvalidateMeasure(); });
         };
 
         var vertical = (NBVisual v) =>
@@ -21,12 +24,11 @@ internal class TextAnimate1
 
         var content = () => 
             VStack([
-                TextBlock("求关注").Styles(style, vertical).Id("Text").FrameMask(FrameMasks.Scanlines()),
+                TextBlock("求关注").Styles(style, animate1, vertical).Id("Text").FrameMask(FrameMasks.Scanlines()),
             ]).Spacing(0).Background(SKColors.Yellow)
             .Align(0, 0);
 
         content().AsClip(out var clip1, 30, name: "qiuguanzhu 1");
-
 
         var style2 = (NBVisual v) => {
             v.As<NBText>()?
@@ -84,9 +86,27 @@ internal class TextAnimate1
                 })
             ]).AsClip(out var clip4, 30, name: "qiuguanzhu 4");
 
+        var style3 = (NBVisual v) => {
+            v.As<NBText>()?
+                .FontSize(80).Foreground(SKColors.Black).Align(0, 0)
+                .LetterSpacing(10 + 24).Padding(100);
+        };
+
+        var style4 = (NBVisual v) => {
+            v.As<NBText>()?
+                .FontSize(80).AddStroke(SKColors.Orange, 12).AddStroke(SKColors.Red, 10)
+                .Foreground(SKColors.Black).Align(0, 0)
+                .LetterSpacing(10).Padding(100);
+        };
+
+        Panel([
+            TextBlock("求关注").Styles(style3),
+            TextBlock("求关注").Styles(style4).FrameMask(FrameMasks.RectExpandMask())
+            ]).AsClip(out var clip5, 30, name: "qiuguanzhu 5");
+
         TextBlock("Demo").Foreground(SKColors.Orange).Align(1, -1).Margin(20)
             .AsClip(out var logo, -1, 0, "logo");
 
-        run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, clip3, clip4, logo]);
+        run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, clip3, clip4, clip5, logo]);
     }
 }

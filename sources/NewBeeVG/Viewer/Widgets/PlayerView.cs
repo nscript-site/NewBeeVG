@@ -62,10 +62,12 @@ public class PlayerView : BaseView
 
     private void PlaySimple()
     {
+        if (Work == null) return;
+
         // Run the playback loop on a background thread.
         Task.Run(() =>
         {
-            const int targetMs = 40; // target frame interval in ms (40ms => 25 FPS)
+            int targetMs = Math.Max(10,(int)(1000.0/Work.Fps));
             var sw = Stopwatch.StartNew();
             Playing = true;
 
@@ -73,7 +75,7 @@ public class PlayerView : BaseView
             {
                 while (Playing)
                 {
-                    if (Playable == null || Work == null) break;
+                    if (Playable == null) break;
 
                     var frameStart = sw.ElapsedMilliseconds;
 

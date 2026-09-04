@@ -5,6 +5,8 @@ namespace NewBeeVG;
 public abstract class NBFrameMask
 {
     public abstract SKBitmap? BuildMaskBitmap(NBDrawContext ctx, SKRect rect);
+
+    public SKBlendMode FrameMaskBlendMode { get; set; } = SKBlendMode.SrcOut;
 }
 
 public class NBBitmapFrameMask : NBFrameMask

@@ -9,13 +9,14 @@ namespace NewBeeVG;
 
 public static class Methods
 {
-    public static NBStage stage(int width = 1080, int height = 1920, SKColor? bg = null)
+    public static NBStage stage(int width = 1080, int height = 1920, SKColor? bg = null, double fps = 25.0)
     {
         return new NBStage
         {
             Width = width,
             Height = height,
             Background = bg,
+            FrameRate = Math.Max(0.1, fps)
         };
     }
 
@@ -170,6 +171,11 @@ public static class Methods
     public static NBEllipse Ellipse(double width = 100, double height = 100, SKColor? fill = null)
     {
         return new NBEllipse(width, height) { Fill = fill };
+    }
+
+    public static NBPath VecPath(Action<SKPath> onCreate, SKColor? fill = null, NBBorder? border = null)
+    {
+        return new NBPath(onCreate, fill, border);
     }
 
     #endregion

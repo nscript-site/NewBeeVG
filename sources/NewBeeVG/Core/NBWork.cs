@@ -12,6 +12,8 @@ public class NBWork : IPlayable
 
     private int _frames = -1;
 
+    public double Fps => Stage.FrameRate;
+
     public int Measure()
     {
         if(_frames >= 0) return _frames;
