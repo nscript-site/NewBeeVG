@@ -178,6 +178,44 @@ public static class Methods
         return new NBPath(onCreate, fill, border);
     }
 
+    public static NBPath VecPath(SKPath path, SKColor? fill = null, NBBorder? border = null)
+    {
+        return new NBPath(path, fill, border);
+    }
+
+    public static NBPath VecPath(SKPath p0, SKPath p1, float t, SKColor? fill = null, NBBorder? border = null)
+    {
+        return new NBPath(p0, p1, t, fill, border);
+    }
+
+    public static SKPath RectPath(float x, float y, float width, float height)
+    {
+        var p = new SKPath();
+        p.AddRect(new SKRect(x, y, x + width, x + height));
+        return p;
+    }
+
+    public static SKPath CirclePath(float x, float y, float radius)
+    {
+        var p = new SKPath();
+        p.AddCircle(x, y, radius);
+        return p;
+    }
+
+    /// <summary>
+    /// 创建一个插值矢量路径，支持动画
+    /// </summary>
+    /// <param name="onCreateStart"></param>
+    /// <param name="onCreateEnd"></param>
+    /// <param name="t"></param>
+    /// <param name="fill"></param>
+    /// <param name="border"></param>
+    /// <returns></returns>
+    public static NBPath VecPath(Action<SKPath> onCreateStart, Action<SKPath> onCreateEnd, float t, SKColor? fill = null, NBBorder? border = null)
+    {
+        return new NBPath(onCreateStart, onCreateEnd, t, fill, border);
+    }
+
     #endregion
 
     internal static void start(string[]? args = null)

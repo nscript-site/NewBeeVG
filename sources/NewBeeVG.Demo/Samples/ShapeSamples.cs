@@ -13,12 +13,13 @@ internal class ShapeSamples
                float v = (float)easing(ctx.progress);
 
                return
-                HGrid("*,*,*,*",
+                HGrid("*,*,*,*,*",
                 [
                     Rect(v*100,200,SKColors.Green,20).Align(0,0),
                     Rect(v*100,0,SKColors.Green).Align(0,null),
                     Ellipse(v*100,v*200,SKColors.Green).Align(0,0),
-                    VecPath(p=>p.AddRect(new SKRect(0,0,v*100,v*200)),SKColors.Green, new NBBorder(2,SKColors.Red)).Align(0,0)
+                    VecPath(RectPath(0,0,v*200,v*200),SKColors.Green, new NBBorder(2,SKColors.Red)).Align(0,0),
+                    VecPath(RectPath(0,0,200,200),CirclePath(100,100,100), v, SKColors.Green).Align(0,0)
                 ]);
            }
         );

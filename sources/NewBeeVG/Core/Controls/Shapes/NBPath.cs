@@ -1,28 +1,67 @@
-﻿using SkiaSharp;
+﻿using Avalonia.Controls.Shapes;
+using ExCSS;
+using SkiaSharp;
+using SkiaSharp.Extended;
 
 namespace NewBeeVG;
 
 public class NBPath : NBVisual
 {
-    private SKPath Path { get; init; }
+    private SKPath Path { get; set; }
 
     public int? HAlign { get; set; } = -1;
     public int? VAlign { get; set; } = -1;
 
-    public SKRect PathBounds { get; init; }
+    public SKColor? Fill { get; set; }
+    public NBBorder? Border { get; set; }
+
+    public SKRect PathBounds { get; private set; }
 
     public NBPath(Action<SKPath> onCreate, SKColor? fill = null, NBBorder? border = null)
     {
         var path = new SKPath();
         onCreate(path);
-        PathBounds = path.ComputeTightBounds();
+        CreateFrom(path, fill, border);
+    }
+
+    public NBPath(SKPath path, SKColor? fill = null, NBBorder? border = null)
+    {
+        CreateFrom(path, fill, border);
+    }
+
+    public NBPath(SKPath p0, SKPath p1, float t, SKColor? fill = null, NBBorder? border = null)
+    {
+        CreateFrom(p0, p1, t, fill, border);
+    }
+
+    public NBPath(Action<SKPath> onCreateStart, Action<SKPath> onCreateEnd, float t, SKColor? fill = null, NBBorder? border = null)
+    {
+        var p0 = new SKPath();
+        onCreateStart(p0);
+
+        var p1 = new SKPath();
+        onCreateEnd(p1);
+
+        var morph = new SKPathInterpolation(p0, p1);
+        var p = morph.Interpolate(t);
+
+        CreateFrom(p, fill, border);
+    }
+
+    private void CreateFrom(SKPath path, SKColor? fill = null, NBBorder? border = null)
+    {
         Path = path;
+        PathBounds = Path.ComputeTightBounds();
         Fill = fill;
         Border = border;
     }
 
-    public SKColor? Fill { get; set; }
-    public NBBorder? Border { get; set; }
+    private void CreateFrom(SKPath p0, SKPath p1, float t, SKColor? fill = null, NBBorder? border = null)
+    {
+        var morph = new SKPathInterpolation(p0, p1);
+        var p = morph.Interpolate(t);
+        CreateFrom(p, fill, border);
+    }
 
     protected internal override void TryMeasure(Size availableSize)
     {
