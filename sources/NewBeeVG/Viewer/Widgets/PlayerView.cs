@@ -21,13 +21,15 @@ public class PlayerView : BaseView
     {
         FrameImage = new NBSkiaBitmapView();
         VGrid("30,*", [
-            HGrid("*,Auto", [
+            HGrid("*,Auto,Auto", [
                 HStack([
                     TextBlock(()=>Playable?.FullName??String.Empty),
                     TextBlock(()=>$"{Math.Min(Frames,CurrentFrame + 1)}/{Frames}"),
                 ]),
-                IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:20).Align(1,1)
-                    .OnClick(_ => { Export(); }),
+                IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:16).Align(1,1)
+                    .OnClick(_ => { Export(true); }),
+                IconButton( AnimationPlayOutlineIcon.Instance,"导出动画", scale: 1, iconSize:16).Align(1,1)
+                    .OnClick(_ => { Export(false); }),
             ]),
             Border(FrameImage).Background(Brushes.Gray)
                 .BorderBrush(Brushes.Gray).BorderThickness(1)
@@ -123,21 +125,26 @@ public class PlayerView : BaseView
         });
     }
 
-    private async void Export()
+    private async void Export(bool saveAsMp4 = true)
     {
+        if (Playable == null) return;
+
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null) return;
 
+        var title = saveAsMp4 ? "保存 MP4" : "保存 GIF";
+        var fileType = saveAsMp4 ? "mp4" : "gif";
+
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "保存 MP4",
-            SuggestedFileName = $"out_{Playable!.FullName}.mp4",
-            DefaultExtension = "mp4",
+            Title = title,
+            SuggestedFileName = $"out_{Playable!.FullName}.{fileType}",
+            DefaultExtension = fileType,
             FileTypeChoices =
             [
-                new FilePickerFileType("MP4")
+                new FilePickerFileType(fileType.ToUpper())
                 {
-                    Patterns = ["*.mp4"]
+                    Patterns = [$"*.{fileType}"]
                 }
             ]
         });
@@ -151,7 +158,7 @@ public class PlayerView : BaseView
         {
             if (!string.IsNullOrEmpty(filePath))
             {
-                this.ShowToast($"视频已保存到: {filePath}");
+                this.ShowToast($"文件已保存到: {filePath}");
             }
         };
 

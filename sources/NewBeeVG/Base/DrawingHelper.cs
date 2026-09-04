@@ -80,6 +80,30 @@ internal class DrawingHelper
         return skBmp;
     }
 
+    public static System.Drawing.Bitmap ToGdiBitmap(SKBitmap skBmp)
+    {
+        // SKBitmap必须是BGRA8888
+        if (skBmp.ColorType != SKColorType.Bgra8888)
+            throw new NotSupportedException("仅支持 Bgra8888");
+
+        var width = (int)skBmp.Width;
+        var height = (int)skBmp.Height;
+        var gdiBmp = new System.Drawing.Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+        var bmpData = gdiBmp.LockBits(new System.Drawing.Rectangle(0, 0, width, height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        try
+        {
+            // 直接内存拷贝
+            var srcSpan = skBmp.GetPixelSpan();
+            System.Runtime.InteropServices.Marshal.Copy(srcSpan.ToArray(), 0, bmpData.Scan0, srcSpan.Length);
+        }
+        finally
+        {
+            gdiBmp.UnlockBits(bmpData);
+        }
+        return gdiBmp;
+    }
+
     public static void FillStageBackgroundIfSet(SKBitmap? bmp, NBStage stage, bool drawStageBackground)
     {
         if (bmp == null || drawStageBackground == false || stage.Background == null) return;

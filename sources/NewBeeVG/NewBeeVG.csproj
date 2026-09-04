@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AnimatedGif" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
