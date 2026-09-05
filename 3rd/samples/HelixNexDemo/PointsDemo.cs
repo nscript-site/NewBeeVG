@@ -17,8 +17,9 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Numerics;
 using static HelixToolkit.Nex.Rendering.PostEffects.BorderHighlightPostEffect;
+using TextureHandle = HelixToolkit.Nex.Handle<HelixToolkit.Nex.Graphics.Texture>;
 
-namespace NewBeeVG.ThreeD;
+namespace HelixNexDemo;
 
 /// <summary>
 /// Comprehensive point cloud rendering demo with:
@@ -27,9 +28,9 @@ namespace NewBeeVG.ThreeD;
 /// - ImGui controls for point size, colour, min screen size, add/remove clouds
 /// - Orbit camera with keyboard (WASD) fallback
 /// </summary>
-public sealed class NB3DPointsDemo : IDisposable
+public sealed class PointsDemo : IDisposable
 {
-    private static readonly ILogger _logger = LogManager.Create<NB3DPointsDemo>();
+    private static readonly ILogger _logger = LogManager.Create<PointsDemo>();
     private const string ViewportTextureName = "ViewportTexture";
 
     private readonly IContext _context;
@@ -62,7 +63,7 @@ public sealed class NB3DPointsDemo : IDisposable
     // Custom point material types registered by this demo
     private string[] _materialTypes = [];
 
-    public NB3DPointsDemo()
+    public PointsDemo()
     {
         var vulkanConfig = new VulkanContextConfig
         {
@@ -100,7 +101,7 @@ public sealed class NB3DPointsDemo : IDisposable
         _engine = EngineBuilder
             .Create(_context)
             .WithDefaultNodes()
-            .WithFPS()
+            //.WithFPS()
             .RenderToCustomTarget(GraphicsSettings.IntermediateTargetFormat)
             .Build();
         _renderContext = _engine.CreateRenderContext();
@@ -117,8 +118,8 @@ public sealed class NB3DPointsDemo : IDisposable
                     debugName: ViewportTextureName
                 );
                 return _renderTexture;
-            }, 
-            dependsOnScreenSize:false
+            },
+            dependsOnScreenSize: false
         );
 
         _worldDataProvider = _engine.CreateWorldDataProvider();
@@ -128,11 +129,60 @@ public sealed class NB3DPointsDemo : IDisposable
         BuildScene();
     }
 
-    private void DownloadRenderedImage()
+    private unsafe void DownloadRenderedImage()
     {
-        if (_renderTexture == null) return;
+        if (_renderTexture == null)
+            return;
+        var desc = new TextureRangeDesc() { Dimensions = new Dimensions((uint)ViewportSize.Width, (uint)ViewportSize.Height) };
+        var buff = new byte[ViewportSize.Width * ViewportSize.Height * 4];
+        TextureHandle h = _renderTexture.Handle;
+        fixed (byte* p = buff)
+        {
+            _context.Download(h, desc, (nint)p, (uint)buff.Length);
+        }
+        SaveBgraToBmp(buff, ViewportSize.Width, ViewportSize.Height, "output.png");
+    }
 
+    /// <summary>
+    /// 将BGRA字节数组(B G R A)保存为32bit BMP，保留Alpha
+    /// </summary>
+    /// <param name="bgra">输入：B G R A 顺序，每像素4字节</param>
+    /// <param name="width">图像宽</param>
+    /// <param name="height">图像高</param>
+    /// <param name="filePath">输出路径</param>
+    public static void SaveBgraToBmp(byte[] bgra, int width, int height, string filePath)
+    {
+        int pixelDepth = 32;
+        int stride = width * 4; // 32bit：每行字节数，天然4对齐
+        int pixelDataSize = stride * height;
+        int totalFileSize = 14 + 40 + pixelDataSize;
 
+        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+        using var bw = new BinaryWriter(fs);
+
+        // ========== BITMAPFILEHEADER 14字节 ==========
+        bw.Write((ushort)0x4D42);       // 'BM' 标记
+        bw.Write((uint)totalFileSize);  // 整个文件大小
+        bw.Write((ushort)0);           // 保留1
+        bw.Write((ushort)0);           // 保留2
+        bw.Write((uint)14 + 40);       // 像素数据偏移：文件头+信息头
+
+        // ========== BITMAPINFOHEADER 40字节 ==========
+        bw.Write((uint)40);            // 本结构体大小
+        bw.Write((int)width);          // 宽
+        bw.Write((int)-height);        // ⭐负数height：行顺序=从上到下，不用翻转像素行！
+        bw.Write((ushort)1);           // 色彩平面数
+        bw.Write((ushort)pixelDepth);   // 32 bits per pixel
+        bw.Write((uint)0);             // 压缩方式：0=无压缩 BI_RGB
+        bw.Write((uint)pixelDataSize); // 像素数据大小
+        bw.Write((int)0);              // 水平分辨率像素/m
+        bw.Write((int)0);              // 垂直分辨率像素/m
+        bw.Write((uint)0);             // 调色板颜色数
+        bw.Write((uint)0);             // 重要颜色数
+
+        // ========== 写入像素数据 ==========
+        // 技巧：height传负数，BMP解释为“自上而下存储”，就不用手动颠倒行顺序
+        bw.Write(bgra);
     }
 
     // ------------------------------------------------------------------
@@ -273,52 +323,52 @@ public sealed class NB3DPointsDemo : IDisposable
         var world = _worldDataProvider!.World;
         _root = new Node(world) { Name = "Root" };
 
-        // Add a directional light so the viewport isn't pure black if someone
+        //Add a directional light so the viewport isn't pure black if someone
         // toggles on a mesh later.
-        //var lightNode = new Node(world) { Name = "DirectionalLight" };
-        //lightNode.Entity.Set(
-        //    new DirectionalLightInfo
-        //    {
-        //        Light = new DirectionalLight
-        //        {
-        //            Direction = Vector3.Normalize(new Vector3(0.5f, -1f, 0.5f)),
-        //            Color = new Vector3(1f, 0.98f, 0.95f),
-        //            Intensity = 0.8f,
-        //        },
-        //    }
-        //);
-        //_root.AddChild(lightNode);
+        var lightNode = new Node(world) { Name = "DirectionalLight" };
+        lightNode.Entity.Set(
+            new DirectionalLightInfo
+            {
+                Light = new DirectionalLight
+                {
+                    Direction = Vector3.Normalize(new Vector3(0.5f, -1f, 0.5f)),
+                    Color = new Vector3(1f, 0.98f, 0.95f),
+                    Intensity = 0.8f,
+                },
+            }
+        );
+        _root.AddChild(lightNode);
 
-        //// 1. Sphere point cloud — default circle SDF
-        //AddPointCloud(
-        //    "Sphere",
-        //    GenerateSphere(5_000, 5f, Vector3.Zero),
-        //    new Color4(0.2f, 0.7f, 1.0f, 1.0f)
-        //);
+        // 1. Sphere point cloud — default circle SDF
+        AddPointCloud(
+            "Sphere",
+            GenerateSphere(5_000, 5f, Vector3.Zero),
+            new Color4(0.2f, 0.7f, 1.0f, 1.0f)
+        );
 
-        //// 2. Helix point cloud — Diamond shader
-        //AddPointCloud(
-        //    "Helix",
-        //    GenerateHelix(3_000, 4f, 10f, 3, new Vector3(15, 0, 0)),
-        //    new Color4(1.0f, 0.4f, 0.2f, 1.0f),
-        //    "Diamond"
-        //);
+        // 2. Helix point cloud — Diamond shader
+        AddPointCloud(
+            "Helix",
+            GenerateHelix(3_000, 4f, 10f, 3, new Vector3(15, 0, 0)),
+            new Color4(1.0f, 0.4f, 0.2f, 1.0f),
+            "Diamond"
+        );
 
-        //// 3. Random cluster — Ring shader
-        //AddPointCloud(
-        //    "Random Cluster",
-        //    GenerateRandomCluster(8_000, 6f, new Vector3(-15, 3, 0)),
-        //    new Color4(0.3f, 1.0f, 0.3f, 1.0f),
-        //    "Ring"
-        //);
+        // 3. Random cluster — Ring shader
+        AddPointCloud(
+            "Random Cluster",
+            GenerateRandomCluster(8_000, 6f, new Vector3(-15, 3, 0)),
+            new Color4(0.3f, 1.0f, 0.3f, 1.0f),
+            "Ring"
+        );
 
-        //// 4. Animated wave — Pulsing shader
-        //AddPointCloud(
-        //    "Animated Wave",
-        //    GenerateWave(4_000, 10f, 10f, 0f, new Vector3(0, -5, 15)),
-        //    new Color4(1.0f, 0.9f, 0.2f, 1.0f),
-        //    "Pulsing"
-        //);
+        // 4. Animated wave — Pulsing shader
+        AddPointCloud(
+            "Animated Wave",
+            GenerateWave(4_000, 10f, 10f, 0f, new Vector3(0, -5, 15)),
+            new Color4(1.0f, 0.9f, 0.2f, 1.0f),
+            "Pulsing"
+        );
     }
 
     private void AddPointCloud(
@@ -593,16 +643,16 @@ public sealed class NB3DPointsDemo : IDisposable
 
     private void ApplyGlobalPointSize()
     {
-        //foreach (var entry in _pointClouds)
-        //{
-        //    entry.Node.Entity.Update<PointDrawInfo>(
-        //        (ref PointDrawInfo x) =>
-        //        {
-        //            x.FixedSize = _fixedSize;
-        //            x.PointSize = _globalPointSize;
-        //        }
-        //    );
-        //}
+        foreach (var entry in _pointClouds)
+        {
+            entry.Node.Entity.Update<PointDrawInfo>(
+                (ref PointDrawInfo x) =>
+                {
+                    x.FixedSize = _fixedSize;
+                    x.PointSize = _globalPointSize;
+                }
+            );
+        }
     }
 
     private void ApplyTint(PointCloudEntry entry)
@@ -655,9 +705,10 @@ public sealed class NB3DPointsDemo : IDisposable
 
     public static void Run()
     {
-        var demo = new NB3DPointsDemo();
+        var demo = new PointsDemo();
         demo.Initialize(300, 400);
         demo.Render();
+        demo.DownloadRenderedImage();
     }
 }
 
@@ -696,3 +747,4 @@ internal sealed class PointCloudEntry
         MaterialNameIndex = materialNameIndex;
     }
 }
+
