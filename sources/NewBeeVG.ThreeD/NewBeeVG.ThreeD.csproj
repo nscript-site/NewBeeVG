@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HelixToolkit.Nex" />
+    <PackageReference Include="HelixToolkit.Nex.Engine" />
+    <PackageReference Include="HelixToolkit.Nex.Geometries.Builders" />
+    <PackageReference Include="HelixToolkit.Nex.Graphics.Vulkan" />
+    <PackageReference Include="HelixToolkit.Nex.Interop.DirectX" />
+  </ItemGroup>
+
+</Project>

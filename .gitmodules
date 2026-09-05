@@ -1,0 +1,3 @@
+[submodule "3rd/helix-toolkit-nex"]
+	path = 3rd/helix-toolkit-nex
+	url = https://github.com/helix-toolkit/helix-toolkit-nex.git

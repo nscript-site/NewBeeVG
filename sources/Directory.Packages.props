@@ -21,6 +21,11 @@
     <PackageVersion Include="FFmpeg.AutoGen.Abstractions" Version="8.1.0" />
     <PackageVersion Include="FFmpeg.AutoGen.Bindings.DynamicallyLoaded" Version="8.1.0" />
     <PackageVersion Include="FFmpeg.LGPL" Version="20260526.1.0" />
+    <PackageVersion Include="HelixToolkit.Nex" Version="1.2.0" />
+    <PackageVersion Include="HelixToolkit.Nex.Engine" Version="1.2.0" />
+    <PackageVersion Include="HelixToolkit.Nex.Geometries.Builders" Version="1.2.0" />
+    <PackageVersion Include="HelixToolkit.Nex.Graphics.Vulkan" Version="1.2.0" />
+    <PackageVersion Include="HelixToolkit.Nex.Interop.DirectX" Version="1.2.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.1" />
     <PackageVersion Include="NAudio" Version="2.3.0" />
     <PackageVersion Include="NewBeeMedia" Version="1.0.0.1" />

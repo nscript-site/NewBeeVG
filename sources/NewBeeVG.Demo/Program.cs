@@ -4,7 +4,7 @@
 
 //WidgetsSample.Run();
 
-ShapeSamples.Run();
+//ShapeSamples.Run();
 
 //LottieSample.Run();
 
@@ -33,3 +33,5 @@ ShapeSamples.Run();
 //TTSScriptParserSample.Run();
 
 //TTSScriptParserSample.RunCode();
+
+NB3DPointsDemo.Run();

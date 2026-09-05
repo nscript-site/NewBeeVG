@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\sources\NewBeeVG\NewBeeVG.csproj" />
+    <ProjectReference Include="..\NewBeeVG.ThreeD\NewBeeVG.ThreeD.csproj" />
   </ItemGroup>
 
   <ItemGroup>

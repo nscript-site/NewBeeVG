@@ -1,6 +1,7 @@
 ﻿using Avalonia.Interactivity;
 using Avalonia.Threading;
 using NewBeeMedia;
+using SkiaSharp;
 
 namespace NewBeeVG.Viewer.Widgets;
 
@@ -46,7 +47,7 @@ public class ExportVideoView : BaseView
             if(ExportFilePath.EndsWith(".mp4"))
                 ExportMp4(filePath, stage, frames);
             else
-                ExportGif(filePath, stage, frames);
+                ExportGif(filePath, stage, frames,1024);
         }
         finally
         {
@@ -83,7 +84,7 @@ public class ExportVideoView : BaseView
         writer.Close();
     }
 
-    private void ExportGif(string filePath, NBStage stage, int frames)
+    private void ExportGif(string filePath, NBStage stage, int frames, int maxSize = int.MaxValue)
     {
         // 帧延迟：单位是 1/100 秒
         int delayHundredths = (int)Math.Round(100.0 / stage.FrameRate);
@@ -94,7 +95,8 @@ public class ExportVideoView : BaseView
             using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
             if (bmp == null) break;
 
-            using var gbmp = DrawingHelper.ToGdiBitmap(bmp);
+            using var sbmp = ResizeProportionalMaxSize(bmp, maxSize);
+            using var gbmp = DrawingHelper.ToGdiBitmap(sbmp);
             gifEncoder.AddFrame(gbmp);
 
             if (CurrentFrame % 10 == 0)
@@ -106,5 +108,29 @@ public class ExportVideoView : BaseView
                 });
             }
         }
+    }
+
+    public static SKBitmap ResizeProportionalMaxSize(SKBitmap src, int maxSize)
+    {
+        if (src.Width <= maxSize && src.Height <= maxSize)
+        {
+            // 已经小于等于maxSize，直接克隆返回，不做缩放
+            return src.Copy();
+        }
+
+        // 计算缩放系数，取宽、高两者中缩放更大的比例
+        float scaleW = (float)maxSize / src.Width;
+        float scaleH = (float)maxSize / src.Height;
+        float scale = Math.Min(scaleW, scaleH);
+
+        int targetW = (int)Math.Round(src.Width * scale);
+        int targetH = (int)Math.Round(src.Height * scale);
+
+        // 修正为偶数，适配编码器要求
+        targetW = targetW - (targetW % 2);
+        targetH = targetH - (targetH % 2);
+
+        var destInfo = new SKImageInfo(targetW, targetH, src.ColorType, src.AlphaType);
+        return src.Resize(destInfo, SKFilterQuality.High);
     }
 }
