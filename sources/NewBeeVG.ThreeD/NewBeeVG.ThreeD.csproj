@@ -4,14 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HelixToolkit.Nex" />
-    <PackageReference Include="HelixToolkit.Nex.Engine" />
-    <PackageReference Include="HelixToolkit.Nex.Geometries.Builders" />
-    <PackageReference Include="HelixToolkit.Nex.Graphics.Vulkan" />
-    <PackageReference Include="HelixToolkit.Nex.Interop.DirectX" />
+    <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Engine\HelixToolkit.Nex.Engine.csproj" />
+    <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Graphics.Vulkan\HelixToolkit.Nex.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex\HelixToolkit.Nex.csproj" />
   </ItemGroup>
 
 </Project>
