@@ -1,6 +1,4 @@
 ﻿using HelixToolkit.Nex;
-using HelixToolkit.Nex.Engine.CameraControllers;
-using HelixToolkit.Nex.Engine.Cameras;
 using HelixToolkit.Nex.Engine.Components;
 using HelixToolkit.Nex.Geometries;
 using HelixToolkit.Nex.Material;
@@ -12,35 +10,17 @@ using System.Numerics;
 
 namespace HelixNexDemo;
 
-public class LinesApp
+public class LinesApp : BaseEngineApp
 {
     private static readonly ILogger _logger = LogManager.Create<PointsApp>();
-    private NBEngine Engine;
 
-    // Camera
-    private Camera _camera = new PerspectiveCamera();
-    private OrbitCameraController _orbitController;
-
-    // Custom line material types registered by this demo
-    private string[] _materialTypes = [];
-    // Scene entities
     private readonly List<LineEntry> _lineSets = [];
 
     private float _globalLineWidth = 2.0f;
     private float _animTime;
 
-    public LinesApp(int width, int height)
+    public LinesApp(int width, int height) : base(width,height)
     {
-        _camera = new PerspectiveCamera
-        {
-            Position = new Vector3(0, 12, -25),
-            Target = Vector3.Zero,
-            FarPlane = 500,
-        };
-        _orbitController = new OrbitCameraController(_camera);
-        RegisterCustomLineMaterials();
-        Engine = NB3D.CreateEngine(width, height, Color.Black);
-        BuildScene();
     }
 
     // ------------------------------------------------------------------
@@ -56,12 +36,8 @@ public class LinesApp
     /// line width (v_uv.y in [-1,1]) and premultiplied-alpha output.
     /// </para>
     /// </summary>
-    private void RegisterCustomLineMaterials()
+    protected override void RegisterCustomMaterials()
     {
-        var materials = new List<string>();
-        // Collect the built-in default first
-        materials.Add("Default");
-
         // 1. Gradient — colorize along the segment using v_uv.x (in [-1,1] -> [0,1]).
         LineMaterialRegistry.Register(
             name: "Gradient",
@@ -79,7 +55,6 @@ public class LinesApp
                 return vec4(grad * a, a);
             """
         );
-        materials.Add("Gradient");
 
         // 2. Dashed — discard fragments based on an animated dash pattern along v_uv.x.
         LineMaterialRegistry.Register(
@@ -99,7 +74,6 @@ public class LinesApp
                 return vec4(c.rgb * a, a);
             """
         );
-        materials.Add("Dashed");
 
         // 3. Glow — boost brightness toward the segment center (small |v_uv.y|).
         LineMaterialRegistry.Register(
@@ -118,9 +92,6 @@ public class LinesApp
                 return vec4(rgb * a, a);
             """
         );
-        materials.Add("Glow");
-
-        _materialTypes = materials.ToArray();
 
         _logger.LogInformation(
             "Registered {Count} custom line material types.",
@@ -131,8 +102,7 @@ public class LinesApp
     // ------------------------------------------------------------------
     // Scene building
     // ------------------------------------------------------------------
-
-    private void BuildScene()
+    protected override void BuildScene()
     {
         var world = Engine.World;
         var root = Engine.Root;
@@ -217,8 +187,7 @@ public class LinesApp
                 node,
                 geo,
                 color,
-                thickness,
-                Array.IndexOf(_materialTypes, materialName)
+                thickness
             )
         );
         Engine.Add(geo);
@@ -363,14 +332,7 @@ public class LinesApp
         return geo;
     }
 
-    public void Render()
-    {
-        UpdateWave();
-        Engine.Update(_camera);
-        Engine.Render();
-    }
-
-    private void UpdateWave()
+    protected override void UpdateData()
     {
         // The "Animated Wave" is the last line set (index 4)
         if (_lineSets.Count < 5)
@@ -380,27 +342,6 @@ public class LinesApp
         var geo = GenerateWave(side, 16f, _animTime, new Vector3(0, -5, 15), entry.Lines);
         // Re-set the geometry so the node re-uploads the dynamic buffers.
         entry.Node.Geometry = geo;
-    }
-
-    // ------------------------------------------------------------------
-    // Dispose
-    // ------------------------------------------------------------------
-
-    private bool _disposed;
-
-    private void Dispose(bool disposing)
-    {
-        if (!_disposed && disposing)
-        {
-            Engine.Dispose();
-            _disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     public static void Run()
@@ -421,15 +362,13 @@ internal sealed class LineEntry
     public Geometry Lines { get; set; }
     public Color4 Color { get; set; }
     public float Thickness;
-    public int MaterialNameIndex;
 
     public LineEntry(
         string name,
         LineNode node,
         Geometry lines,
         Color4 color,
-        float thickness,
-        int materialNameIndex
+        float thickness
     )
     {
         Name = name;
@@ -437,6 +376,5 @@ internal sealed class LineEntry
         Lines = lines;
         Color = color;
         Thickness = thickness;
-        MaterialNameIndex = materialNameIndex;
     }
 }
