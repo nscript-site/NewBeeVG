@@ -44,16 +44,15 @@ internal class HelloTriangleApp : IDisposable
         """;
 
     private IContext? _ctx;
-    public string Name => "HelloTriangle";
-
     private RenderPipelineResource _renderPipeline = RenderPipelineResource.Null;
     private readonly RenderPass _pass = new();
     private readonly Framebuffer _frameBuffer = new();
-    private NBTexture2D? _texture2D;
-    protected void Initialize(int width, int height)
+    private NBTexture2D Canvas;
+
+    public HelloTriangleApp(int width, int height)
     {
         _ctx = NB3D.CreateHeadlessContext();
-        _texture2D = NB3D.CreateTexture2D(_ctx, width, height);
+        Canvas = NB3D.CreateTexture2D(_ctx, width, height);
 
         _ctx.CreateShaderModuleGlsl(Vs, ShaderStage.Vertex, out var vsModule).CheckResult();
         _ctx.CreateShaderModuleGlsl(Ps, ShaderStage.Fragment, out var psModule).CheckResult();
@@ -79,11 +78,11 @@ internal class HelloTriangleApp : IDisposable
         Debug.Assert(_ctx != null, "Vulkan context should not be null at this point.");
 
         var cmdBuffer = _ctx!.AcquireCommandBuffer();
-        _frameBuffer.Colors[0].Texture = _texture2D!.Texture;
+        _frameBuffer.Colors[0].Texture = Canvas!.Texture;
         _pass.Colors[0].ClearColor = new Color4((0 % 1000) / 1000f, 0.2f, 0.3f, 1.0f);
         cmdBuffer.BeginRendering(_pass, _frameBuffer, Dependencies.Empty);
         cmdBuffer.BindRenderPipeline(_renderPipeline);
-        var aspect = _texture2D!.Aspect;
+        var aspect = Canvas!.Aspect;
         var transform = Matrix4x4.CreateFromAxisAngle(Vector3.UnitY, (2000) / 1000f);
         var cam =
             Matrix4x4.CreateLookAt(
@@ -105,7 +104,7 @@ internal class HelloTriangleApp : IDisposable
         if (!_disposed && disposing)
         {
             _renderPipeline.Dispose();
-            _texture2D?.Dispose();
+            Canvas?.Dispose();
             _ctx?.Dispose();
             _disposed = true;
         }
@@ -119,9 +118,8 @@ internal class HelloTriangleApp : IDisposable
 
     public static void Run()
     {
-        var demo = new HelloTriangleApp();
-        demo.Initialize(800, 600);
+        var demo = new HelloTriangleApp(800, 600);
         demo.Render();
-        demo._texture2D?.Save("output_triangle.bmp");
+        demo.Canvas?.Save("output_triangle.bmp");
     }
 }
