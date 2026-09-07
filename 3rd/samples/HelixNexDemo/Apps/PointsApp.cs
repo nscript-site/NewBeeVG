@@ -20,14 +20,9 @@ namespace HelixNexDemo;
 /// - ImGui controls for point size, colour, min screen size, add/remove clouds
 /// - Orbit camera with keyboard (WASD) fallback
 /// </summary>
-public sealed class PointsApp : IDisposable
+public sealed class PointsApp : BaseEngineApp
 {
     private static readonly ILogger _logger = LogManager.Create<PointsApp>();
-    private NBEngine Engine;
-
-    // Camera
-    private Camera _camera = new PerspectiveCamera();
-    private OrbitCameraController _orbitController;
 
     // Scene entities
     private readonly List<PointCloudEntry> _pointClouds = [];
@@ -37,30 +32,12 @@ public sealed class PointsApp : IDisposable
     private float _animTime;
     private bool _fixedSize = false;
 
-    // Custom point material types registered by this demo
-    private string[] _materialTypes = [];
-
     // ------------------------------------------------------------------
     // Initialization
     // ------------------------------------------------------------------
 
-    public PointsApp(int width, int height)
+    public PointsApp(int width, int height):base(width,height,null,Color.White)
     {
-        _camera = new PerspectiveCamera
-        {
-            Position = new Vector3(0, 12, -25),
-            Target = Vector3.Zero,
-            FarPlane = 500,
-        };
-        _orbitController = new OrbitCameraController(_camera);
-
-        // Register custom point material shaders before building the engine
-        RegisterCustomPointMaterials();
-
-        Engine = NB3D.CreateEngine(width, height, Color.White);
-
-        // Build the scene
-        BuildScene();
     }
 
     // ------------------------------------------------------------------
@@ -71,12 +48,8 @@ public sealed class PointsApp : IDisposable
     /// Registers several custom point material shaders to demonstrate the
     /// <see cref="PointMaterialRegistry"/> extensibility.
     /// </summary>
-    private void RegisterCustomPointMaterials()
+    protected override void RegisterCustomMaterials()
     {
-        var materials = new List<string>();
-        // Collect the built-in default first
-        materials.Add("Default");
-
         // 1. Square — no SDF, simple axis-aligned square
         PointMaterialRegistry.Register(
             name: "Square",
@@ -90,7 +63,6 @@ public sealed class PointsApp : IDisposable
                 return color;
             """
         );
-        materials.Add("Square");
 
         // 2. Diamond — rotated square clipped to a diamond shape, hue shifts over time
         var diamondId = PointMaterialRegistry.Register(
@@ -111,7 +83,6 @@ public sealed class PointsApp : IDisposable
                 return color;
             """
         );
-        materials.Add("Diamond");
 
         // 3. Ring — hollow circle with time-animated thickness
         var ringId = PointMaterialRegistry.Register(
@@ -137,7 +108,6 @@ public sealed class PointsApp : IDisposable
                 return color;
             """
         );
-        materials.Add("Ring");
 
         // 4. Pulsing — animated pulse using getTimeMs()
         var pulsingId = PointMaterialRegistry.Register(
@@ -157,7 +127,6 @@ public sealed class PointsApp : IDisposable
                 return color;
             """
         );
-        materials.Add("Pulsing");
 
         // 5. Gradient Disc — radial gradient with time-animated center color
         var gradientDiscId = PointMaterialRegistry.Register(
@@ -182,9 +151,6 @@ public sealed class PointsApp : IDisposable
                 return color;
             """
         );
-        materials.Add("GradientDisc");
-
-        _materialTypes = materials.ToArray();
 
         _logger.LogInformation(
             "Registered {Count} custom point material types.",
@@ -196,7 +162,7 @@ public sealed class PointsApp : IDisposable
     // Scene building helpers
     // ------------------------------------------------------------------
 
-    private void BuildScene()
+    protected override void BuildScene()
     {
         var _root = Engine.Root;
         var world = Engine.World;
@@ -399,19 +365,7 @@ public sealed class PointsApp : IDisposable
         return geo;
     }
 
-    // ------------------------------------------------------------------
-    // Render loop
-    // ------------------------------------------------------------------
-
-    public void Render()
-    {
-        //_orbitController?.Update(dt);
-        UpdateWave();
-        Engine.Update(_camera);
-        Engine.Render();
-    }
-
-    private void UpdateWave()
+    protected override void UpdateData()
     {
         // The "Animated Wave" is the 4th point cloud (index 3)
         if (_pointClouds.Count < 4)
@@ -485,36 +439,6 @@ public sealed class PointsApp : IDisposable
         entry.Points.MarkDirty(GeometryBufferType.VertexColor);
     }
 
-    // ------------------------------------------------------------------
-    // Camera input forwarding
-    // ------------------------------------------------------------------
-
-    public void OnKeyboardInput(bool w, bool s, bool a, bool d, bool space, bool ctrl, bool shift)
-    {
-        // Orbit controller doesn't use keyboard, but reserve for future FP mode
-    }
-
-    // ------------------------------------------------------------------
-    // Dispose
-    // ------------------------------------------------------------------
-
-    private bool _disposed;
-
-    private void Dispose(bool disposing)
-    {
-        if (!_disposed && disposing)
-        {
-            Engine.Dispose();
-            _disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
     public static void Run()
     {
         var demo = new PointsApp(300, 400);
@@ -532,8 +456,6 @@ internal sealed class PointCloudEntry
     public Node Node { get; }
     public Geometry Points { get; set; }
     public Color4 Tint { get; set; }
-
-    public int MaterialNameIndex;
 
     /// <summary>
     /// Stores the untinted (original) vertex colors so that tint can be
@@ -555,7 +477,6 @@ internal sealed class PointCloudEntry
         Points = points;
         Tint = tint;
         OriginalColors = originalColors;
-        MaterialNameIndex = materialNameIndex;
     }
 }
 

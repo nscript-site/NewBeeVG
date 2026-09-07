@@ -8,8 +8,8 @@ internal class Program
         //HelloTriangleApp.Run();
 
         // APP Tests
-        //PointsApp.Run();
-        LinesApp.Run();
+        PointsApp.Run();
+        //LinesApp.Run();
         Console.WriteLine("Finished!");
     }
 }
