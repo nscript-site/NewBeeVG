@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\sources\NewBeeVG.ThreeD\NewBeeVG.ThreeD.csproj" />
+    <ProjectReference Include="..\..\..\sources\NewBeeVG\NewBeeVG.csproj" />
     <ProjectReference Include="..\..\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Engine\HelixToolkit.Nex.Engine.csproj" />
     <ProjectReference Include="..\..\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Graphics.Vulkan\HelixToolkit.Nex.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\..\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex\HelixToolkit.Nex.csproj" />

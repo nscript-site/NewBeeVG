@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Engine\HelixToolkit.Nex.Engine.csproj" />
     <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Graphics.Vulkan\HelixToolkit.Nex.Graphics.Vulkan.csproj" />
     <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex\HelixToolkit.Nex.csproj" />
+    <ProjectReference Include="..\NewBeeVG\NewBeeVG.csproj" />
   </ItemGroup>
 
 </Project>

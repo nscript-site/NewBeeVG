@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace NewBeeVG;
 
-internal class DrawingHelper
+public class DrawingHelper
 {
     public static void DrawBitmap(RenderTargetBitmap bitmap, Control? content, int width, int height)
     {
@@ -185,5 +185,61 @@ internal class DrawingHelper
         // ========== 写入像素数据 ==========
         // 技巧：height传负数，BMP解释为“自上而下存储”，就不用手动颠倒行顺序
         bw.Write(bgra);
+    }
+
+    /// <summary>
+    /// 将BGRA字节数组(B G R A)转换为SKBitmap并保存到文件，保留Alpha
+    /// </summary>
+    /// <param name="bgra">输入：B G R A 顺序，每像素4字节</param>
+    /// <param name="width">图像宽</param>
+    /// <param name="height">图像高</param>
+    /// <param name="filePath">输出路径</param>
+    /// <returns>转换得到的SKBitmap，调用方负责释放</returns>
+    public static unsafe SKBitmap BgraToSKBitmap(byte[] bgra, int width, int height, string filePath)
+    {
+        if (bgra == null)
+            throw new ArgumentNullException(nameof(bgra));
+        if (width <= 0 || height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width), "宽高必须大于0");
+        if (bgra.Length < width * height * 4)
+            throw new ArgumentException("字节数组长度小于所需的像素数据大小");
+
+        var info = new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+
+        var bmp = new SKBitmap(info);
+        var srcPixels = bmp.GetPixels();
+        if (srcPixels == IntPtr.Zero)
+            throw new InvalidOperationException("获取SKBitmap像素失败");
+
+        var dstStride = bmp.RowBytes;
+        var srcStride = width * 4;
+
+        // 若源数据行是4字节对齐（BGRA天然满足），直接整体拷贝
+        if (dstStride == srcStride && bgra.Length == dstStride * height)
+        {
+            fixed (byte* src = bgra)
+            {
+                Buffer.MemoryCopy(src, srcPixels.ToPointer(), (ulong)(dstStride * height), (ulong)(dstStride * height));
+            }
+        }
+        else
+        {
+            // 处理行对齐不一致的情况，逐行拷贝
+            fixed (byte* srcBase = bgra)
+            {
+                var dstBase = (byte*)srcPixels.ToPointer();
+                var copyStride = Math.Min(srcStride, dstStride);
+                for (int y = 0; y < height; y++)
+                {
+                    Buffer.MemoryCopy(
+                        srcBase + (long)y * srcStride,
+                        dstBase + (long)y * dstStride,
+                        dstStride,
+                        copyStride);
+                }
+            }
+        }
+
+        return bmp;
     }
 }

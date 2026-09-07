@@ -8,7 +8,7 @@
 
 //LottieSample.Run();
 
-//LayerSample.Run();
+LayerSample.Run();
 
 //UtilsSample.Run();
 
@@ -34,4 +34,4 @@
 
 //TTSScriptParserSample.RunCode();
 
-NB3DPointsDemo.Run();
+//NB3DPointsDemo.Run();

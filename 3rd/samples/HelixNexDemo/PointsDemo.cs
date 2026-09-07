@@ -70,10 +70,11 @@ public sealed class PointsDemo : IDisposable
             TerminateOnValidationError = true, // 调试打开，生产关闭
         };
         _context = VulkanBuilder.CreateHeadless(vulkanConfig);
-        _engine = EngineBuilder.Create(_context).WithDefaultNodes(false)
+        _engine = NB3DEngineBuilder.Create(_context)
+            .WithDefaultNodes()
             .WithSMAA()
             .WithBloom()
-            .RenderToCustomTarget(Format.RGBA_UN8)
+            .RenderToCustomTarget(Format.BGRA_UN8)
             .Build();
     }
 
@@ -83,6 +84,8 @@ public sealed class PointsDemo : IDisposable
 
     public void Initialize(int width, int height)
     {
+        if (_engine == null) return;
+
         _camera = new PerspectiveCamera
         {
             Position = new Vector3(0, 12, -25),
@@ -95,18 +98,11 @@ public sealed class PointsDemo : IDisposable
         RegisterCustomPointMaterials();
 
         ViewportSize = new Size(width, height);
-        //ViewportSize = new Size(1,1);
-
-        // Build the engine with the point rendering node
-        _engine = EngineBuilder
-            .Create(_context)
-            .WithDefaultNodes()
-            //.WithFPS()
-            .RenderToCustomTarget(GraphicsSettings.IntermediateTargetFormat)
-            .Build();
         _renderContext = _engine.CreateRenderContext();
-        _renderContext.Initialize();
+        _renderContext.RenderParams.BackgroundColor = Color.White;
+        _renderContext.EnvironmentMap.Enabled = false;
         _renderContext.WindowSize = ViewportSize;
+        _renderContext.Initialize();
         _renderContext.ResourceSet.AddTexture(
             ViewportTextureName,
             res =>
@@ -140,49 +136,8 @@ public sealed class PointsDemo : IDisposable
         {
             _context.Download(h, desc, (nint)p, (uint)buff.Length);
         }
-        SaveBgraToBmp(buff, ViewportSize.Width, ViewportSize.Height, "output.png");
-    }
 
-    /// <summary>
-    /// 将BGRA字节数组(B G R A)保存为32bit BMP，保留Alpha
-    /// </summary>
-    /// <param name="bgra">输入：B G R A 顺序，每像素4字节</param>
-    /// <param name="width">图像宽</param>
-    /// <param name="height">图像高</param>
-    /// <param name="filePath">输出路径</param>
-    public static void SaveBgraToBmp(byte[] bgra, int width, int height, string filePath)
-    {
-        int pixelDepth = 32;
-        int stride = width * 4; // 32bit：每行字节数，天然4对齐
-        int pixelDataSize = stride * height;
-        int totalFileSize = 14 + 40 + pixelDataSize;
-
-        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-        using var bw = new BinaryWriter(fs);
-
-        // ========== BITMAPFILEHEADER 14字节 ==========
-        bw.Write((ushort)0x4D42);       // 'BM' 标记
-        bw.Write((uint)totalFileSize);  // 整个文件大小
-        bw.Write((ushort)0);           // 保留1
-        bw.Write((ushort)0);           // 保留2
-        bw.Write((uint)14 + 40);       // 像素数据偏移：文件头+信息头
-
-        // ========== BITMAPINFOHEADER 40字节 ==========
-        bw.Write((uint)40);            // 本结构体大小
-        bw.Write((int)width);          // 宽
-        bw.Write((int)-height);        // ⭐负数height：行顺序=从上到下，不用翻转像素行！
-        bw.Write((ushort)1);           // 色彩平面数
-        bw.Write((ushort)pixelDepth);   // 32 bits per pixel
-        bw.Write((uint)0);             // 压缩方式：0=无压缩 BI_RGB
-        bw.Write((uint)pixelDataSize); // 像素数据大小
-        bw.Write((int)0);              // 水平分辨率像素/m
-        bw.Write((int)0);              // 垂直分辨率像素/m
-        bw.Write((uint)0);             // 调色板颜色数
-        bw.Write((uint)0);             // 重要颜色数
-
-        // ========== 写入像素数据 ==========
-        // 技巧：height传负数，BMP解释为“自上而下存储”，就不用手动颠倒行顺序
-        bw.Write(bgra);
+        DrawingHelper.SaveBgraToBmp(buff, ViewportSize.Width, ViewportSize.Height, "output.png");
     }
 
     // ------------------------------------------------------------------
@@ -537,10 +492,10 @@ public sealed class PointsDemo : IDisposable
         _lastTimestamp = Stopwatch.GetTimestamp();
         _animTime += dt;
 
-        //_orbitController?.Update(dt);
+        _orbitController?.Update(dt);
 
         // Animate the wave point cloud
-        //UpdateWave();
+        UpdateWave();
 
         _renderContext.Update(_camera);
 
@@ -636,10 +591,6 @@ public sealed class PointsDemo : IDisposable
             }
         );
     }
-
-    //private void DrawUI(TextureHandle offscreenTex, float displayW, float displayH)
-    //{
-    //}
 
     private void ApplyGlobalPointSize()
     {

@@ -50,7 +50,7 @@ public class NBVlOfflineContext : IDisposable
             TerminateOnValidationError = true, // 调试打开，生产关闭
         };
         _context = VulkanBuilder.CreateHeadless(vulkanConfig);
-        _engine = EngineBuilder.Create(_context).WithDefaultNodes(false)
+        _engine = NB3DEngineBuilder.Create(_context).WithDefaultNodes(false)
             .WithSMAA()
             .WithBloom()
             .RenderToCustomTarget(Format.RGBA_UN8)
@@ -74,7 +74,7 @@ public class NBVlOfflineContext : IDisposable
         ViewportSize = new Size(width, height);
 
         // Build the engine with the point rendering node
-        _engine = EngineBuilder
+        _engine = NB3DEngineBuilder
             .Create(_context)
             .WithDefaultNodes()
             .RenderToCustomTarget(GraphicsSettings.IntermediateTargetFormat)

@@ -1,0 +1,555 @@
+﻿using HelixToolkit.Nex;
+using HelixToolkit.Nex.DependencyInjection;
+using HelixToolkit.Nex.Engine;
+using HelixToolkit.Nex.Graphics;
+using HelixToolkit.Nex.Rendering;
+using HelixToolkit.Nex.Rendering.ComputeNodes;
+using HelixToolkit.Nex.Rendering.Gizmos;
+using HelixToolkit.Nex.Rendering.PostEffects;
+using HelixToolkit.Nex.Rendering.RenderNodes;
+using HelixToolkit.Nex.Shaders;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace NewBeeVG.ThreeD;
+
+/// <summary>
+/// Fluent builder for creating and configuring an <see cref="Engine"/> instance.
+/// <para>
+/// Eliminates the boilerplate of manually wiring services, render nodes, post-effects,
+/// and lifecycle calls. Common presets are available via <see cref="WithDefaultNodes"/>
+/// and <see cref="UseDepthPrepassDefaults"/>.
+/// </para>
+/// <para>
+/// The builder creates only the shared rendering infrastructure. Per-viewport state
+/// is created via <see cref="Engine.CreateRenderContext"/>, and scene data
+/// (<see cref="WorldDataProvider"/>) is passed to <see cref="Engine.Render"/> or
+/// <see cref="Engine.RenderOffscreen"/> each frame.
+/// </para>
+/// <para>
+/// <b>Example — quick start with defaults:</b>
+/// <code>
+/// using var engine = EngineBuilder.Create(context)
+///     .UseForwardPlusDefaults()
+///     .Build();
+///
+/// // Create per-viewport state and scene data
+/// var viewport = engine.CreateRenderContext();
+/// viewport.Initialize();
+/// var worldData = engine.CreateWorldDataProvider();
+/// worldData.Initialize();
+///
+/// // In game loop:
+/// viewport.WindowSize = new Size(width, height);
+/// viewport.CameraParams = camera.ToCameraParams(aspectRatio);
+/// engine.Render(viewport, worldData);
+/// </code>
+/// </para>
+/// <para>
+/// <b>Example — custom pipeline:</b>
+/// <code>
+/// using var engine = NBThreeDEngineBuilder.Create(context)
+///     .AddNode(new PrepareNode())
+///     .AddNode(new DepthPassNode())
+///     .AddNode(new FrustumCullNode())
+///     .AddNode(new ForwardPlusOpaqueNode())
+///     .AddNode(new ForwardPlusLightCullingNode())
+///     .WithPostEffects(effects => {
+///         effects.AddEffect(new Smaa());
+///         effects.AddEffect(new Bloom());
+///     })
+///     .AddNode(new ToneMappingNode())
+///     .AddNode(new RenderToFinalNode(context.GetSwapchainFormat()))
+///     .Build();
+/// </code>
+/// </para>
+/// </summary>
+public sealed class NB3DEngineBuilder
+{
+    private readonly IContext _context;
+    private readonly List<RenderNode> _nodes = [];
+    private readonly List<Action<IServiceCollection>> _serviceConfigurators = [];
+    private readonly List<Action<IReadOnlyList<RenderNode>>> _nodeConfigurators = [];
+    private PostEffectsNode _postEffectsNode = new();
+    private bool _addRenderToFinal;
+    private Format _finalTextureFormat = Format.Invalid;
+    private EngineInteropTarget _interopTarget = EngineInteropTarget.None;
+    private bool _withFXAA;
+    private bool _withSMAA;
+    private bool _withBloom;
+    private bool _withFPS;
+    private bool _withEnvironment;
+    private bool _withToneMapping;
+    private TransparentMode _transparentMode = TransparentMode.ForwardPlus;
+    private ToneMappingMode _toneMappingMode = ToneMappingMode.ACESFilm;
+    private bool _withBillboard;
+    private bool _withPointCloud;
+    private bool _withLine;
+    private GizmoManager? _gizmoManager;
+    private GizmoOcclusionMode _gizmoOcclusionMode = GizmoOcclusionMode.AlwaysOnTop;
+    private Action<IResourceManager>? _onResourceManagerReady;
+
+    private NB3DEngineBuilder(IContext context)
+    {
+        _context = context;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="NB3DEngineBuilder"/> with the given GPU context.
+    /// /// </summary>
+    /// <param name="context">The GPU graphics context (e.g., Vulkan backend).</param>
+    /// <returns>A new builder instance.</returns>
+    public static NB3DEngineBuilder Create(IContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return new NB3DEngineBuilder(context);
+    }
+
+    /// <summary>
+    /// Registers additional services into the DI container before the engine is created.
+    /// </summary>
+    /// <param name="configure">A callback that receives the <see cref="IServiceCollection"/>.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder ConfigureServices(Action<IServiceCollection> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _serviceConfigurators.Add(configure);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a <see cref="RenderNode"/> to the engine's rendering pipeline.
+    /// Nodes are added in the order they are registered; the render graph resolves
+    /// execution order via resource dependencies and explicit <c>after</c> constraints.
+    /// </summary>
+    /// <param name="node">The render node to add.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder AddNode(RenderNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        _nodes.Add(node);
+        return this;
+    }
+
+    /// <summary>
+    /// Configures all previously added <see cref="RenderNode"/>s of type <typeparamref name="T"/>.
+    /// <para>
+    /// The callback is deferred until <see cref="Build"/> so it works with both manually
+    /// added nodes and nodes added by presets such as <see cref="WithDefaultNodes"/>.
+    /// If no node of the requested type exists, the callback is silently skipped.
+    /// </para>
+    /// <para>
+    /// <b>Example:</b>
+    /// <code>
+    /// EngineBuilder.Create(context)
+    ///     .WithDefaultNodes()
+    ///     .ConfigureNode&lt;ForwardPlusOpaqueNode&gt;(n => n.UseLightCulling = false)
+    ///     .Build();
+    /// </code>
+    /// </para>
+    /// </summary>
+    /// <typeparam name="T">The concrete <see cref="RenderNode"/> type to configure.</typeparam>
+    /// <param name="configure">A callback that receives each matching node instance.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder ConfigureNode<T>(Action<T> configure)
+        where T : RenderNode
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _nodeConfigurators.Add(nodes =>
+        {
+            foreach (var node in nodes)
+            {
+                if (node is T typed)
+                {
+                    configure(typed);
+                }
+            }
+        });
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a <see cref="PostEffectsNode"/> with the specified effects.
+    /// If called multiple times, effects are accumulated into a single node.
+    /// </summary>
+    /// <param name="configure">A callback that receives the <see cref="PostEffectsNode"/> to populate.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder WithPostEffects(Action<PostEffectsNode> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        configure(_postEffectsNode);
+        return this;
+    }
+
+    /// <summary>
+    /// Appends a <see cref="RenderToFinalNode"/> that copies the final color buffer
+    /// to the swapchain. This is required when presenting to the screen (not needed
+    /// for offscreen-only rendering, e.g., ImGui composite).
+    /// </summary>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder RenderToCustomTarget(Format targetFormat)
+    {
+        _addRenderToFinal = true;
+        _finalTextureFormat = targetFormat;
+        return this;
+    }
+
+    /// <summary>
+    /// Provides a callback to configure the <see cref="IResourceManager"/> after it
+    /// is created but before the engine is initialized (e.g., register custom materials,
+    /// load textures).
+    /// </summary>
+    /// <param name="configure">A callback that receives the <see cref="IResourceManager"/>.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder OnResourceManagerReady(Action<IResourceManager> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        _onResourceManagerReady = configure;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a full Forward+ rendering pipeline with commonly used nodes.
+    /// <para>
+    /// This is equivalent to manually calling:
+    /// <code>
+    /// builder.WithBillBoard().WithPointCloud().WithTransparent()
+    /// </code>
+    /// </para>
+    /// </summary>
+    /// <param name="renderToSwapchain">Whether engine renders onto swapchain. Set it to false if engine should render onto an external texture.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder WithDefaultNodes(bool renderToSwapchain = true)
+    {
+        WithBillBoard();
+        WithPointCloud();
+        WithLine();
+        WithTransparent(TransparentMode.WBOIT);
+
+        _addRenderToFinal = renderToSwapchain && _context.GetNumSwapchainImages() > 0;
+        if (renderToSwapchain)
+        {
+            _finalTextureFormat = _context.GetSwapchainFormat();
+        }
+        return this;
+    }
+
+    public NB3DEngineBuilder WithBillBoard()
+    {
+        _withBillboard = true;
+        return this;
+    }
+
+    public NB3DEngineBuilder WithPointCloud()
+    {
+        _withPointCloud = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables GPU line rendering. Adds a <see cref="LineRenderNode"/> to the pipeline.
+    /// Line culling reuses the default <see cref="FrustumCullNode"/>, so no extra cull node is added.
+    /// </summary>
+    public NB3DEngineBuilder WithLine()
+    {
+        _withLine = true;
+        return this;
+    }
+
+    public NB3DEngineBuilder WithTransparent(TransparentMode mode)
+    {
+        _transparentMode = mode;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables gizmo overlay rendering (opt-in). Registers a <see cref="GizmoRenderNode"/> into the
+    /// overlay stage so any entities in the active world carrying a valid <see cref="GizmoDrawInfo"/>.
+    /// <para>
+    /// This is deliberately opt-in and is <b>not</b> included by <see cref="WithDefaultNodes"/>: the
+    /// node draws nothing and reports no renderable work while no gizmos are present, but it is only
+    /// added when an application asks for it, so default pipelines are unaffected.
+    /// </para>
+    /// </summary>
+    /// <param name="manager">The gizmo interaction manager that owns per-frame handle geometry.</param>
+    /// <param name="occlusionMode">
+    /// The occlusion mode the node applies; defaults to <see cref="GizmoOcclusionMode.AlwaysOnTop"/>
+    /// so manipulator handles stay grabbable even when behind geometry.
+    /// </param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder WithGizmos(
+        GizmoManager manager,
+        GizmoOcclusionMode occlusionMode = GizmoOcclusionMode.AlwaysOnTop
+    )
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        _gizmoManager = manager;
+        _gizmoOcclusionMode = occlusionMode;
+        return this;
+    }
+
+    public NB3DEngineBuilder WithFXAA()
+    {
+        _withFXAA = true;
+        return this;
+    }
+
+    public NB3DEngineBuilder WithSMAA()
+    {
+        _withSMAA = true;
+        return this;
+    }
+
+    public NB3DEngineBuilder WithBloom()
+    {
+        _withBloom = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a single <see cref="SsaoPostEffect"/> into the <see cref="PostEffectsNode"/>,
+    /// unless an effect named <c>"SsaoPostEffect"</c> is already present.
+    /// </summary>
+    /// <param name="quality">The quality preset used to construct the effect. Defaults to <see cref="SsaoQuality.Medium"/>.</param>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder WithSSAO(SsaoQuality quality = SsaoQuality.Medium)
+    {
+        if (!_postEffectsNode.TryGetEffect(nameof(SsaoPostEffect), out _))
+        {
+            _postEffectsNode.AddEffect(new SsaoPostEffect(quality));
+        }
+        return this;
+    }
+
+    public NB3DEngineBuilder WithFPS()
+    {
+        _withFPS = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables the environment-map (skybox) background by registering an
+    /// <see cref="EnvironmentMapNode"/> into the default pipeline. The node draws an HDR
+    /// cubemap behind the scene and is a no-op until a cubemap is assigned to
+    /// <see cref="RenderContext.EnvironmentMap"/> (see <see cref="EnvironmentMapConfig.Texture"/>);
+    /// intensity, rotation and blur are also configured there per <see cref="RenderContext"/>.
+    /// </summary>
+    /// <returns>This builder for method chaining.</returns>
+    public NB3DEngineBuilder WithEnvironment()
+    {
+        _withEnvironment = true;
+        return this;
+    }
+
+    public NB3DEngineBuilder WithToneMappingMode(ToneMappingMode toneMappingMode)
+    {
+        _withToneMapping = true;
+        _toneMappingMode = toneMappingMode;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the engine builder to target Windows Presentation Foundation (WPF) interop.
+    /// </summary>
+    /// <remarks>Call this method when building an engine that will be used in a WPF application. This method
+    /// enables WPF-specific interop features. This method can be chained with other configuration methods.</remarks>
+    /// <returns>The current instance of <see cref="NB3DEngineBuilder"/> with WPF interop enabled.</returns>
+    public NB3DEngineBuilder WithWpf()
+    {
+        WithInteropTarget(EngineInteropTarget.WPF);
+        return this;
+    }
+
+    /// <summary>
+    /// Build the engine with WinUI interop support. This configures the engine to use WinUI-compatible
+    /// rendering and input handling.
+    /// </summary>
+    /// <returns>The current instance of <see cref="NB3DEngineBuilder"/> with WinUI interop enabled.</returns>
+    public NB3DEngineBuilder WithWinUI()
+    {
+        WithInteropTarget(EngineInteropTarget.WinUI);
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the engine to use the specified interop target for rendering operations.
+    /// </summary>
+    /// <remarks>If an interop target other than EngineInteropTarget.None is specified, additional rendering
+    /// to the final output is enabled. This method supports fluent configuration by returning the same EngineBuilder
+    /// instance.</remarks>
+    /// <param name="target">The interop target to be used by the engine. Specify a value other than EngineInteropTarget.None to enable
+    /// interop rendering.</param>
+    /// <returns>The current instance of EngineBuilder with the updated interop target configuration.</returns>
+    public NB3DEngineBuilder WithInteropTarget(EngineInteropTarget target)
+    {
+        _interopTarget = target;
+        if (target != EngineInteropTarget.None)
+        {
+            _addRenderToFinal = true;
+            _finalTextureFormat = target switch
+            {
+                EngineInteropTarget.WPF => Format.BGRA_UN8,
+                EngineInteropTarget.WinUI => Format.RGBA_UN8,
+                _ => Format.Invalid,
+            };
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Builds and initializes the <see cref="Engine"/>.
+    /// <para>
+    /// This method:
+    /// <list type="number">
+    /// <item>Creates the DI container with <see cref="IContext"/> and <see cref="IResourceManager"/></item>
+    /// <item>Optionally creates PBR materials from the registry</item>
+    /// <item>Adds all configured render nodes (including post-effects and RenderToFinal)</item>
+    /// <item>Calls <see cref="Engine.Initialize"/></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// The returned engine has <b>no viewports or scene data</b>. Create per-viewport state
+    /// via <see cref="Engine.CreateRenderContext"/> and pass an <see cref="IRenderDataProvider"/>
+    /// to <see cref="Engine.Render"/> or <see cref="Engine.RenderOffscreen"/> each frame.
+    /// </para>
+    /// </summary>
+    /// <returns>A fully initialized <see cref="Engine"/> instance ready for rendering.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if initialization fails.</exception>
+    public Engine Build()
+    {
+        // --- Build DI container ---
+        var services = new ServiceCollection { new ServiceDescriptor(typeof(IContext), _context) };
+        services.AddSingleton<IResourceManager, ResourceManager>();
+        foreach (var configurator in _serviceConfigurators)
+        {
+            configurator(services);
+        }
+        var serviceProvider = services.BuildServiceProvider();
+
+        // --- Resource manager setup ---
+        var config = new EngineConfig(serviceProvider);
+        var engine = new Engine(config);
+
+        engine.ResourceManager.PBRMaterialManager.CreatePBRMaterialsFromRegistry();
+        engine.ResourceManager.PointMaterialManager.CreatePipelinesFromRegistry();
+        engine.ResourceManager.BillboardMaterialManager.CreatePipelinesFromRegistry();
+        engine.ResourceManager.LineMaterialManager.CreatePipelinesFromRegistry();
+        _onResourceManagerReady?.Invoke(engine.ResourceManager);
+        AddNode(new PrepareNode());
+        AddNode(new DepthPassNode());
+        AddNode(new FrustumCullNode());
+        AddNode(new ForwardPlusLightCullingNode());
+        AddNode(new ForwardPlusOpaqueNode());
+        AddNode(new ForwardPlusMaskNode());
+        if (_withEnvironment)
+        {
+            // Environment-map background. Draws after opaque/mask geometry and no-ops until a
+            // cubemap is assigned to RenderContext.EnvironmentMap.
+            AddNode(new EnvironmentMapNode());
+        }
+        if (_withPointCloud)
+        {
+            // Points reuse the default FrustumCullNode for culling (point-stream integration),
+            // so only the render node is added.
+            AddNode(new PointRenderNode());
+        }
+        if (_withLine)
+        {
+            // Lines reuse the default FrustumCullNode for culling, so only the render node
+            // is added. LineRenderNode.CanRender returns false when there are no line
+            // streams, so adding it to the default pipeline is safe for line-free scenes.
+            AddNode(new LineRenderNode());
+        }
+        if (_withBillboard)
+        {
+            AddNode(new BillboardCullNode());
+            AddNode(new BillboardRenderNode());
+        }
+        if (_transparentMode != TransparentMode.None)
+        {
+            if (_transparentMode == TransparentMode.ForwardPlus)
+            {
+                AddNode(new ForwardPlusTransparentNode());
+            }
+            else if (_transparentMode == TransparentMode.WBOIT)
+            {
+                AddNode(new ForwardPlusWBOITMergedNode());
+            }
+        }
+
+        if (_withFXAA)
+        {
+            AddNode(new FXAANode());
+        }
+        if (_withSMAA)
+        {
+            AddNode(new SMAANode());
+        }
+        if (_withBloom)
+        {
+            AddNode(new BloomNode());
+        }
+        if (_withFPS)
+        {
+            AddNode(new FPSNode());
+        }
+
+        if (_gizmoManager is not null)
+        {
+            // Opt-in gizmo overlay: registered only when WithGizmos was called, so default
+            // pipelines are unaffected. The node self-places into RenderStage.Overlay (after tone
+            // mapping) and is skipped while no gizmos are gathered for the frame.
+            //
+            // The node is a pure consumer of gathered GizmoDrawInfo data (task 9.1) and now runs its
+            // own per-frame GizmoDataProvider gather over the active world (task 9.2): every entity
+            // carrying a valid GizmoDrawInfo is gathered each frame, so all simultaneous gizmos
+            // render in the same frame. The GizmoManager sets/updates those components on the
+            // entities it owns.
+            AddNode(
+                new GizmoRenderNode
+                {
+                    OcclusionMode = _gizmoOcclusionMode,
+                }
+            );
+        }
+
+        if(_withToneMapping)
+        {
+            AddNode(new ToneMappingNode() { Mode = _toneMappingMode });
+        }
+
+        // --- Apply deferred node configurations ---
+        foreach (var configurator in _nodeConfigurators)
+        {
+            configurator(_nodes);
+        }
+
+        // --- Add render nodes ---
+        foreach (var node in _nodes)
+        {
+            engine.AddNode(node);
+        }
+        engine.AddNode(_postEffectsNode);
+        _postEffectsNode = new();
+        if (_addRenderToFinal)
+        {
+            if (_finalTextureFormat == Format.Invalid)
+            {
+                _finalTextureFormat = _context.GetSwapchainFormat();
+            }
+            engine.AddNode(new RenderToFinalNode(_finalTextureFormat));
+        }
+
+        // --- Initialize rendering infrastructure ---
+        var result = engine.Initialize();
+        if (result != ResultCode.Ok)
+        {
+            throw new InvalidOperationException(
+                $"Engine initialization failed with result: {result}"
+            );
+        }
+
+        return engine;
+    }
+}
