@@ -23,13 +23,11 @@ namespace HelixNexDemo;
 public sealed class PointsApp : IDisposable
 {
     private static readonly ILogger _logger = LogManager.Create<PointsApp>();
-    private const string ViewportTextureName = "ViewportTexture";
-
     private NBEngine Engine;
 
     // Camera
     private Camera _camera = new PerspectiveCamera();
-    private OrbitCameraController? _orbitController;
+    private OrbitCameraController _orbitController;
 
     // Scene entities
     private readonly List<PointCloudEntry> _pointClouds = [];
