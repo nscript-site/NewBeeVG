@@ -1,23 +1,15 @@
 ﻿using HelixToolkit.Nex;
-using HelixToolkit.Nex.ECS;
-using HelixToolkit.Nex.Engine;
 using HelixToolkit.Nex.Engine.CameraControllers;
 using HelixToolkit.Nex.Engine.Cameras;
 using HelixToolkit.Nex.Engine.Components;
 using HelixToolkit.Nex.Geometries;
-using HelixToolkit.Nex.Graphics;
-using HelixToolkit.Nex.Graphics.Vulkan;
 using HelixToolkit.Nex.Material;
 using HelixToolkit.Nex.Maths;
-using HelixToolkit.Nex.Rendering;
 using HelixToolkit.Nex.Rendering.Components;
 using HelixToolkit.Nex.Scene;
 using HelixToolkit.Nex.Shaders;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Numerics;
-using static HelixToolkit.Nex.Rendering.PostEffects.BorderHighlightPostEffect;
-using TextureHandle = HelixToolkit.Nex.Handle<HelixToolkit.Nex.Graphics.Texture>;
 
 namespace HelixNexDemo;
 
@@ -28,64 +20,34 @@ namespace HelixNexDemo;
 /// - ImGui controls for point size, colour, min screen size, add/remove clouds
 /// - Orbit camera with keyboard (WASD) fallback
 /// </summary>
-public sealed class PointsDemo : IDisposable
+public sealed class PointsApp : IDisposable
 {
-    private static readonly ILogger _logger = LogManager.Create<PointsDemo>();
+    private static readonly ILogger _logger = LogManager.Create<PointsApp>();
     private const string ViewportTextureName = "ViewportTexture";
 
-    private readonly IContext _context;
-    private Engine? _engine;
-    private RenderContext? _renderContext;
-    private WorldDataProvider? _worldDataProvider;
-    private Node? _root;
+    private NBEngine Engine;
 
     // Camera
     private Camera _camera = new PerspectiveCamera();
     private OrbitCameraController? _orbitController;
-    private long _lastTimestamp;
-
-    private Size _viewportSize = new(1, 1);
 
     // Scene entities
     private readonly List<PointCloudEntry> _pointClouds = [];
-    private Entity _selectedEntity = Entity.Null;
-    private int _pickedEntityId;
-    private uint _pickedInstanceIdx;
 
     // Global tunables
     private float _globalPointSize = 0.1f;
     private float _animTime;
     private bool _fixedSize = false;
 
-    private TextureResource? _renderTexture;
-    private Size ViewportSize;
-
     // Custom point material types registered by this demo
     private string[] _materialTypes = [];
-
-    public PointsDemo()
-    {
-        var vulkanConfig = new VulkanContextConfig
-        {
-            TerminateOnValidationError = true, // 调试打开，生产关闭
-        };
-        _context = VulkanBuilder.CreateHeadless(vulkanConfig);
-        _engine = NB3DEngineBuilder.Create(_context)
-            .WithDefaultNodes()
-            .WithSMAA()
-            .WithBloom()
-            .RenderToCustomTarget(Format.BGRA_UN8)
-            .Build();
-    }
 
     // ------------------------------------------------------------------
     // Initialization
     // ------------------------------------------------------------------
 
-    public void Initialize(int width, int height)
+    public PointsApp(int width, int height)
     {
-        if (_engine == null) return;
-
         _camera = new PerspectiveCamera
         {
             Position = new Vector3(0, 12, -25),
@@ -97,47 +59,10 @@ public sealed class PointsDemo : IDisposable
         // Register custom point material shaders before building the engine
         RegisterCustomPointMaterials();
 
-        ViewportSize = new Size(width, height);
-        _renderContext = _engine.CreateRenderContext();
-        _renderContext.RenderParams.BackgroundColor = Color.White;
-        _renderContext.EnvironmentMap.Enabled = false;
-        _renderContext.WindowSize = ViewportSize;
-        _renderContext.Initialize();
-        _renderContext.ResourceSet.AddTexture(
-            ViewportTextureName,
-            res =>
-            {
-                _renderTexture = _context.CreateRenderTarget2D(
-                    Format.BGRA_UN8,
-                    (uint)_renderContext.WindowSize.Width,
-                    (uint)_renderContext.WindowSize.Height,
-                    debugName: ViewportTextureName
-                );
-                return _renderTexture;
-            },
-            dependsOnScreenSize: false
-        );
-
-        _worldDataProvider = _engine.CreateWorldDataProvider();
-        _worldDataProvider.Initialize();
+        Engine = NB3D.CreateEngine(width, height, Color.White);
 
         // Build the scene
         BuildScene();
-    }
-
-    private unsafe void DownloadRenderedImage()
-    {
-        if (_renderTexture == null)
-            return;
-        var desc = new TextureRangeDesc() { Dimensions = new Dimensions((uint)ViewportSize.Width, (uint)ViewportSize.Height) };
-        var buff = new byte[ViewportSize.Width * ViewportSize.Height * 4];
-        TextureHandle h = _renderTexture.Handle;
-        fixed (byte* p = buff)
-        {
-            _context.Download(h, desc, (nint)p, (uint)buff.Length);
-        }
-
-        DrawingHelper.SaveBgraToBmp(buff, ViewportSize.Width, ViewportSize.Height, "output.png");
     }
 
     // ------------------------------------------------------------------
@@ -275,8 +200,8 @@ public sealed class PointsDemo : IDisposable
 
     private void BuildScene()
     {
-        var world = _worldDataProvider!.World;
-        _root = new Node(world) { Name = "Root" };
+        var _root = Engine.Root;
+        var world = Engine.World;
 
         //Add a directional light so the viewport isn't pure black if someone
         // toggles on a mesh later.
@@ -333,9 +258,9 @@ public sealed class PointsDemo : IDisposable
         string materialName = "Default"
     )
     {
-        var world = _worldDataProvider!.World;
+        var world = Engine.World;
         var node = world.CreatePointCloudNode(name);
-        _root!.AddChild(node);
+        Engine.Root.AddChild(node);
 
         // Snapshot the original (untinted) colors
         var originalColors = new List<Vector4>(geo.VertexColors.Count);
@@ -370,7 +295,7 @@ public sealed class PointsDemo : IDisposable
                 Array.IndexOf(_materialTypes, materialName)
             )
         );
-        _engine!.Add(geo);
+        Engine.Add(geo);
     }
 
     // ------------------------------------------------------------------
@@ -482,34 +407,10 @@ public sealed class PointsDemo : IDisposable
 
     public void Render()
     {
-        if (_engine is null || _renderContext is null || _worldDataProvider is null)
-            return;
-
-        // Delta time
-        if (_lastTimestamp == 0)
-            _lastTimestamp = Stopwatch.GetTimestamp();
-        float dt = (float)(Stopwatch.GetTimestamp() - _lastTimestamp) / Stopwatch.Frequency;
-        _lastTimestamp = Stopwatch.GetTimestamp();
-        _animTime += dt;
-
-        _orbitController?.Update(dt);
-
-        // Animate the wave point cloud
+        //_orbitController?.Update(dt);
         UpdateWave();
-
-        _renderContext.Update(_camera);
-
-        // 3D render (offscreen)
-        _engine.BeginFrame();
-
-        var cmdBuf = _engine.RenderOffscreen(
-            _renderContext,
-            _worldDataProvider,
-            ViewportTextureName
-        );
-
-        _engine.Submit(cmdBuf, TextureHandle.Null);
-        _engine.WaitForIdle();
+        Engine.Update(_camera);
+        Engine.Render();
     }
 
     private void UpdateWave()
@@ -554,42 +455,6 @@ public sealed class PointsDemo : IDisposable
             );
         }
         entry.Points = newPts;
-    }
-
-    // ------------------------------------------------------------------
-    // GPU Picking
-    // ------------------------------------------------------------------
-
-    private void Pick(int x, int y)
-    {
-        if (_renderContext?.ResourceSet is null || _worldDataProvider is null)
-            return;
-        _engine!.CreatePickingRequest(
-            _renderContext,
-            new Vector2(x, y),
-            response =>
-            {
-                // Deselect previous
-                if (_selectedEntity.Valid)
-                    _selectedEntity.Remove<BorderHighlightOverlay>();
-                if (response.TryGetPickingResult(out var result))
-                {
-                    _pickedEntityId = (int)result.Entity.Id;
-                    _pickedInstanceIdx = result.InstanceId;
-
-                    Debug.Assert(
-                        _worldDataProvider.World.Id == result.Entity.WorldId,
-                        "Picked world ID does not match current world"
-                    );
-                    _selectedEntity = result.Entity;
-
-                    if (_selectedEntity.Valid)
-                    {
-                        _selectedEntity.Set(BorderHighlightOverlay.Default);
-                    }
-                }
-            }
-        );
     }
 
     private void ApplyGlobalPointSize()
@@ -641,9 +506,7 @@ public sealed class PointsDemo : IDisposable
     {
         if (!_disposed && disposing)
         {
-            _worldDataProvider?.Dispose();
-            _renderContext?.Teardown();
-            _engine?.Dispose();
+            Engine.Dispose();
             _disposed = true;
         }
     }
@@ -656,10 +519,9 @@ public sealed class PointsDemo : IDisposable
 
     public static void Run()
     {
-        var demo = new PointsDemo();
-        demo.Initialize(300, 400);
+        var demo = new PointsApp(300, 400);
         demo.Render();
-        demo.DownloadRenderedImage();
+        demo.Engine.Save("output_points.bmp");
     }
 }
 

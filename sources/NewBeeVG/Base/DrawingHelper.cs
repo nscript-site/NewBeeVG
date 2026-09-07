@@ -193,9 +193,8 @@ public class DrawingHelper
     /// <param name="bgra">输入：B G R A 顺序，每像素4字节</param>
     /// <param name="width">图像宽</param>
     /// <param name="height">图像高</param>
-    /// <param name="filePath">输出路径</param>
     /// <returns>转换得到的SKBitmap，调用方负责释放</returns>
-    public static unsafe SKBitmap BgraToSKBitmap(byte[] bgra, int width, int height, string filePath)
+    public static unsafe SKBitmap BgraToSKBitmap(byte[] bgra, int width, int height)
     {
         if (bgra == null)
             throw new ArgumentNullException(nameof(bgra));

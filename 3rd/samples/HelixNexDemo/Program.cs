@@ -4,7 +4,11 @@ internal class Program
 {
     static void Main(string[] args)
     {
-        PointsDemo.Run();
+        // API Tests
+        //HelloTriangleApp.Run();
+
+        // APP Tests
+        PointsApp.Run();
         Console.WriteLine("Finished!");
     }
 }
