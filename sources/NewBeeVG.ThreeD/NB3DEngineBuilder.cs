@@ -220,18 +220,12 @@ public sealed class NB3DEngineBuilder
     /// </summary>
     /// <param name="renderToSwapchain">Whether engine renders onto swapchain. Set it to false if engine should render onto an external texture.</param>
     /// <returns>This builder for method chaining.</returns>
-    public NB3DEngineBuilder WithDefaultNodes(bool renderToSwapchain = true)
+    public NB3DEngineBuilder WithDefaultNodes()
     {
         WithBillBoard();
         WithPointCloud();
         WithLine();
         WithTransparent(TransparentMode.WBOIT);
-
-        _addRenderToFinal = renderToSwapchain && _context.GetNumSwapchainImages() > 0;
-        if (renderToSwapchain)
-        {
-            _finalTextureFormat = _context.GetSwapchainFormat();
-        }
         return this;
     }
 

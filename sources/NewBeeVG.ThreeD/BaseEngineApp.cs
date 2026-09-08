@@ -3,7 +3,7 @@ using HelixToolkit.Nex.Engine.Cameras;
 using HelixToolkit.Nex.Maths;
 using System.Numerics;
 
-namespace HelixNexDemo;
+namespace NewBeeVG.ThreeD;
 
 public class BaseEngineApp : IDisposable
 {

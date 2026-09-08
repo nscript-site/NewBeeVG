@@ -1,6 +1,7 @@
 ﻿using HelixToolkit.Nex;
 using HelixToolkit.Nex.ECS;
 using HelixToolkit.Nex.Engine;
+using HelixToolkit.Nex.Engine.Components;
 using HelixToolkit.Nex.Geometries;
 using HelixToolkit.Nex.Graphics;
 using HelixToolkit.Nex.Maths;
@@ -8,7 +9,9 @@ using HelixToolkit.Nex.Rendering;
 using HelixToolkit.Nex.Rendering.Components;
 using HelixToolkit.Nex.Rendering.SDF;
 using HelixToolkit.Nex.Scene;
+using HelixToolkit.Nex.Shaders;
 using SkiaSharp;
+using System.Numerics;
 
 namespace NewBeeVG.ThreeD;
 
@@ -110,6 +113,43 @@ public class NBEngine : IDisposable
     )
     {
         return BillboardExtensions.CreateBillboard(_engine, fontType, text, fontSize, color, background, anchor, materialName, fixedSize, cullDistance);
+    }
+
+    public LineNode AddLineSet(Geometry geo,
+        Color4 color,
+        float thickness, string? material = null, bool hitable = true, Node? parent = null)
+    {
+        Console.WriteLine($"[LineSet] color:{color.ToString()},thickness:{thickness}");
+
+        var node = World.CreateLineNode($"Node_Line_{Guid.NewGuid().ToString()}");
+        if (parent == null) parent = Root;
+        parent.AddChild(node);
+        node.Geometry = geo;
+        node.LineColor = color;
+        node.LineThickness = thickness;
+        node.LineMaterialName = material ?? "Default";
+        node.Hitable = hitable;
+        _engine.Add(geo);
+        return node;
+    }
+
+    public Node AddDirectionalLight(Vector3 direction, Vector3 color, float intensity = 0.8f)
+    {
+        // Directional light so any future meshes are lit.
+        var lightNode = new Node(World) { Name = "DirectionalLight" };
+        lightNode.Entity.Set(
+            new DirectionalLightInfo
+            {
+                Light = new DirectionalLight
+                {
+                    Direction = Vector3.Normalize(direction),
+                    Color = color,
+                    Intensity = intensity,
+                },
+            }
+        );
+        Root.AddChild(lightNode);
+        return lightNode;
     }
 
     public void Save(string bmpFilePath)

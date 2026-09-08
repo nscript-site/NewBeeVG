@@ -1,11 +1,11 @@
-﻿using FFmpeg.AutoGen.Abstractions;
-using HelixToolkit.Nex.Graphics;
+﻿using HelixToolkit.Nex.Graphics;
 using HelixToolkit.Nex.Maths;
 using SkiaSharp;
+using System.Numerics;
 
-namespace NewBeeVG.ThreeD;
+namespace NewBeeVG;
 
-public static class _Extentions
+public static partial class ThreeD_Extentions
 {
     public static void Submit(this IContext ctx, ICommandBuffer commandBuffer, bool wait = false)
     {
@@ -50,5 +50,20 @@ public static class _Extentions
         }
 
         return buff;
+    }
+
+    public static Color4 ToColor4(this SKColor color)
+    {
+        return new Color4(color.Red / 255f, color.Green / 255f, color.Blue / 255f, color.Alpha / 255f);
+    }
+
+    public static Color ToHelixColor(this SKColor color)
+    {
+        return new Color(color.Red, color.Green, color.Blue, color.Alpha);
+    }
+
+    public static Vector4 ToVector4(this SKColor color)
+    {
+        return new Vector4(color.Red / 255f, color.Green / 255f, color.Blue / 255f, color.Alpha / 255f);
     }
 }

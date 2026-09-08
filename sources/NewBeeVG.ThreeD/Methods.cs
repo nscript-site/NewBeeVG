@@ -1,0 +1,23 @@
+﻿using NewBeeVG.ThreeD;
+using SkiaSharp;
+using System.Numerics;
+
+namespace NewBeeVG;
+
+public static class Methods3D
+{
+    public static NBCanvas3D Canvas3D(int width = 100, int height = 100, SKColor? bg = null)
+    {
+        return new NBCanvas3D() { Width = width, Height = height, Background = bg };
+    }
+
+    public static NBLine3D Line3D(Vector3 start, Vector3 end, SKColor color, float thickness)
+    {
+        return new NBLine3D() { Start = start, End = end, Color = color, Thickness = thickness };
+    }
+
+    public static Vector3 Vec3(float x1, float x2, float x3)
+    {
+        return new Vector3(x1, x2, x3);
+    }
+}    

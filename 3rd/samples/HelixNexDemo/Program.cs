@@ -8,8 +8,9 @@ internal class Program
         //HelloTriangleApp.Run();
 
         // APP Tests
+        NewBeeVG.ThreeD.Internal.LinesApp.Run();
         //PointsApp.Run();
-        LinesApp.Run();
+        //LinesApp.Run();
         //BillboardApp.Run();
         Console.WriteLine("Finished!");
     }

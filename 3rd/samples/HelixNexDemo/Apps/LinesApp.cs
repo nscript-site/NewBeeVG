@@ -21,7 +21,6 @@ public class LinesApp : BaseEngineApp
     {
     }
 
-
     /// <summary>
     /// Registers several custom line material shaders to demonstrate the
     /// <see cref="LineMaterialRegistry"/> extensibility.
@@ -99,84 +98,40 @@ public class LinesApp : BaseEngineApp
     // ------------------------------------------------------------------
     protected override void BuildScene()
     {
-        var world = Engine.World;
-        var root = Engine.Root;
-
         // Directional light so any future meshes are lit.
-        var lightNode = new Node(world) { Name = "DirectionalLight" };
-        lightNode.Entity.Set(
-            new DirectionalLightInfo
-            {
-                Light = new DirectionalLight
-                {
-                    Direction = Vector3.Normalize(new Vector3(0.5f, -1f, 0.5f)),
-                    Color = new Vector3(1f, 0.98f, 0.95f),
-                    Intensity = 0.8f,
-                },
-            }
-        );
-        root.AddChild(lightNode);
+        Engine.AddDirectionalLight(new Vector3(0.5f, -1f, 0.5f), new Vector3(1f, 0.98f, 0.95f));
 
         // 1. Axes — 3 colored segments from origin.
-        AddLineSet("Axes", GenerateAxes(10f), new Color4(1f, 1f, 1f, 1f), "Default", thickness: 3f);
+        Engine.AddLineSet(GenerateAxes(10f), new Color4(1f, 1f, 1f, 1f), material: "Default", thickness: 3f);
 
         // 2. Grid — ground grid on the XZ plane.
-        AddLineSet(
-            "Grid",
+        Engine.AddLineSet(
             GenerateGrid(20, 1f, new Color4(0.4f, 0.4f, 0.45f, 1f)),
             new Color4(0.4f, 0.4f, 0.45f, 1f),
-            "Default",
             thickness: 1f
         );
 
         // 3. Helix — connected disjoint segments with per-vertex gradient colors.
-        AddLineSet(
-            "Helix",
+        Engine.AddLineSet(
             GenerateHelix(256, 4f, 12f, 4, new Vector3(15, 0, 0)),
             new Color4(1f, 0.5f, 0.2f, 1f),
-            "Gradient",
             thickness: 3f
         );
 
         // 4. Wireframe Box — 12 edges of a cube as 12 segments.
-        AddLineSet(
-            "Wireframe Box",
+        Engine.AddLineSet(
             GenerateWireframeBox(new Vector3(-15, 3, 0), 6f, new Color4(0.3f, 1f, 0.5f, 1f)),
             new Color4(0.3f, 1f, 0.5f, 1f),
-            "Glow",
             thickness: 4f
         );
 
         // 5. Animated Wave — dynamic segments whose endpoints animate over time.
-        AddLineSet(
-            "Animated Wave",
+        Engine.AddLineSet(
             GenerateWave(48, 16f, 0f, new Vector3(0, -5, 15), null),
             new Color4(0.9f, 0.85f, 0.2f, 1f),
-            "Dashed",
+            material: "Dashed",
             thickness: 2f
         );
-    }
-
-    private void AddLineSet(
-        string name,
-        Geometry geo,
-        Color4 color,
-        string materialName,
-        float thickness
-    )
-    {
-        var world = Engine.World;
-        var root = Engine.Root;
-        var node = world.CreateLineNode(name);
-        root!.AddChild(node);
-
-        node.Geometry = geo;
-        node.LineColor = color;
-        node.LineThickness = thickness;
-        node.LineMaterialName = materialName;
-        node.Hitable = true;
-
-        Engine.Add(geo);
     }
 
     // ------------------------------------------------------------------
