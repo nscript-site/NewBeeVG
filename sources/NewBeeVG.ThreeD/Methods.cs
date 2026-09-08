@@ -12,9 +12,14 @@ public static class Methods3D
         return new NBCanvas3D() { Width = width, Height = height, Background = bg };
     }
 
-    public static NBLine3D Line3D(Vector3 start, Vector3 end, SKColor color, float thickness)
+    public static NBLine3D Line3D(Vector3 start, Vector3 end, SKColor color, float thickness = 1)
     {
         return new NBLine3D() { Start = start, End = end, Color = color, Thickness = thickness };
+    }
+
+    public static NBGroundGrid GroundGrid(int halfLines, float spacing, SKColor color, float thickness = 1)
+    {
+        return new NBGroundGrid() { HalfLines = halfLines, Spacing = spacing, Color = color, Thickness = thickness };
     }
 
     public static Vector3 Vec3(float x1, float x2, float x3)

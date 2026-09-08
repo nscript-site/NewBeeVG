@@ -35,7 +35,7 @@ public class NBLine3D : NBNode3D
         bool isCache = cache != null;
         var c = Color.ToVector4();
         var geo = cache ?? new Geometry(isDynamic: true);
-        AddSegment(geo, Start, End, c, c);
+        SetLineSegment(geo, Start, End, c, c);
         if (isCache)
             geo.MarkDirty(GeometryBufferType.Vertex | GeometryBufferType.VertexColor);
         return geo;
@@ -47,9 +47,9 @@ public class NBLine3D : NBNode3D
         var red = new Vector4(1f, 0.1f, 0.1f, 1f);
         var green = new Vector4(0.1f, 1f, 0.1f, 1f);
         var blue = new Vector4(0.2f, 0.4f, 1f, 1f);
-        AddSegment(geo, Vector3.Zero, new Vector3(length, 0, 0), red, red);
-        AddSegment(geo, Vector3.Zero, new Vector3(0, length, 0), green, green);
-        AddSegment(geo, Vector3.Zero, new Vector3(0, 0, length), blue, blue);
+        SetLineSegment(geo, Vector3.Zero, new Vector3(length, 0, 0), red, red);
+        SetLineSegment(geo, Vector3.Zero, new Vector3(0, length, 0), green, green);
+        SetLineSegment(geo, Vector3.Zero, new Vector3(0, 0, length), blue, blue);
         return geo;
     }
 

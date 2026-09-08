@@ -1,4 +1,5 @@
 ﻿using HelixToolkit.Nex.Geometries;
+using HelixToolkit.Nex.Maths;
 using HelixToolkit.Nex.Scene;
 using SkiaSharp;
 using System.Numerics;
@@ -9,8 +10,8 @@ public class NBGroundGrid : NBNode3D
 {
     public SKColor Color { get; set; }
     public float Thickness { get; set; } = 1;
-    public Vector3 Start { get; set; }
-    public Vector3 End { get; set; }
+    public int HalfLines { get; set { field = Math.Max(0, value); } }
+    public float Spacing { get; set { field = Math.Max(0.000001f, value); } }
 
     private LineNode? Node { get; set; }
 
@@ -20,36 +21,38 @@ public class NBGroundGrid : NBNode3D
 
     public override void Build(NBEngine engine)
     {
-        Geo = BuildGeometry(Geo);
+        Geo = GenerateGrid(HalfLines, Spacing, Color.ToColor4(), Geo);
         Node = engine.AddLineSet(Geo, Color.ToColor4(), Thickness);
     }
 
     protected override void Update()
     {
         if (Node == null) return;
-        BuildGeometry(Geo);
+        GenerateGrid(HalfLines, Spacing, Color.ToColor4(), Geo);
     }
 
-    private Geometry BuildGeometry(Geometry? cache = null)
+    private Geometry GenerateGrid(int halfLines, float spacing, Color4 color, Geometry? cache = null)
     {
         bool isCache = cache != null;
-        var c = Color.ToVector4();
         var geo = cache ?? new Geometry(isDynamic: true);
-        AddSegment(geo, Start, End, c, c);
+        var c = new Vector4(color.Red, color.Green, color.Blue, color.Alpha);
+        float extent = halfLines * spacing;
+        int count = halfLines * 2 + 1;
+        if(count > 1)
+        {
+            geo.Vertices.Resize(count * 4);
+            geo.VertexColors.Resize(count * 4);
+            int idx = 0;
+            for (int i = -halfLines; i <= halfLines; i++)
+            {
+                float p = i * spacing;
+                AddLineSegment(geo, idx * 4, new Vector3(-extent, 0, p), new Vector3(extent, 0, p), c, c);
+                AddLineSegment(geo, idx * 4 + 2, new Vector3(p, 0, -extent), new Vector3(p, 0, extent), c, c);
+                idx++;
+            }
+        }
         if (isCache)
             geo.MarkDirty(GeometryBufferType.Vertex | GeometryBufferType.VertexColor);
-        return geo;
-    }
-
-    private Geometry GenerateAxes(float length)
-    {
-        var geo = new Geometry();
-        var red = new Vector4(1f, 0.1f, 0.1f, 1f);
-        var green = new Vector4(0.1f, 1f, 0.1f, 1f);
-        var blue = new Vector4(0.2f, 0.4f, 1f, 1f);
-        AddSegment(geo, Vector3.Zero, new Vector3(length, 0, 0), red, red);
-        AddSegment(geo, Vector3.Zero, new Vector3(0, length, 0), green, green);
-        AddSegment(geo, Vector3.Zero, new Vector3(0, 0, length), blue, blue);
         return geo;
     }
 
