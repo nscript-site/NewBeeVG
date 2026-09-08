@@ -11,11 +11,14 @@
   </ItemGroup>
   <ItemGroup>
     <Using Include="NewBeeVG" />
+    <Using Include="NewBeeVG.ThreeD" />
     <Using Include="SkiaSharp" />
     <Using Include="NewBeeVG.Methods" Static="True" />
+    <Using Include="NewBeeVG.Methods3D" Static="True" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\sources\NewBeeVG\NewBeeVG.csproj" />
+    <ProjectReference Include="..\..\sources\NewBeeVG.ThreeD\NewBeeVG.ThreeD.csproj" />
     <!-- <PackageReference Include="NewBeeVG" Version="1.0.1.1" /> -->
   </ItemGroup>
   <ItemGroup>

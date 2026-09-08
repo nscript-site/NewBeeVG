@@ -36,4 +36,3 @@ run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2]);
 ```
 
 )
-
