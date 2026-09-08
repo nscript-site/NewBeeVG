@@ -1,10 +1,7 @@
 ﻿using HelixToolkit.Nex.Engine.CameraControllers;
 using HelixToolkit.Nex.Engine.Cameras;
 using HelixToolkit.Nex.Maths;
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
 namespace HelixNexDemo;
 

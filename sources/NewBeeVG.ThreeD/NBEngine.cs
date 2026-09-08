@@ -5,6 +5,8 @@ using HelixToolkit.Nex.Geometries;
 using HelixToolkit.Nex.Graphics;
 using HelixToolkit.Nex.Maths;
 using HelixToolkit.Nex.Rendering;
+using HelixToolkit.Nex.Rendering.Components;
+using HelixToolkit.Nex.Rendering.SDF;
 using HelixToolkit.Nex.Scene;
 using SkiaSharp;
 
@@ -24,6 +26,7 @@ public class NBEngine : IDisposable
     public TextureResource? Texture => _renderTexture?.Texture;
     public Handle<Texture>? TextureHandle => _renderTexture?.Handle;
 
+    public IContext Context => _context;
     public RenderContext RenderContext => _renderContext;
     public Engine _engine;
     private WorldDataProvider _worldDataProvider;
@@ -33,6 +36,8 @@ public class NBEngine : IDisposable
     public World World => _worldDataProvider.World;
 
     public WorldDataProvider WorldDataProvider => _worldDataProvider;
+
+    public IResourceManager ResourceManager => _engine.ResourceManager;
 
     public NBEngine(int width, int height, Color? backgroundColor = null)
     {
@@ -84,6 +89,27 @@ public class NBEngine : IDisposable
 
         _engine.Submit(cmdBuf, HelixToolkit.Nex.Handle<HelixToolkit.Nex.Graphics.Texture>.Null);
         _engine.WaitForIdle();
+    }
+
+    public T? GetRenderNode<T>()
+        where T : RenderNode
+    {
+        return _engine.GetRenderNode<T>();
+    }
+
+    public BillboardDrawInfo CreateBillboard(
+        BuildinFontAtlas fontType,
+        string text,
+        float fontSize,
+        Color4 color,
+        Color4? background = null,
+        BillboardAnchor anchor = BillboardAnchor.Center,
+        string materialName = "SDFFont",
+        bool fixedSize = true,
+        float cullDistance = 0
+    )
+    {
+        return BillboardExtensions.CreateBillboard(_engine, fontType, text, fontSize, color, background, anchor, materialName, fixedSize, cullDistance);
     }
 
     public void Save(string bmpFilePath)
