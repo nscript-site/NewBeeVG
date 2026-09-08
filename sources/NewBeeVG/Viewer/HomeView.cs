@@ -21,6 +21,7 @@ public class HomeView : BaseView
 
     protected void LoadPlayable(IPlayable playable, NBWork work)
     {
+        playable.Reset();
         Player?.Load(playable, work);
     }
 }

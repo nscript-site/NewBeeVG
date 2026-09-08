@@ -17,6 +17,12 @@ public class NBTrack : IPlayable
     
     private int _frames = -1;
 
+    public void Reset()
+    {
+        foreach (var item in Clips)
+            item.Reset();
+    }
+
     public int Measure()
     {
         if (_frames >= 0) return _frames;

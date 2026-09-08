@@ -6,6 +6,9 @@ public class NBDrawingClip : NBClip
 {
     public SKBlendMode BlendMode { get; private set; }
 
+    private NBVisual? _content;
+    private NBVisual? _mask;
+
     public NBDrawingClip(string name = "clip", 
         Action<NBDrawContext, NBClip, SKCanvas>? builder = null,
         Action<NBDrawContext, NBClip, SKCanvas>? mask = null, 
@@ -54,6 +57,8 @@ public class NBDrawingClip : NBClip
     : base(name, ConvertBuilder(null, ToBuilder(content), null, ToBuilder(mask), blend), duration, start)
     {
         BlendMode = blend;
+        _content = content;
+        _mask = mask;
     }
 
     private static Func<NBDrawContext, NBClip, NBVisual?> ToBuilder(NBVisual? content)
@@ -114,5 +119,11 @@ public class NBDrawingClip : NBClip
             targetCanvas.DrawBitmap(srcBitmap, new SKPoint(0, 0), paint);
             canvas.DrawBitmap(targetBitmap, new SKPoint(0, 0));
         };
+    }
+
+    public override void Reset()
+    {
+        _content?.Reset();
+        _mask?.Reset();
     }
 }

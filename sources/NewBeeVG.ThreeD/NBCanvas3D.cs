@@ -100,6 +100,37 @@ public class NBCanvas3D : NBVisual
         var snap = _engine.SnapshotSKBitmap();
         return snap;
     }
+
+    public void RotateCamera(float x, float y)
+    {
+        if (CameraController == null) return;
+        CameraController.OnRotateBegin(0, 0);
+        CameraController.OnRotateDelta(x, y);
+    }
+
+    public void PanCamera(float x, float y)
+    {
+        if (CameraController == null) return;
+        CameraController.OnPanBegin(0, 0);
+        CameraController.OnPanDelta(x, y);
+    }
+
+    public void ZoomCamera(float delta)
+    {
+        if (CameraController == null) return;
+        CameraController.OnZoomDelta(delta);
+    }
+
+    public void ResetCamera()
+    {
+        if (CameraController == null) return;
+        CameraController.Reset();
+    }
+
+    public override void Reset()
+    {
+        ResetCamera();
+    }
 }
 
 public static partial class NBExtentions_Three3D
@@ -139,7 +170,7 @@ public static partial class NBExtentions_Three3D
     public static T Camera<T>(this T self, Camera camera, ICameraController? cameraController = null) where T : NBCanvas3D
     {
         self.Camera = camera;
-        if (cameraController != null) self.CameraController = cameraController;
+        self.CameraController = cameraController ?? new OrbitCameraController(camera);
         return self;
     }
 }

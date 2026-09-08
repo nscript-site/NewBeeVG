@@ -4,6 +4,8 @@ namespace NewBeeVG;
 
 public interface IPlayable
 {
+    public void Reset();
+
     public bool Render(SKBitmap bitmap, NBStage stage, int frame)
     {
         using(SKCanvas canvas = new SKCanvas(bitmap))

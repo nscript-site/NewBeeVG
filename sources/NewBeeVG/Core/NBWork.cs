@@ -14,6 +14,12 @@ public class NBWork : IPlayable
 
     public double Fps => Stage.FrameRate;
 
+    public void Reset()
+    {
+        foreach (var item in Tracks)
+            item.Reset();
+    }
+
     public int Measure()
     {
         if(_frames >= 0) return _frames;

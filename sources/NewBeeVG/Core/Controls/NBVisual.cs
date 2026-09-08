@@ -56,6 +56,14 @@ public class NBVisual
 
     public NBParamsInGrid? ParamsInGrid { get; set; }
 
+    public virtual void Reset()
+    {
+        foreach (var child in VisualChildren)
+        {
+            child.Reset();
+        }
+    }
+
     /// <summary>
     /// Gets the size that this element computed during the measure pass of the layout process.
     /// </summary>

@@ -29,15 +29,13 @@ internal class Canvas3DSample
             ]),
             VStack([
                 TextBlock("3D演示2").Font(40, SKColors.Black),
-                Canvas3D(800,800,SKColors.White)
+                Canvas3D(800,800,SKColors.White).Ref(out var canvas)
+                    .OnFrame(e=>{ canvas.RotateCamera(2f,0); canvas.ZoomCamera(-0.1f); })
                     .Camera(PerspectiveCamera(Vec3(-10, -12, 25)))
                     .Nodes([
-                        Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,thickness)
-                            .OnFrameT(e=>e.Sender.End = Vec3(0,0,len*e.pf)),
-                        Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,thickness)
-                            .OnFrameT(e=>e.Sender.End = Vec3(0,len*e.pf,0)),
-                        Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,thickness)
-                            .OnFrameT(e=>e.Sender.End = Vec3(len*e.pf,0,0)),
+                        Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,thickness),
+                        Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,thickness),
+                        Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,thickness),
                     ]).Align(0,-1)
             ])
         ])

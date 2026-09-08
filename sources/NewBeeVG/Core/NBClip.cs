@@ -25,6 +25,10 @@ public class NBClip : IPlayable
 
     public bool IsVisible { get; set; } = true;
 
+    public virtual void Reset()
+    {
+    }
+
     public NBClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
     {
         Name = name;
