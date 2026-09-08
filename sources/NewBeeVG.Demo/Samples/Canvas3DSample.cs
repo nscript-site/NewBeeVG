@@ -11,15 +11,35 @@ internal class Canvas3DSample
         font("阿里巴巴普惠体 2.0");
 
         float len = 10;
+        float thickness = 5;
 
-        VStack([
-            TextBlock("3D演示").Font(120, SKColors.Black),
-            Canvas3D(800,800,SKColors.Black).Nodes([
-                //Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,2),
-                //Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,2),
-                Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,2)
-                    .OnFrameT(e=>e.Sender.End = Vec3(len*e.pf,0,0)),
-                ]).Align(0,-1)
+        HStack([
+            VStack([
+                TextBlock("3D演示1").Font(40, SKColors.Black),
+                Canvas3D(800,800,SKColors.Black)
+                    .Camera(PerspectiveCamera(Vec3(10, 12, -25)))
+                    .Nodes([
+                        Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,thickness)
+                            .OnFrameT(e=>e.Sender.End = Vec3(0,0,len*e.pf)),
+                        Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,thickness)
+                            .OnFrameT(e=>e.Sender.End = Vec3(0,len*e.pf,0)),
+                        Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,thickness)
+                            .OnFrameT(e=>e.Sender.End = Vec3(len*e.pf,0,0)),
+                    ]).Align(0,-1)
+            ]),
+            VStack([
+                TextBlock("3D演示2").Font(40, SKColors.Black),
+                Canvas3D(800,800,SKColors.White)
+                    .Camera(PerspectiveCamera(Vec3(-10, -12, 25)))
+                    .Nodes([
+                        Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,thickness)
+                            .OnFrameT(e=>e.Sender.End = Vec3(0,0,len*e.pf)),
+                        Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,thickness)
+                            .OnFrameT(e=>e.Sender.End = Vec3(0,len*e.pf,0)),
+                        Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,thickness)
+                            .OnFrameT(e=>e.Sender.End = Vec3(len*e.pf,0,0)),
+                    ]).Align(0,-1)
+            ])
         ])
         .Align(0, 0)
         .AsClip(out var clip1, frames: 40, name: "3d");

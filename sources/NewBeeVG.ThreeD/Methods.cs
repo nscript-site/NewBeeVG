@@ -1,4 +1,5 @@
-﻿using NewBeeVG.ThreeD;
+﻿using HelixToolkit.Nex.Engine.Cameras;
+using NewBeeVG.ThreeD;
 using SkiaSharp;
 using System.Numerics;
 
@@ -19,5 +20,10 @@ public static class Methods3D
     public static Vector3 Vec3(float x1, float x2, float x3)
     {
         return new Vector3(x1, x2, x3);
+    }
+
+    public static PerspectiveCamera PerspectiveCamera(Vector3 position, Vector3? target = null, float farPlane = 500)
+    {
+        return new PerspectiveCamera() { Position = position, Target = target ?? Vector3.Zero, FarPlane = farPlane };
     }
 }    

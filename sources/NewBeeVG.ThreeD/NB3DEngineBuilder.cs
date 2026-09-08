@@ -225,6 +225,8 @@ public sealed class NB3DEngineBuilder
         WithBillBoard();
         WithPointCloud();
         WithLine();
+        WithSMAA();
+        WithBloom();
         WithTransparent(TransparentMode.WBOIT);
         return this;
     }

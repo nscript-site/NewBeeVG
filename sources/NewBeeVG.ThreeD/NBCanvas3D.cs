@@ -136,7 +136,7 @@ public static partial class NBExtentions_Three3D
         return self;
     }
 
-    public static T Camera<T>(this T self, Camera camera, ICameraController? cameraController) where T : NBCanvas3D
+    public static T Camera<T>(this T self, Camera camera, ICameraController? cameraController = null) where T : NBCanvas3D
     {
         self.Camera = camera;
         if (cameraController != null) self.CameraController = cameraController;
