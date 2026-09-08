@@ -20,11 +20,11 @@ internal class Canvas3DSample
                     .Camera(PerspectiveCamera(Vec3(10, 12, -25)))
                     .Nodes([
                         GroundGrid(10,1,SKColors.White,1),
-                        Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,thickness)
+                        Line3D(Vec3(),Vec3(0,0,len),SKColors.Red,thickness)
                             .OnFrameT(e=>e.Sender.End = Vec3(0,0,len*e.pf)),
-                        Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,thickness)
+                        Line3D(Vec3(),Vec3(0,len,0),SKColors.Green,thickness)
                             .OnFrameT(e=>e.Sender.End = Vec3(0,len*e.pf,0)),
-                        Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,thickness)
+                        Line3D(Vec3(),Vec3(len,0,0),SKColors.Blue,thickness)
                             .OnFrameT(e=>e.Sender.End = Vec3(len*e.pf,0,0)),
                     ]).Align(0,-1)
             ]),
@@ -35,9 +35,9 @@ internal class Canvas3DSample
                     .Camera(PerspectiveCamera(Vec3(-10, -12, 25)))
                     .Nodes([
                         GroundGrid(10,1,SKColors.Black,1),
-                        Line3D(Vec3(0,0,0),Vec3(0,0,len),SKColors.Red,thickness),
-                        Line3D(Vec3(0,0,0),Vec3(0,len,0),SKColors.Green,thickness),
-                        Line3D(Vec3(0,0,0),Vec3(len,0,0),SKColors.Blue,thickness),
+                        Line3D(Vec3(),Vec3(0,0,len),SKColors.Red,thickness),
+                        Line3D(Vec3(),Vec3(0,len,0),SKColors.Green,thickness),
+                        Line3D(Vec3(),Vec3(len,0,0),SKColors.Blue,thickness),
                     ]).Align(0,-1)
             ])
         ])
