@@ -9,8 +9,8 @@ internal class Program
 
         // APP Tests
         //PointsApp.Run();
-        //LinesApp.Run();
-        BillboardApp.Run();
+        LinesApp.Run();
+        //BillboardApp.Run();
         Console.WriteLine("Finished!");
     }
 }

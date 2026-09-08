@@ -14,8 +14,6 @@ public class LinesApp : BaseEngineApp
 {
     private static readonly ILogger _logger = LogManager.Create<PointsApp>();
 
-    private readonly List<LineEntry> _lineSets = [];
-
     private float _globalLineWidth = 2.0f;
     private float _animTime;
 
@@ -23,9 +21,6 @@ public class LinesApp : BaseEngineApp
     {
     }
 
-    // ------------------------------------------------------------------
-    // Custom line material registration
-    // ------------------------------------------------------------------
 
     /// <summary>
     /// Registers several custom line material shaders to demonstrate the
@@ -181,15 +176,6 @@ public class LinesApp : BaseEngineApp
         node.LineMaterialName = materialName;
         node.Hitable = true;
 
-        _lineSets.Add(
-            new LineEntry(
-                name,
-                node,
-                geo,
-                color,
-                thickness
-            )
-        );
         Engine.Add(geo);
     }
 
@@ -332,49 +318,10 @@ public class LinesApp : BaseEngineApp
         return geo;
     }
 
-    protected override void UpdateData()
-    {
-        // The "Animated Wave" is the last line set (index 4)
-        if (_lineSets.Count < 5)
-            return;
-        var entry = _lineSets[4];
-        int side = entry.Lines.Vertices.Count / 2;
-        var geo = GenerateWave(side, 16f, _animTime, new Vector3(0, -5, 15), entry.Lines);
-        // Re-set the geometry so the node re-uploads the dynamic buffers.
-        entry.Node.Geometry = geo;
-    }
-
     public static void Run()
     {
         var demo = new LinesApp(800, 800);
         demo.Render();
         demo.Engine.Save("output_lines.bmp");
-    }
-}
-
-/// <summary>
-/// Tracks a single line set entity for the demo UI.
-/// </summary>
-internal sealed class LineEntry
-{
-    public string Name { get; }
-    public LineNode Node { get; }
-    public Geometry Lines { get; set; }
-    public Color4 Color { get; set; }
-    public float Thickness;
-
-    public LineEntry(
-        string name,
-        LineNode node,
-        Geometry lines,
-        Color4 color,
-        float thickness
-    )
-    {
-        Name = name;
-        Node = node;
-        Lines = lines;
-        Color = color;
-        Thickness = thickness;
     }
 }
