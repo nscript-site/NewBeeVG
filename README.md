@@ -90,7 +90,7 @@ run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]);
 
 效果如下：
 
- <img src="./assets/record-animate.gif" alt="logo" />
+ <img src="./assets/record-animate.gif" alt="animate" />
 
 点击 `track`，可以看到整个 track 的动画。点击每个 clip，可以看到单独 clip 的动画。右上角的两个按钮可以将内容导出为 mp4 视频和 gif 动画。导出 mp4 视频时不会进行缩放。如果画面尺寸大于 1000，导出 gif 时会缩放到 1000。
 
@@ -120,16 +120,19 @@ save("youtpath.mp4", stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]
 
 - [常用组件](https://github.com/nscript-site/NewBeeVG/blob/main/docs/widgets.md)
 
-- [3D 节点](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3dnodes.md)
+- [常用 3D 节点](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3dnodes.md)
+
+## 工作管理
+
+- [集成外部视频AIGC接口](https://github.com/nscript-site/NewBeeVG/blob/main/docs/video-aigc.md)
+
+- [集成 TTS 接口](https://github.com/nscript-site/NewBeeVG/blob/main/docs/tts.md)
+
+- [视频脚本驱动的内容生成](https://github.com/nscript-site/NewBeeVG/blob/main/docs/scripts.md)
 
 ## TODO
 
 - [x] File Based App 示例
 - [x] 导出视频
 - [x] 集成 3D 模块 
-- [ ] 完善排版布局文档
-- [x] 完善实现动画文档
-- [ ] 完善特效文档
-- [ ] 完善嵌入 typst 动画文档
-- [ ] 完善嵌入 3D 动画文档
-- [x] 完善嵌入 python 生态文档
+- [ ] 完善文档
