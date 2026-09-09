@@ -18,11 +18,23 @@ public class NBFrameUpdateEvent
         return Sender as T;
     }
 
+    /// <summary>
+    /// 在 clip 中的进度，double 值
+    /// </summary>
     public double progress => Ctx.progress;
 
+    /// <summary>
+    /// 在 clip 中的进度，double 值
+    /// </summary>
     public double p => Ctx.progress;
 
+    /// <summary>
+    /// 在 clip 中的帧编号
+    /// </summary>
     public int frame => Ctx.frame;
 
+    /// <summary>
+    /// 在 clip 中的进度，float 值
+    /// </summary>
     public float pf => (float)Ctx.progress;
 }

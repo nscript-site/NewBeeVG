@@ -17,11 +17,11 @@
     <Company>geblab</Company>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <PackageReadmeFile>README-3D.md</PackageReadmeFile>
+    <PackageReadmeFile>3d.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\README-3D.md">
+    <None Include="..\..\docs\3d.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
