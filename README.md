@@ -102,9 +102,13 @@ save("youtpath.mp4", stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]
 
 ## 详细文档
 
+- [基础概念](https://github.com/nscript-site/NewBeeVG/blob/main/docs/design.md)
+
 - [排版布局](https://github.com/nscript-site/NewBeeVG/blob/main/docs/layout.md)
 
 - [实现动画](https://github.com/nscript-site/NewBeeVG/blob/main/docs/animates.md)
+
+- [显示文字](https://github.com/nscript-site/NewBeeVG/blob/main/docs/texts.md)
 
 - [使用特效](https://github.com/nscript-site/NewBeeVG/blob/main/docs/effects.md)
 
@@ -113,6 +117,10 @@ save("youtpath.mp4", stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]
 - [嵌入 3D 动画](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3d.md)
 
 - [嵌入 python 生态](https://github.com/nscript-site/NewBeeVG/blob/main/docs/py-embed.md)
+
+- [常用组件](https://github.com/nscript-site/NewBeeVG/blob/main/docs/widgets.md)
+
+- [3D Node](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3dnodes.md)
 
 ## TODO
 
