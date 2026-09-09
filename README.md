@@ -90,7 +90,7 @@ run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]);
 
 效果如下：
 
-![录频](./assets/record-animate.gif)
+ <img src="./assets/record-animate.gif" alt="logo" />
 
 点击 `track`，可以看到整个 track 的动画。点击每个 clip，可以看到单独 clip 的动画。右上角的两个按钮可以将内容导出为 mp4 视频和 gif 动画。导出 mp4 视频时不会进行缩放。如果画面尺寸大于 1000，导出 gif 时会缩放到 1000。
 
