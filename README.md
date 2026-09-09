@@ -94,13 +94,44 @@ run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]);
 
 点击 `track`，可以看到整个 track 的动画。点击每个 clip，可以看到单独 clip 的动画。右上角的两个按钮可以将内容导出为 mp4 视频和 gif 动画。导出 mp4 视频时不会进行缩放。如果画面尺寸大于 1000，导出 gif 时会缩放到 1000。
 
-## 嵌入动画
+下面代码可以直接导出视频文件：
+
+```csharp
+save("youtpath.mp4", stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]);
+```
+
+## 排版布局
+
+撰写中 ...
+
+## 实现动画
+
+撰写中 ...
+
+## Filter、Mask 与 Shader
+
+撰写中 ...
+
+## 嵌入 typst 动画
+
+撰写中 ...
+
+## 嵌入 3D 动画
 
 嵌入 3D 动画参考 [README-3D](https://github.com/nscript-site/NewBeeVG/blob/main/README-3D.md)
+
+## 嵌入 python 生态
+
+撰写中 ...
 
 ## TODO
 
 - [x] File Based App 示例
 - [x] 导出视频
 - [x] 集成 3D 模块 
-- [ ] 完善文档
+- [ ] 完善排版布局文档
+- [ ] 完善实现动画文档
+- [ ] 完善 Filter 与特效文档
+- [ ] 完善嵌入 typst 动画文档
+- [ ] 完善嵌入 3D 动画文档
+- [ ] 完善嵌入 python 生态文档
