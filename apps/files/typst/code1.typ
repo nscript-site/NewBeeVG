@@ -16,10 +16,7 @@
 font("阿里巴巴普惠体 2.0");
 
 VStack([
-    Layer([
-        TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"),
-        Rect().Bind("Text").Shader(AlphaLinearGradientShader())
-    ]),
+    TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"),
     TextBlock("输入你的文字").Font(120, SKColors.Black)
         .OnFrame(e=> { e.Sender.Opacity(e.p);  e.SenderLayoutable?.Margin(0,e.p * 200,0,0); })
 ])
@@ -32,7 +29,10 @@ VStack([
     TextBlock("生成视频的全部代码").Font(40, SKColors.Black).Align(0,-1),
 ]).Align(0,0).AsClip(out var clip2, frames: 120, name: "code");
 
-run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2]);
+TextBlock("NewBee VG").FontSize(40).Margin(20).Align(1, -1)
+.AsClip(out var logo, frames: -1, start: 0, name: "logo");
+
+run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]);
 ```
 
 )

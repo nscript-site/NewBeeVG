@@ -225,8 +225,6 @@ public sealed class NB3DEngineBuilder
         WithBillBoard();
         WithPointCloud();
         WithLine();
-        WithSMAA();
-        WithBloom();
         WithTransparent(TransparentMode.WBOIT);
         return this;
     }
@@ -285,18 +283,30 @@ public sealed class NB3DEngineBuilder
         return this;
     }
 
+    /// <summary>
+    /// 开启 FXAA（Fast Approximate Anti-Aliasing）快速近似抗锯齿
+    /// </summary>
+    /// <returns></returns>
     public NB3DEngineBuilder WithFXAA()
     {
         _withFXAA = true;
         return this;
     }
 
+    /// <summary>
+    /// 开启 SMAA（Subpixel Morphological Anti-Aliasing）子像素形态抗锯齿。清晰度比 FXAA 好很多，锯齿去除效果更强；性能消耗高于 FXAA。
+    /// </summary>
+    /// <returns></returns>
     public NB3DEngineBuilder WithSMAA()
     {
         _withSMAA = true;
         return this;
     }
 
+    /// <summary>
+    /// 开启 Bloom 泛光效果。画面高亮区域向外扩散发光，游戏 / 3D 渲染常用，模拟强光发光（灯光、太阳、金属高光）
+    /// </summary>
+    /// <returns></returns>
     public NB3DEngineBuilder WithBloom()
     {
         _withBloom = true;
@@ -304,6 +314,7 @@ public sealed class NB3DEngineBuilder
     }
 
     /// <summary>
+    /// 屏幕空间环境光遮蔽，是全屏后处理渲染效果
     /// Registers a single <see cref="SsaoPostEffect"/> into the <see cref="PostEffectsNode"/>,
     /// unless an effect named <c>"SsaoPostEffect"</c> is already present.
     /// </summary>

@@ -1,15 +1,10 @@
-var clip1 = clip(
-    name: "typst",
-    frames: 30,
-    builder: (ctx, clip) =>
-    {
-        return
-        VGrid($"*", [
-                TypstFile("./typst/page1.typ")
-                    .Align(0,0)
-                    .TypstInputs(x=>{x["frames"] = $"{ctx.frame}"; })
-                ]).Background(SKColors.DeepSkyBlue);
-    }
-);
+#!/usr/bin/env dotnet
 
-run(stage(bg: SKColors.Orange), [clip1]);
+VGrid($"*", [
+    TypstFile("./typst/page1.typ")
+        .Align(0,0)
+        .OnFrame(e=> e.SenderAs<NBTypst>()?.TypstInputs(x=>x["frames"] = $"{e.frame}"))
+    ]).Background(SKColors.DeepSkyBlue)
+    .AsClip(out var clip, 30, name: "typst");
+
+run(stage(bg: SKColors.Orange), [clip]);

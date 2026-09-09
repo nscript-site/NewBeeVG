@@ -5,7 +5,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <RepositoryUrl>https://github.com/nscript-site/NewBeeVG</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageId>NewBeeVG.ThreeD</PackageId>
+    <PackageTags>avalonia,NewBeeVG</PackageTags>
+    <PackageProjectUrl>https://github.com/nscript-site/NewBeeVG</PackageProjectUrl>
+    <Copyright>geblab.com</Copyright>
+    <Title>NewBeeVG ThreeD: An 3d extention for NewBeeVG</Title>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>False</IncludeSymbols>
+    <Company>geblab</Company>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageReadmeFile>README-3D.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README-3D.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\3rd\helix-toolkit-nex\Source\HelixToolkit-Nex\HelixToolkit.Nex.Engine\HelixToolkit.Nex.Engine.csproj" />
@@ -14,4 +34,10 @@
     <ProjectReference Include="..\NewBeeVG\NewBeeVG.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 </Project>

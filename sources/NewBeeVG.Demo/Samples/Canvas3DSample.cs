@@ -11,13 +11,13 @@ internal class Canvas3DSample
         font("阿里巴巴普惠体 2.0");
 
         float len = 10;
-        float thickness = 5;
+        float thickness = 3;
 
         HStack([
             VStack([
                 TextBlock("3D动画 (Camera 固定)").Font(40, SKColors.Black),
                 Canvas3D(800,800,SKColors.Black)
-                    .Camera(PerspectiveCamera(Vec3(10, 12, -25)))
+                    .Camera(PerspectiveCamera(Vec3(0, 12, -25)))
                     .Nodes([
                         GroundGrid(10,1,SKColors.White,1),
                         Line3D(Vec3(),Vec3(0,0,len),SKColors.Red,thickness)
@@ -34,7 +34,7 @@ internal class Canvas3DSample
                     .OnFrame(e=>{ canvas.RotateCamera(2f,0); canvas.ZoomCamera(-0.1f); })
                     .Camera(PerspectiveCamera(Vec3(-10, -12, 25)))
                     .Nodes([
-                        GroundGrid(10,1,SKColors.Black,1),
+                        GroundGrid(10,1,SKColors.DimGray,1),
                         Line3D(Vec3(),Vec3(0,0,len),SKColors.Red,thickness),
                         Line3D(Vec3(),Vec3(0,len,0),SKColors.Green,thickness),
                         Line3D(Vec3(),Vec3(len,0,0),SKColors.Blue,thickness),

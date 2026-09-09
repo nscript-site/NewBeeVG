@@ -85,8 +85,11 @@ public class NBCanvas3D : NBVisual
         using var snap = Render3D();
         if (snap != null)
         {
-            using var paint = new SKPaint();
-            context.DrawBitmap(snap, this.Bounds, null);
+            using var paint = new SKPaint
+            {
+                IsAntialias = true // 抗锯齿，边缘更平滑
+            };
+            context.DrawBitmap(snap, this.Bounds, paint);
         }
     }
 
