@@ -120,7 +120,7 @@ save("youtpath.mp4", stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]
 
 - [常用组件](https://github.com/nscript-site/NewBeeVG/blob/main/docs/widgets.md)
 
-- [3D Node](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3dnodes.md)
+- [3D 节点](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3dnodes.md)
 
 ## TODO
 
