@@ -1,5 +1,7 @@
 # Typst 动画
 
+## 嵌入 Typst 动画
+
 内嵌需要本地安装 [typst](https://typst.app/)，且能正确编译/预览对应的 typ 文件。NewBeeVG 会调用 typst 的编译器，将 typ 文件编译成图像，嵌入到视频中。
 
 > [!NOTE]
@@ -49,12 +51,12 @@ $ a^2 + b^2 = c^2 $
 ```csharp
 #!/usr/bin/env dotnet
 
-VGrid($"*", [
+VStack([
     TypstFile("./typst/page1.typ").Ref(out var typ)
         .Align(0,0)
         .OnFrame(e=> typ.UpdateInputs("frames", e.frame))
-    ]).Background(SKColors.DeepSkyBlue)
-    .AsClip(out var clip, 30, name: "typst");
+]).Background(SKColors.DeepSkyBlue)
+.AsClip(out var clip, 30, name: "typst");
 
 run(stage(bg: SKColors.Orange), [clip]);
 ```
@@ -78,4 +80,58 @@ public static T UpdateInputs<T>(this T self, IList<(string, object)> inputs) whe
 {
     ...
 }
+```
+
+## 直接嵌入数学公式
+
+通过 `TypstMath` 扩展方法，不用写 typ 文件，即可嵌入代码。示例([typstmath.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstmath.cs))如下：
+
+```csharp
+#!/usr/bin/env dotnet
+
+var math = """
+            $ A = pi r^2 $
+            $ "area" = pi dot "radius"^2 $
+            $ cal(A) :=
+                { x in RR | x "is natural" } $
+            #let x = 5
+            $ #x < 17 $
+            """;
+VStack([
+    TextBlock("TypstMath 直接嵌入数学公式").Margin(10),
+    TypstMath(math)
+        .Align(0,-1).Margin(100)
+]).Margin(100)
+.AsClip(out var clip, 30, name: "typstmath");
+
+run(stage(bg: SKColors.Orange), [clip]);
+```
+
+## 直接嵌入代码
+
+通过 `TypstCode` 扩展方法，不用写 typ 文件，即可嵌入代码。示例([typstcode.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstcode.cs))如下：
+
+```csharp
+#!/usr/bin/env dotnet
+
+var code = """
+            #!/usr/bin/env dotnet
+
+            VGrid($"*", [
+                TypstFile("./typst/page1.typ").Ref(out var typ)
+                    .Align(0,0)
+                    .OnFrame(e=> typ.UpdateInputs("frames", e.frame))
+                ]).Background(SKColors.DeepSkyBlue)
+                .AsClip(out var clip, 30, name: "typst");
+
+            run(stage(bg: SKColors.Orange), [clip]);
+            """;
+VStack([
+    TextBlock("TypstCode 直接嵌入代码").Margin(10),
+    TypstCode(code,600, "csharp").PageMargin(0)
+        .Align(0,-1).Margin(0)
+]).Margin(10)
+.AsClip(out var clip, 30, name: "typstcode");
+
+run(stage(bg: SKColors.Orange), [clip]);
 ```
