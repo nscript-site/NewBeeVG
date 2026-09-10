@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media.TextFormatting;
 using NewBeeMedia;
+using NewBeeVG.Core.Controls;
 using NewBeeVG.Internal;
 using Python.Runtime;
 using SkiaSharp;
@@ -757,6 +758,29 @@ public static class Methods
         file.TypstFile = path;
         if (width.HasValue) file.Width = width.Value;
         if (height.HasValue) file.Height = height.Value;
+        return file;
+    }
+
+    public static NBTypstMath TypstMath(string content, float? fontSize = null, int? pageMargin = 10)
+    {
+        var file = new NBTypstMath();
+        file.TypstContent = content;
+        file.FontSize = fontSize;
+        if(pageMargin != null)
+            file.PageMargin(pageMargin.Value);
+        return file;
+    }
+
+    public static NBTypstCode TypstCode(string content, int pageWidth = 600, string? lang = null, bool showLang = true, float? fontSize = null, int? pageMargin = 10)
+    {
+        var file = new NBTypstCode();
+        file.TypstContent = content;
+        file.Lang = lang;
+        file.ShowLang = showLang;
+        file.FontSize = fontSize;
+        file.PageWidth = pageWidth;
+        if (pageMargin != null)
+            file.PageMargin(pageMargin.Value);
         return file;
     }
 

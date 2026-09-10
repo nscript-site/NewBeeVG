@@ -7,7 +7,17 @@ public class NBTypst : NBSvg
 {
     public String Workspace { get; set; } = String.Empty;
 
-    public string? TypstCode { get; set; }
+    public string? TypstCode {
+        get {
+            if (RawTypeContent == null) return null;
+            {
+                var content = OnLoadConent(RawTypeContent);
+                return content;
+            }
+        } 
+    }
+
+    public string? RawTypeContent { get; set; }
 
     public string? TypstFile { get; 
         set
@@ -16,14 +26,33 @@ public class NBTypst : NBSvg
             if(String.IsNullOrEmpty(value) == false && File.Exists(value))
             {
                 // Load the file or perform some action
-                TypstCode = File.ReadAllText(value);
+                RawTypeContent = File.ReadAllText(value);
                 var fileInfo = new FileInfo(value);
                 Workspace = fileInfo.DirectoryName ?? new DirectoryInfo("./").FullName;
             }
         } 
     }
 
-    public Dictionary<string,string>? TypstInputs { get; set; }
+    public string? TypstContent
+    {
+        get;
+        set
+        {
+            field = value;
+            if (String.IsNullOrEmpty(value) == false)
+            {
+                RawTypeContent = field;
+                Workspace = new DirectoryInfo("./").FullName;
+            }
+        }
+    }
+
+    protected virtual string OnLoadConent(string content)
+    {
+        return content;
+    }
+
+    protected internal Dictionary<string,string>? TypstInputs { get; set; }
 
     public Action<SKBitmap>? OnMeasureBitmap { get; set; }
 
