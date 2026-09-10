@@ -4,16 +4,16 @@
 #set page(  width: 600pt, height: auto)
 #set page(
     margin: (
-    top: 0pt,
-    bottom: 0pt,
-    left: 0pt,
-    right: 0pt,
+    top: 10pt,
+    bottom: 10pt,
+    left: 10pt,
+    right: 10pt,
     )
 )
 
 #zebraw(
 lang: true,
-```
+```cs
 #!/usr/bin/env dotnet
 
 VGrid($"*", [

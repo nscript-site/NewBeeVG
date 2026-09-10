@@ -59,7 +59,7 @@ internal class TypstSample
                    """;
         VStack([
             TextBlock("TypstCode 直接嵌入代码").Margin(10),
-            TypstCode(code,600, "csharp").PageMargin(0)
+            TypstCode(code,600, "cs").PageMargin(0)
                 .Align(0,-1).Margin(0)
         ]).Margin(10)
         .AsClip(out var clip4, 30, name: "typstcode");

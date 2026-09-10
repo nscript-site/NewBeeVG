@@ -784,6 +784,22 @@ public static class Methods
         return file;
     }
 
+    public static NBTypstCode TypstCodeFile([CallerFilePath] string path = "", int pageWidth = 600, float? fontSize = null, int? pageMargin = 10)
+    {
+        string content = String.Empty;
+        
+        try
+        {
+            content = File.ReadAllText(path);
+        }
+        catch(Exception ex)
+        {
+            content = ex.Message;
+        }
+
+        return TypstCode(content, pageWidth, "cs", true, fontSize, pageMargin);
+    }
+
     public static NBLottie LottieFile(string path, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
     {
         var file = new NBLottie();
