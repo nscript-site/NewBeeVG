@@ -25,11 +25,22 @@ public class NBTypst : NBSvg
 
     public Dictionary<string,string>? TypstInputs { get; set; }
 
-    public Dictionary<string, string>? MeasureTypstInputs { get; set; }
-
     public Action<SKBitmap>? OnMeasureBitmap { get; set; }
 
     public String? SvgResult { get; private set; }
+
+    public void UpdateInputs(IList<(string, object)> inputs)
+    {
+        if (TypstInputs == null) TypstInputs = new Dictionary<string, string>();
+
+        foreach(var item in inputs)
+        {
+            TypstInputs[item.Item1] = item.Item2.ToString();
+        }
+        
+        IsTypstLoaded = false;
+        IsSvgLoaded = false;
+    }
 
     protected override SKSize? GetImageSize()
     {
@@ -108,11 +119,61 @@ public class NBTypst : NBSvg
 
 public static partial class NBExtentions
 {
-    public static T TypstInputs<T>(this T self, Action<Dictionary<string,string>> onInputs) where T : NBTypst
+    public static T TypstInputs<T>(this T self, Action<Dictionary<string, string>> onInputs) where T : NBTypst
     {
         var dic = new Dictionary<string, string>();
         onInputs(dic);
         self.TypstInputs = dic;
+        return self;
+    }
+
+    public static T TypstInputs<T>(this T self, IList<(string, object)> inputs) where T : NBTypst
+    {
+        var dic = new Dictionary<string, string>();
+        foreach (var item in inputs)
+            dic[item.Item1] = item.Item2.ToString();
+        self.TypstInputs = dic;
+        return self;
+    }
+
+    public static T TypstInputs<T>(this T self, params (string, object)[] inputs) where T : NBTypst
+    {
+        var dic = new Dictionary<string, string>();
+        foreach (var item in inputs)
+            dic[item.Item1] = item.Item2.ToString();
+        self.TypstInputs = dic;
+        return self;
+    }
+
+    public static T TypstInputs<T>(this T self, string key, object val) where T : NBTypst
+    {
+        var dic = new Dictionary<string, string>();
+        dic[key] = val.ToString();
+        self.TypstInputs = dic;
+        return self;
+    }
+
+    public static T UpdateInputs<T>(this T self, string key, object val) where T : NBTypst
+    {
+        var list = new List<(string, object)>();
+        list.Add((key, val));
+        self.UpdateInputs(list);
+        return self;
+    }
+
+    public static T UpdateInputs<T>(this T self, params (string, object)[] inputs) where T : NBTypst
+    {
+        var list = new List<(string, object)>();
+        list.AddRange(inputs);
+        self.UpdateInputs(list);
+        return self;
+    }
+
+    public static T UpdateInputs<T>(this T self, IList<(string, object)> inputs) where T : NBTypst
+    {
+        var list = new List<(string, object)>();
+        list.AddRange(inputs);
+        self.UpdateInputs(list);
         return self;
     }
 }
