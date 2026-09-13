@@ -26,6 +26,27 @@ internal class ShapeSamples
            }
         );
 
-        run(stage(bg: SKColors.Orange), [clip1]);
+        HGrid("*,*,*,*,*",
+        [
+            Rect(0,200,SKColors.Green,20).Ref(out var r1)
+                .OnFrame(e=> r1.Width(e.pf*100))
+                .Align(0,0),
+            Rect(0,0,SKColors.Green).Ref(out var r2)
+                .OnFrame(e=> r2.Width(e.pf*100))
+                .Align(0,null),
+            Ellipse(100,200,SKColors.Green).Ref(out var ellipse)
+                .OnFrame(e=>ellipse.Size(e.pf*100,e.pf*200))
+                .Align(0,0),
+            // 创建矢量路径
+            VecPath(SKColors.Green, new NBBorder(2,SKColors.Red)).Ref(out var v1)
+                .OnFrame(e=>v1.Path(RectPath(0,0,e.pf*200,e.pf*200)))
+                .Align(0,0),
+            // 创建两个矢量路径之间的补间动画
+            VecPath(SKColors.Green).Ref(out var v2)
+                .OnFrame(e=>v2.Path(RectPath(0,0,200,200),CirclePath(100,100,100),e.pf))
+                .Align(0,0)
+        ]).AsClip(out var clip2, 30, name: "clip2");
+
+        run(stage(bg: SKColors.Orange), [clip1, clip2]);
     }
 }

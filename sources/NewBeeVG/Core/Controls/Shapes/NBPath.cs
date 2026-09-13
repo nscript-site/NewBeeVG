@@ -1,13 +1,11 @@
-﻿using Avalonia.Controls.Shapes;
-using ExCSS;
-using SkiaSharp;
+﻿using SkiaSharp;
 using SkiaSharp.Extended;
 
 namespace NewBeeVG;
 
 public class NBPath : NBVisual
 {
-    private SKPath Path { get; set; }
+    private SKPath? _path;
 
     public int? HAlign { get; set; } = -1;
     public int? VAlign { get; set; } = -1;
@@ -24,7 +22,7 @@ public class NBPath : NBVisual
         CreateFrom(path, fill, border);
     }
 
-    public NBPath(SKPath path, SKColor? fill = null, NBBorder? border = null)
+    public NBPath(SKPath? path, SKColor? fill = null, NBBorder? border = null)
     {
         CreateFrom(path, fill, border);
     }
@@ -48,10 +46,23 @@ public class NBPath : NBVisual
         CreateFrom(p, fill, border);
     }
 
-    private void CreateFrom(SKPath path, SKColor? fill = null, NBBorder? border = null)
+    public void UpdatePath(SKPath? path)
     {
-        Path = path;
-        PathBounds = Path.ComputeTightBounds();
+        _path = path;
+        PathBounds = _path?.ComputeTightBounds() ?? new SKRect();
+    }
+
+    public void UpdatePath(SKPath p0, SKPath p1, float t)
+    {
+        var morph = new SKPathInterpolation(p0, p1);
+        var p = morph.Interpolate(t);
+        UpdatePath(p);
+    }
+
+    private void CreateFrom(SKPath? path, SKColor? fill = null, NBBorder? border = null)
+    {
+        _path = path;
+        PathBounds = _path?.ComputeTightBounds()??new SKRect();
         Fill = fill;
         Border = border;
     }
@@ -99,6 +110,8 @@ public class NBPath : NBVisual
 
     protected override void RenderContent(SKCanvas context)
     {
+        if (_path == null) return;
+
         var size = PathBounds.Size;
         double width = size.Width;
         double height = size.Height;
@@ -116,14 +129,14 @@ public class NBPath : NBVisual
                 {
                     using (var paint = new SKPaint { Color = Fill.Value, IsAntialias = true })
                     {
-                        context.DrawPath(Path, paint);
+                        context.DrawPath(_path, paint);
                     }
                 }
                 if(Border != null && Border.Thickness > 0)
                 {
                     using (var paint = new SKPaint { Color = Border.Color, StrokeWidth = Border.Thickness, IsStroke = true, IsAntialias = true })
                     {
-                        context.DrawPath(Path, paint);
+                        context.DrawPath(_path, paint);
                     }
                 }
             }
@@ -133,7 +146,7 @@ public class NBPath : NBVisual
             Shaders.BuildComposeShader(Bounds);
             using (var paint = new SKPaint { Shader = Shaders.ComposedShader, IsAntialias = true })
             {
-                context.DrawPath(Path, paint);
+                context.DrawPath(_path, paint);
             }
         }
         context.Restore();
@@ -142,10 +155,19 @@ public class NBPath : NBVisual
 
 public static class NBPath_Extentions
 {
-    public static TCtrl Align<TCtrl>(this TCtrl ctrl, int? hAlign = null, int? vAlign = null) where TCtrl : NBPath
+    public static TCtrl Align<TCtrl>(this TCtrl self, int? hAlign = null, int? vAlign = null) where TCtrl : NBPath
     {
-        ctrl.HAlign = hAlign;
-        ctrl.VAlign = vAlign;
-        return ctrl;
+        self.HAlign = hAlign;
+        self.VAlign = vAlign;
+        return self;
+    }
+
+    public static TCtrl Path<TCtrl>(this TCtrl self, SKPath? path, SKPath? path2 = null, float t = 0) where TCtrl : NBPath
+    {
+        if(path2 == null)
+            self.UpdatePath(path);
+        else if(path != null)
+            self.UpdatePath(path, path2, t);
+        return self;
     }
 }

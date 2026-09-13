@@ -179,6 +179,11 @@ public static class Methods
         return new NBPath(onCreate, fill, border);
     }
 
+    public static NBPath VecPath(SKColor? fill = null, NBBorder? border = null)
+    {
+        return new NBPath((SKPath?)null, fill, border);
+    }
+
     public static NBPath VecPath(SKPath path, SKColor? fill = null, NBBorder? border = null)
     {
         return new NBPath(path, fill, border);

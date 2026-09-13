@@ -1,12 +1,13 @@
 # 实现动画
 
-NewBeeVG 支持三种方式实现动画:
+NewBeeVG 支持四种方式实现动画:
 
-- 通过 Markup 来实现动画
-- 通过函数实现动画
-- 集成 lottie 动画
+- 通过 Markup 添加动画
+- 通过函数添加动画
+- 添加补间动画
+- 添加 lottie 动画
 
-## 通过 Markup 实现动画
+## 通过 Markup 添加动画
 
 可以通过 Markup 方式创建 NBVisual，然后监听 NBVisual 的 OnFrameUpdated 事件，可以在每一帧渲染前动态更改显示的内容及属性，生成动画。
 
@@ -61,7 +62,7 @@ TextBlock("输入你的文字").Font(120, SKColors.Black)
     .OnFrame(e=> { e.Sender.Opacity(e.p);  e.SenderLayoutable?.Margin(0,e.p * 200,0,0); })
 ```
 
-## 通过函数实现动画
+## 通过函数添加动画
 
 如果动画逻辑比较复杂，通过 Markup 监听自身的 OnFrame 较难实现。您可以通过函数方式的，动态创建每一帧的内容，来实现动画。
 
@@ -116,8 +117,38 @@ var clip3 = drawing(
 
 > [!NOTE]
 > 优先使用 Markup 方式来实现动画。
+> 
 
-## 集成 lottie 动画
+## 添加补间动画
+
+可以通过 `VecPath` 实现补间动画，示例如下([tween.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/tween.cs)): 
+
+```csharp
+#!/usr/bin/env dotnet
+
+// 通过函数创建补间动画
+var clip1 = clip(
+    name: "clip1",
+    frames: 30,
+    builder: (ctx, clip) =>
+    {
+        var easing = Easing.SineInOut;
+        float v = (float)easing(ctx.progress);
+        return
+        VecPath(RectPath(0,0,200,200),CirclePath(100,100,100), v, SKColors.Green).Align(0,0);
+    }
+);
+
+// 通过 MarkUp 创建补间动画
+VecPath(SKColors.Green).Ref(out var v2)
+.OnFrame(e=>v2.Path(RectPath(0,0,200,200),CirclePath(100,100,100),e.pf))
+.Align(0,0)
+.AsClip(out var clip2, 30, name: "clip2");
+
+run(stage(bg: SKColors.Orange), [clip1, clip2]);
+```
+
+## 添加 lottie 动画
 
 可以直接集成 lottie 动画文件（目前仅支持 json 格式的 lottie 动画），示例如下([lottie.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/lottie.cs)): 
 

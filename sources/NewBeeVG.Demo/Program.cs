@@ -4,7 +4,7 @@
 
 //WidgetsSample.Run();
 
-//ShapeSamples.Run();
+ShapeSamples.Run();
 
 //LottieSample.Run();
 
@@ -12,7 +12,7 @@
 
 //Canvas3DSample.Run();
 
-TypstSample.Run();
+//TypstSample.Run();
 
 //UtilsSample.Run();
 
