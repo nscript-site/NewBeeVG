@@ -4,7 +4,7 @@
 
 //WidgetsSample.Run();
 
-ShapeSamples.Run();
+//ShapeSamples.Run();
 
 //LottieSample.Run();
 
@@ -16,7 +16,7 @@ ShapeSamples.Run();
 
 //UtilsSample.Run();
 
-//BitmapFiltersSample.Run();
+BitmapFiltersSample.Run();
 
 //TextSamples.Run();
 

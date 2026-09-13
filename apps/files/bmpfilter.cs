@@ -1,12 +1,3 @@
-# 使用特效
-
-## Bitmap Filters
-
-可以设置多个 Bitmap Filters，来实现自定义特效。 NBVisual 会将渲染出来的 SKBitmap，交给 Bitmap Filters 处理，得到的最终 SKBitmap，嵌入到视频中。
-
-示例如下 [bmpfilter.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/bmpfilter.cs):
-
-```csharp
 #!/usr/bin/env dotnet
 
 VStack([
@@ -27,4 +18,3 @@ internal class DemoBitmapFilter : NBBitmapFilter
         return (bitmap, new SKPoint(0, 0));
     }
 }
-```

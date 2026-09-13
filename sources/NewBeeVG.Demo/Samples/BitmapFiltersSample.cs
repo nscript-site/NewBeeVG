@@ -24,7 +24,7 @@ internal class DemoBitmapFilter : NBBitmapFilter
     {
         if(bitmap == null) return (null, new SKPoint(0, 0));
         var c = new SKCanvas(bitmap);
-        c.DrawText(ctx.frame.ToString(), 50, 50, new SKFont(SKTypeface.Default, 40), new SKPaint() { Color = SKColors.Red });
+        c.DrawText((ctx.frame + 1).ToString(), 50, 50, new SKFont(SKTypeface.Default, 40), new SKPaint() { Color = SKColors.Red });
         return (bitmap, new SKPoint(0, 0));
     }
 }
