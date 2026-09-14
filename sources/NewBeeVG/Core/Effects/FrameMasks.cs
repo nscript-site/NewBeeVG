@@ -25,6 +25,16 @@ public static class FrameMasks
         return new NBBitmapFrameMask(func);
     }
 
+    public static NBFrameMask FromShader(NBShader shader)
+    {
+        return new NBShaderFrameMask((ctx, rect) => shader);
+    }
+
+    public static NBFrameMask FromShader(Func<NBDrawContext, SKRect, NBShader> func)
+    {
+        return new NBShaderFrameMask(func);
+    }
+
     /// <summary>
     /// 从委托创建帧遮罩，委托参数仅为矩形区域，返回位图。
     /// </summary>

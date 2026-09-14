@@ -1,8 +1,3 @@
-# 排版布局
-
-排版布局示例 [layout.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/layout.cs): 
-
-```csharp
 #!/usr/bin/env dotnet
 
 HGrid("*,*,*,*,Auto", [
@@ -66,4 +61,3 @@ WrapPanel([
 .AsClip(out var wpanel, 30, name:"wpanel");
 
 run(stage(1920, 1080, bg: SKColors.Orange), [hgrid, vgrid, hstack, vstack, panel, wpanel]);
-```
