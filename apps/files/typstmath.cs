@@ -2,6 +2,7 @@
 
 var math = """
             $ A = pi r^2 $
+            $ #text(fill: red)[f(x)] = #text(fill: blue)[x^2] + #text(fill: orange)[2x] + 1 $
             $ "area" = pi dot "radius"^2 $
             $ cal(A) :=
                 { x in RR | x "is natural" } $
@@ -15,4 +16,4 @@ VStack([
 ]).Margin(100)
 .AsClip(out var clip, 30, name: "typstmath");
 
-run(stage(bg: SKColors.Orange), [clip]);
+run(stage(bg: SKColors.White), [clip]);

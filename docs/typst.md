@@ -84,13 +84,14 @@ public static T UpdateInputs<T>(this T self, IList<(string, object)> inputs) whe
 
 ## 直接嵌入数学公式
 
-通过 `TypstMath` 扩展方法，不用写 typ 文件，即可嵌入代码。示例([typstmath.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstmath.cs))如下：
+通过 `TypstMath` 扩展方法，不用写 typ 文件，也可嵌入数学公式。示例([typstmath.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstmath.cs))如下：
 
 ```csharp
 #!/usr/bin/env dotnet
 
 var math = """
             $ A = pi r^2 $
+            $ #text(fill: red)[f(x)] = #text(fill: blue)[x^2] + #text(fill: orange)[2x] + 1 $
             $ "area" = pi dot "radius"^2 $
             $ cal(A) :=
                 { x in RR | x "is natural" } $
@@ -104,8 +105,11 @@ VStack([
 ]).Margin(100)
 .AsClip(out var clip, 30, name: "typstmath");
 
-run(stage(bg: SKColors.Orange), [clip]);
+run(stage(bg: SKColors.White), [clip]);
 ```
+
+> [!NOTE]
+> 可通过 #text[] 函数来给公式里的内容设置颜色
 
 ## 直接嵌入代码
 
