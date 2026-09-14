@@ -112,6 +112,8 @@ save("youtpath.mp4", stage(1920, 1080, bg: SKColors.White), [clip1, clip2, logo]
 
 - [使用特效](https://github.com/nscript-site/NewBeeVG/blob/main/docs/effects.md)
 
+- [使用 style](https://github.com/nscript-site/NewBeeVG/blob/main/docs/style.md)
+
 - [嵌入 typst 动画](https://github.com/nscript-site/NewBeeVG/blob/main/docs/typst.md)
 
 - [嵌入 3D 动画](https://github.com/nscript-site/NewBeeVG/blob/main/docs/3d.md)

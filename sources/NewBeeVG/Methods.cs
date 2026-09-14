@@ -1,6 +1,4 @@
-﻿using Avalonia.Media.TextFormatting;
-using NewBeeMedia;
-using NewBeeVG.Core.Controls;
+﻿using NewBeeMedia;
 using NewBeeVG.Internal;
 using Python.Runtime;
 using SkiaSharp;
@@ -234,21 +232,39 @@ public static class Methods
         run(stage(), []);
     }
 
-    public static void run(NBStage stage, IList<NBClip> clips)
+    private static void PrepareClips(IList<NBClip> clips)
     {
-        foreach(var clip in clips)
+        foreach (var clip in clips)
         {
             try
             {
                 clip.Prepare();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Clip[{clip.Name} prepare fail: {ex.Message}]");
             }
         }
+    }
 
-        NBWorkspace.Current = NBWorkspace.Create(stage, clips);
+    public static void run(NBStage stage, IList<NBClip> clips, params IList<NBClip>[] clipLists)
+    {
+        PrepareClips(clips);
+        if(clipLists?.Length > 0)
+        {
+            var all = new List<NBClip>(clips.Count * 2);
+            all.AddRange(clips);
+            foreach(var list in clipLists)
+            {
+                PrepareClips(list);
+                all.AddRange(list);
+            }
+            NBWorkspace.Current = NBWorkspace.Create(stage, all);
+        }
+        else
+        {
+            NBWorkspace.Current = NBWorkspace.Create(stage, clips);
+        }
         start();
     }
 
