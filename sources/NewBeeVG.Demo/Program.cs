@@ -16,13 +16,13 @@
 
 //UtilsSample.Run();
 
-BitmapFiltersSample.Run();
+//BitmapFiltersSample.Run();
 
 //TextSamples.Run();
 
 //RichTextSamples.Run();
 
-//TextAnimate1.Run();
+TextAnimate1.Run();
 
 //TransformSample.Run();
 
