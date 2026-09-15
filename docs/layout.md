@@ -1,5 +1,7 @@
 # 排版布局
 
+## 排版示例
+
 排版布局示例 [layout.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/layout.cs): 
 
 ```csharp
@@ -67,3 +69,20 @@ WrapPanel([
 
 run(stage(1920, 1080, bg: SKColors.Orange), [hgrid, vgrid, hstack, vstack, panel, wpanel]);
 ```
+
+## Align
+
+Align 扩展方法，可以设置组件的水平及垂直对齐行为。其原型如下:
+
+```csharp
+public static TCtrl Align<TCtrl>(this TCtrl ctrl, int? hAlign = null, int? vAlign = null) where TCtrl : NBLayoutable;
+```
+
+各种取值的对齐行为：
+
+- null: 拉伸填充到给定空间;
+- 小于 0: 左对齐或上对齐
+- 0: 居中对齐
+- 大于 0: 右对齐或下对齐
+
+

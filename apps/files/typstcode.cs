@@ -19,4 +19,4 @@ VStack([
 ]).Margin(10)
 .AsClip(out var clip, 30, name: "typstcode");
 
-run(stage(bg: SKColors.Orange), [clip]);
+run(stage(1920,1080,bg: SKColors.Orange), [clip]);

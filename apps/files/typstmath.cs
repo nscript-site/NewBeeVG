@@ -11,9 +11,9 @@ var math = """
             """;
 VStack([
     TextBlock("TypstMath 直接嵌入数学公式").Margin(10),
-    TypstMath(math)
+    TypstMath(math).Width(800)
         .Align(0,-1).Margin(100)
 ]).Margin(100)
 .AsClip(out var clip, 30, name: "typstmath");
 
-run(stage(bg: SKColors.White), [clip]);
+run(stage(1920,1080,bg: SKColors.White), [clip]);
