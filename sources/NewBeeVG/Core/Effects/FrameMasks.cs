@@ -35,6 +35,25 @@ public static class FrameMasks
         return new NBShaderFrameMask(func);
     }
 
+    public static NBFrameMask FromAlphaBitmap(int width, int height, byte alpha, SKColor? color = null, (SKRect, byte)[]? locals = null)
+    {
+        var bmp = new SKBitmap(width, height);
+        var c = color ?? SKColors.Transparent;
+        c = new SKColor(c.Red, c.Green, c.Blue, alpha);
+        using var canvas = new SKCanvas(bmp);
+        canvas.Clear(c);
+
+        if(locals != null)
+        {
+            foreach(var r in locals)
+            {
+                canvas.DrawRect(r.Item1, new SKPaint { Color = new SKColor(c.Red, c.Green, c.Blue, r.Item2), BlendMode = SKBlendMode.Src });
+            }
+        }
+
+        return FromTexture(bmp);
+    }
+
     /// <summary>
     /// 从委托创建帧遮罩，委托参数仅为矩形区域，返回位图。
     /// </summary>

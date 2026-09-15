@@ -628,6 +628,13 @@ public static partial class NBExtentions
         return widget;
     }
 
+    public static T FrameMaskByAlphaBitmap<T>(this T widget, int width, int height, byte alpha, SKColor? color = null, (SKRect, byte)[]? locals = null) where T : NBVisual
+    {
+        var mask = FrameMasks.FromAlphaBitmap(width, height, alpha, color, locals);
+        widget.FrameMask = mask;
+        return widget;
+    }
+
     public static T BitmapFilters<T>(this T widget, params NBBitmapFilter?[] filters) where T : NBVisual
     {
         widget.BitmapFilters.ClearFilters();

@@ -73,6 +73,11 @@ public static partial class NBExtentions
         }
     }
 
+    public static string ToHexString(this SKColor color)
+    {
+        return $"0x{color:X8}";
+    }
+
     public static NBTextAlign ToNBTextAlign(this int val)
     {
         return val switch

@@ -22,7 +22,9 @@
 
 //RichTextSamples.Run();
 
-TextAnimate1.Run();
+//TextAnimate1.Run();
+
+CodeAnimate.Run();
 
 //TransformSample.Run();
 

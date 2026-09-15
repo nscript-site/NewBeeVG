@@ -1,5 +1,5 @@
 #import "@preview/zebraw:0.6.3": *
-#show: zebraw
+#show: zebraw.with(background-color: none, highlight-color: none)
 
 #set page(fill: none)
 
@@ -11,7 +11,9 @@
 
 #zebraw(
   lang: false,
-
+  background-color: (rgb("#00000000")),
+  highlight-lines: (    (1, rgb("#edb4b0").lighten(50%)),
+    (2, rgb("#a4c9a6").lighten(50%)),),
 ```cs
 font("阿里巴巴普惠体 2.0");
 

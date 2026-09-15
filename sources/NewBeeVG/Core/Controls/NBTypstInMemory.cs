@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SkiaSharp;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -79,8 +80,11 @@ public class NBTypstCode : NBTypstInMemory
 {
     public string? Lang { get; set; }
     public bool ShowLang { get; set; } = true;
+    public SKColor? CodeBoxBackgroundColor { get; set; }
     protected override string? LoadHeader()
     {
+        var codeBoxBackgroundColor = CodeBoxBackgroundColor == null ? "#00000000" : CodeBoxBackgroundColor.Value.ToHexString();
+
         var showLang = ShowLang ? "true" : "false";
         var sb = new StringBuilder();
         sb.AppendLine(@"#import ""@preview/zebraw:0.6.3"": *");
@@ -89,6 +93,7 @@ public class NBTypstCode : NBTypstInMemory
         sb.AppendLine($"""
             #zebraw(
             lang: {showLang},
+            background-color: (rgb("{codeBoxBackgroundColor}")),
             ```{Lang}
             """);
         return sb.ToString();
