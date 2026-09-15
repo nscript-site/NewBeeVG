@@ -772,7 +772,6 @@ public static class Methods
         return svg;
     }
 
-
     public static NBTypst TypstFile(string path, float? width = null, float? height = null)
     {
         var file = new NBTypst();
