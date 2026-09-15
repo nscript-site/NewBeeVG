@@ -85,4 +85,30 @@ public static TCtrl Align<TCtrl>(this TCtrl ctrl, int? hAlign = null, int? vAlig
 - 0: 居中对齐
 - 大于 0: 右对齐或下对齐
 
+## Layer
 
+`NBLayer` 是带蒙版的层。通过 `Layer` 扩展方法，可以创建 ``NBLayer`，原型如下:
+
+```csharp
+public static NBLayer Layer(NBVisual?[]? childs = null);
+```
+
+其中，传入的 childs 如果为 2 个元素，则第一个元素为内容，第二个元素为蒙版。
+
+参考示例 [layer.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/layer.cs):
+
+```csharp
+#!/usr/bin/env dotnet
+
+Layer([
+    TextBlock("输入你的文字").Font(120, SKColors.Black).Align(0,0).Id("Text"),
+    Rect().Bind("Text")
+    .OnFrame(e=>e.Sender.Shaders(Shaders.AlphaLinearGradient(e.p)))
+])
+.Align(0, 0)
+.AsClip(out var clip1, frames: 40, name: "layer");
+
+run(stage(1920, 1080, bg: SKColors.White), [clip1]);
+```
+
+`NBLayer` 支持 Bind 定位。上面例子中，TextBlock 由于尺寸是运行时计算的，Rect 通过设置 Bind 到 TextBlock 的 Id，则会在运行时，将 Rect 的 Bounds 绑定到 TextBlock 的 Bounds，和 TextBlock 对齐位置。
