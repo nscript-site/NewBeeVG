@@ -30,6 +30,22 @@ internal class TypstSample
         ]).Margin(100).Background(SKColors.DeepSkyBlue)
         .AsClip(out var clip2, 30, name: "typst2");
 
+        var content = """
+            #t1[2025年，中国对外直接投资流量2135.8亿美元，比上年增长11.1%，对外投资存量3.4万亿美元，连续9年保持全球前三，占全球投资的比重增加到7.4%。对外投资行业覆盖国民经济的18个行业门类，主要集中在租赁和商务服务、批发零售、制造和金融四个领域，近年来逐步向绿色低碳、数字经济和绿色矿产等领域稳步拓展。]
+
+            #t2[截至2025年末，我国在境外设立企业5.8万家，遍布189个国家和地区，境外企业从业员工总数476.1万人，其中雇用外方员工296.5万人。]
+
+            #t3[2025年，中国企业对共建“一带一路”国家直接投资460.5亿美元，占当年对外投资流量的21.6%，在共建“一带一路”国家设立境外企业数量2.2万家，投资存量4072.5亿美元。]
+            """;
+
+        VStack([
+            TextBlock("TypstContent 直接嵌入内容").Margin(10),
+                    TypstContent(content).Width(800).PageMargin(0).PageSize(300,null)
+                        .Seg("t1",SKColors.Red).Seg("t2",SKColors.Green).Seg("t3",SKColors.Blue)
+                        .Align(0,-1).Margin(100)
+        ]).Margin(100)
+        .AsClip(out var clip3, 30, name: "typstcontent");
+
         var math = """
                    $ #t1[A] #t2[=] #t3[pi r^2] $
                    $ "area" = pi dot "radius"^2 $
@@ -52,7 +68,7 @@ internal class TypstSample
                 })
                 .Align(0,-1).Margin(100)
         ]).Margin(100)
-        .AsClip(out var clip3, 30, name: "typstmath");
+        .AsClip(out var clip4, 30, name: "typstmath");
 
         var code = """
                    #!/usr/bin/env dotnet
@@ -71,8 +87,8 @@ internal class TypstSample
             TypstCode(code,600, "cs", boxBg: SKColors.LightGray).PageMargin(0)
                 .Align(0,-1).Margin(0)
         ]).Margin(10)
-        .AsClip(out var clip4, 30, name: "typstcode");
+        .AsClip(out var clip5, 30, name: "typstcode");
 
-        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4]);
+        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5]);
     }
 }

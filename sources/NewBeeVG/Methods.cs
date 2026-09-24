@@ -781,6 +781,15 @@ public static class Methods
         return file;
     }
 
+    public static NBTypstContent TypstContent(string content, int? pageMargin = 10)
+    {
+        var file = new NBTypstContent();
+        file.TypstContent = content;
+        if (pageMargin != null)
+            file.PageMargin(pageMargin.Value);
+        return file;
+    }
+
     public static NBTypstMath TypstMath(string content, float? fontSize = null, int? pageMargin = 10)
     {
         var file = new NBTypstMath();

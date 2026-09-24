@@ -1,10 +1,9 @@
 ﻿using SkiaSharp;
-using System.Drawing;
 using System.Text;
 
 namespace NewBeeVG;
 
-public class NBTypstInMemory : NBTypst
+public class NBTypstContent : NBTypst
 {
     public int? PageWidth { get; set; }
     public int? PageHeight { get; set; }
@@ -14,7 +13,6 @@ public class NBTypstInMemory : NBTypst
     protected override string OnLoadConent(string content)
     {
         var body = base.OnLoadConent(content);
-        body = LoadBody(body);
         var header = LoadHeader();
         var footer = LoadFooter();
         var sbPage = new StringBuilder();
@@ -22,11 +20,6 @@ public class NBTypstInMemory : NBTypst
         sbPage.AppendLine(body);
         if (footer != null) sbPage.AppendLine(footer);
         return sbPage.ToString();
-    }
-
-    protected virtual string LoadBody(string body)
-    {
-        return body;
     }
 
     protected virtual string? LoadHeader()
@@ -77,50 +70,12 @@ public class NBTypstInMemory : NBTypst
     }
 }
 
-public class NBTypstMath : NBTypstInMemory
+public class NBTypstMath : NBTypstContent
 {
-    protected Dictionary<string, SKColor> SegColors = new Dictionary<string, SKColor>();
-
-    public void SetSegColor(string id, SKColor color, byte? alpha = null)
-    {
-        if(alpha != null)
-        {
-            color = new SKColor(color.Red, color.Green, color.Blue, alpha.Value);
-        }
-        SegColors[id] = color;
-        InvalidContent();
-    }
-
-    public void SetSegColors(IList<String> ids, SKColor color, byte? alpha = null)
-    {
-        if (alpha != null)
-        {
-            color = new SKColor(color.Red, color.Green, color.Blue, alpha.Value);
-        }
-        
-        foreach(var id in ids)
-            SegColors[id] = color;
-
-        InvalidContent();
-    }
-
-    protected override string LoadBody(string body)
-    {
-        if(SegColors.Count > 0)
-        {
-            foreach(var c in SegColors)
-            {
-                var key = $"#{c.Key}[";
-                var val = $"#text(fill: rgb(\"#{c.Value.ToTypstRGBString()}\"))[";
-                body = body.Replace(key, val);
-            }
-        }
-
-        return body;
-    }
+    
 }
 
-public class NBTypstCode : NBTypstInMemory
+public class NBTypstCode : NBTypstContent
 {
     public string? Lang { get; set; }
     public bool ShowLang { get; set; } = true;
@@ -154,58 +109,34 @@ public class NBTypstCode : NBTypstInMemory
 
 public static partial class NBExtentions
 {
-    public static T PageMargin<T>(this T self, int left, int top, int right, int bottom) where T : NBTypstInMemory
+    public static T PageMargin<T>(this T self, int left, int top, int right, int bottom) where T : NBTypstContent
     {
         self.PageMargin = new Thickness(left, top, right, bottom);
         return self;
     }
 
-    public static T PageMargin<T>(this T self, int uniform) where T : NBTypstInMemory
+    public static T PageMargin<T>(this T self, int uniform) where T : NBTypstContent
     {
         self.PageMargin = new Thickness(uniform);
         return self;
     }
 
-    public static T PageMargin<T>(this T self, int horizontal, int vertical) where T : NBTypstInMemory
+    public static T PageMargin<T>(this T self, int horizontal, int vertical) where T : NBTypstContent
     {
         self.PageMargin = new Thickness(horizontal, vertical);
         return self;
     }
 
-    public static T PageSize<T>(this T self, int? width, int? height) where T : NBTypstInMemory
+    public static T PageSize<T>(this T self, int? width, int? height) where T : NBTypstContent
     {
         self.PageWidth = width;
         self.PageHeight = height;
         return self;
     }
 
-    public static T FontSize<T>(this T self, float? fontSize) where T : NBTypstInMemory
+    public static T FontSize<T>(this T self, float? fontSize) where T : NBTypstContent
     {
         self.FontSize = fontSize;
-        return self;
-    }
-
-    public static T Seg<T>(this T self, string id, SKColor color, int? alpha) where T : NBTypstMath
-    {
-        self.SetSegColor(id, color, alpha == null ? null : (byte)(alpha.Value));
-        return self;
-    }
-
-    public static T Seg<T>(this T self, string id, SKColor color, byte? alpha = null) where T : NBTypstMath
-    {
-        self.SetSegColor(id, color, alpha);
-        return self;
-    }
-
-    public static T Seg<T>(this T self, IList<string> ids, SKColor color, int? alpha) where T : NBTypstMath
-    {
-        self.SetSegColors(ids, color, alpha == null ? null : (byte)(alpha.Value));
-        return self;
-    }
-
-    public static T Seg<T>(this T self, IList<string> ids, SKColor color, byte? alpha = null) where T : NBTypstMath
-    {
-        self.SetSegColors(ids, color, alpha);
         return self;
     }
 

@@ -47,8 +47,43 @@ public class NBTypst : NBSvg
         }
     }
 
+    protected Dictionary<string, SKColor> SegColors = new Dictionary<string, SKColor>();
+
+    public void SetSegColor(string id, SKColor color, byte? alpha = null)
+    {
+        if (alpha != null)
+        {
+            color = new SKColor(color.Red, color.Green, color.Blue, alpha.Value);
+        }
+        SegColors[id] = color;
+        InvalidContent();
+    }
+
+    public void SetSegColors(IList<String> ids, SKColor color, byte? alpha = null)
+    {
+        if (alpha != null)
+        {
+            color = new SKColor(color.Red, color.Green, color.Blue, alpha.Value);
+        }
+
+        foreach (var id in ids)
+            SegColors[id] = color;
+
+        InvalidContent();
+    }
+
     protected virtual string OnLoadConent(string content)
     {
+        if (SegColors.Count > 0)
+        {
+            foreach (var c in SegColors)
+            {
+                var key = $"#{c.Key}[";
+                var val = $"#text(fill: rgb(\"#{c.Value.ToTypstRGBString()}\"))[";
+                content = content.Replace(key, val);
+            }
+        }
+
         return content;
     }
 
@@ -208,6 +243,30 @@ public static partial class NBExtentions
         var list = new List<(string, object)>();
         list.AddRange(inputs);
         self.UpdateInputs(list);
+        return self;
+    }
+
+    public static T Seg<T>(this T self, string id, SKColor color, int? alpha) where T : NBTypst
+    {
+        self.SetSegColor(id, color, alpha == null ? null : (byte)(alpha.Value));
+        return self;
+    }
+
+    public static T Seg<T>(this T self, string id, SKColor color, byte? alpha = null) where T : NBTypst
+    {
+        self.SetSegColor(id, color, alpha);
+        return self;
+    }
+
+    public static T Seg<T>(this T self, IList<string> ids, SKColor color, int? alpha) where T : NBTypst
+    {
+        self.SetSegColors(ids, color, alpha == null ? null : (byte)(alpha.Value));
+        return self;
+    }
+
+    public static T Seg<T>(this T self, IList<string> ids, SKColor color, byte? alpha = null) where T : NBTypst
+    {
+        self.SetSegColors(ids, color, alpha);
         return self;
     }
 }
