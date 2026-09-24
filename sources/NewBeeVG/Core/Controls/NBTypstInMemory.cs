@@ -1,6 +1,5 @@
 ﻿using SkiaSharp;
-using System;
-using System.Collections.Generic;
+using System.Drawing;
 using System.Text;
 
 namespace NewBeeVG;
@@ -15,6 +14,7 @@ public class NBTypstInMemory : NBTypst
     protected override string OnLoadConent(string content)
     {
         var body = base.OnLoadConent(content);
+        body = LoadBody(body);
         var header = LoadHeader();
         var footer = LoadFooter();
         var sbPage = new StringBuilder();
@@ -22,6 +22,11 @@ public class NBTypstInMemory : NBTypst
         sbPage.AppendLine(body);
         if (footer != null) sbPage.AppendLine(footer);
         return sbPage.ToString();
+    }
+
+    protected virtual string LoadBody(string body)
+    {
+        return body;
     }
 
     protected virtual string? LoadHeader()
@@ -74,6 +79,45 @@ public class NBTypstInMemory : NBTypst
 
 public class NBTypstMath : NBTypstInMemory
 {
+    protected Dictionary<string, SKColor> SegColors = new Dictionary<string, SKColor>();
+
+    public void SetSegColor(string id, SKColor color, byte? alpha = null)
+    {
+        if(alpha != null)
+        {
+            color = new SKColor(color.Red, color.Green, color.Blue, alpha.Value);
+        }
+        SegColors[id] = color;
+        InvalidContent();
+    }
+
+    public void SetSegColors(IList<String> ids, SKColor color, byte? alpha = null)
+    {
+        if (alpha != null)
+        {
+            color = new SKColor(color.Red, color.Green, color.Blue, alpha.Value);
+        }
+        
+        foreach(var id in ids)
+            SegColors[id] = color;
+
+        InvalidContent();
+    }
+
+    protected override string LoadBody(string body)
+    {
+        if(SegColors.Count > 0)
+        {
+            foreach(var c in SegColors)
+            {
+                var key = $"#{c.Key}[";
+                var val = $"#text(fill: rgb(\"#{c.Value.ToTypstRGBString()}\"))[";
+                body = body.Replace(key, val);
+            }
+        }
+
+        return body;
+    }
 }
 
 public class NBTypstCode : NBTypstInMemory
@@ -83,7 +127,7 @@ public class NBTypstCode : NBTypstInMemory
     public SKColor? CodeBoxBackgroundColor { get; set; }
     protected override string? LoadHeader()
     {
-        var codeBoxBackgroundColor = CodeBoxBackgroundColor == null ? "#00000000" : CodeBoxBackgroundColor.Value.ToHexString();
+        var codeBoxBackgroundColor = CodeBoxBackgroundColor == null ? "#00000000" : CodeBoxBackgroundColor.Value.ToTypstRGBString();
 
         var showLang = ShowLang ? "true" : "false";
         var sb = new StringBuilder();
@@ -141,10 +185,40 @@ public static partial class NBExtentions
         return self;
     }
 
+    public static T Seg<T>(this T self, string id, SKColor color, int? alpha) where T : NBTypstMath
+    {
+        self.SetSegColor(id, color, alpha == null ? null : (byte)(alpha.Value));
+        return self;
+    }
+
+    public static T Seg<T>(this T self, string id, SKColor color, byte? alpha = null) where T : NBTypstMath
+    {
+        self.SetSegColor(id, color, alpha);
+        return self;
+    }
+
+    public static T Seg<T>(this T self, IList<string> ids, SKColor color, int? alpha) where T : NBTypstMath
+    {
+        self.SetSegColors(ids, color, alpha == null ? null : (byte)(alpha.Value));
+        return self;
+    }
+
+    public static T Seg<T>(this T self, IList<string> ids, SKColor color, byte? alpha = null) where T : NBTypstMath
+    {
+        self.SetSegColors(ids, color, alpha);
+        return self;
+    }
+
     public static T Lang<T>(this T self, string? lang, bool showLang = true) where T : NBTypstCode
     {
         self.Lang = lang;
         self.ShowLang = showLang;
+        return self;
+    }
+
+    public static T CodeBoxBackgroundColor<T>(this T self, SKColor? color = null) where T : NBTypstCode
+    {
+        self.CodeBoxBackgroundColor = color ?? SKColors.Transparent;
         return self;
     }
 }

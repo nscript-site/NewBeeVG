@@ -12,7 +12,7 @@
 
 //Canvas3DSample.Run();
 
-//TypstSample.Run();
+TypstSample.Run();
 
 //UtilsSample.Run();
 
@@ -24,7 +24,7 @@
 
 //TextAnimate1.Run();
 
-CodeAnimate.Run();
+//CodeAnimate.Run();
 
 //TransformSample.Run();
 

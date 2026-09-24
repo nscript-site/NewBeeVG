@@ -66,7 +66,12 @@ public class NBTypst : NBSvg
         {
             TypstInputs[item.Item1] = item.Item2.ToString();
         }
-        
+
+        InvalidContent();
+    }
+
+    public void InvalidContent()
+    {
         IsTypstLoaded = false;
         IsSvgLoaded = false;
     }

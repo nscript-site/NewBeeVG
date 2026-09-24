@@ -791,7 +791,7 @@ public static class Methods
         return file;
     }
 
-    public static NBTypstCode TypstCode(string content, int pageWidth = 600, string? lang = null, bool showLang = true, float? fontSize = null, int? pageMargin = 10)
+    public static NBTypstCode TypstCode(string content, int pageWidth = 600, string? lang = null, bool showLang = true, float? fontSize = null, int? pageMargin = 10, SKColor? boxBg = null)
     {
         var file = new NBTypstCode();
         file.TypstContent = content;
@@ -799,6 +799,7 @@ public static class Methods
         file.ShowLang = showLang;
         file.FontSize = fontSize;
         file.PageWidth = pageWidth;
+        file.CodeBoxBackgroundColor = boxBg;
         if (pageMargin != null)
             file.PageMargin(pageMargin.Value);
         return file;
