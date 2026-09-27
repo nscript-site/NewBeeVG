@@ -209,15 +209,16 @@ run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
 
 上面示例中，t1,t2,t3 三个 Seg，背景色分别为红、绿、蓝，透明通道 alpha 值从 30 逐渐增加到 150。
 
-> [!WARNING]
-> 直接嵌入 Typst 内容，使用 Seg 时，需要对每一个 seg-id，调用至少一次 `Seg` 扩展方法，否则会报编译错误。
+直接嵌入 Typst 内容，使用 Seg 时，需要对每一个 seg-id，调用至少一次 `Seg` 扩展方法，否则会报编译错误。
 
-为了避免报错，可以在 Typst 内容的开头加上相关函数定义，示例如下:
+为了避免报错，可以在 Typst 内容的开头加上相关函数定义:
 ```typst
 > #let t1(b)=text(b)
 > #let t2(b)=text(b)
 > #let t3(b)=text(b)
 ```
+
+`NBTypstContent` 默认已经定义了 `t0`,`t1`,...,`t19` 共20个预定义 Seg 变量。如果使用了这些变量，则不调用对应的 `Seg` 扩展方法，也不会报错。
 
 当然，可以以对 TypstFile 应用 Seg 语法。
 

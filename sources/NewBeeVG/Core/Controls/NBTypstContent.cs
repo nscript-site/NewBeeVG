@@ -12,6 +12,9 @@ public class NBTypstContent : NBTypst
     public bool ParagraphJustify { get; set; }
     public SKColor? PageBackgroudColor { get; set; }
 
+    public bool DefineSegFunc { get; set; } = true;
+    public int DefineSegFuncCount { get; set; } = 20;
+
     protected override string OnLoadConent(string content)
     {
         var body = base.OnLoadConent(content);
@@ -41,6 +44,12 @@ public class NBTypstContent : NBTypst
         var height = PageHeight == null ? "auto" : $"{PageHeight}pt";
 
         sb.AppendLine($"#set page(  width: {width}, height: {height})");
+        sb.AppendLine($"#let ph(key)=text(\"{{\" + key + \"}}\")");
+
+        for (int i = 0; i < DefineSegFuncCount; i++)
+        {
+            sb.AppendLine($"#let t{i}(b)=text(b)");
+        }
 
         //#set page(
         //    margin: (
@@ -50,7 +59,7 @@ public class NBTypstContent : NBTypst
         //    right: 35px,
         //  )
         //)
-        if(PageMargin != null)
+        if (PageMargin != null)
         {
             var m = PageMargin.Value;
             sb.AppendLine($"""
@@ -175,6 +184,12 @@ public static partial class NBExtentions
     public static T FontSize<T>(this T self, float? fontSize) where T : NBTypstContent
     {
         self.FontSize = fontSize;
+        return self;
+    }
+
+    public static T DefineSegFunc<T>(this T self, int segFuncCount = 20) where T : NBTypstContent
+    {
+        self.DefineSegFuncCount = segFuncCount;
         return self;
     }
 
