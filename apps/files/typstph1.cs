@@ -10,7 +10,7 @@ VStack([
         .PageMargin(10).PageSize(500,null)
         .PageBg(SKColors.White).ParagraphJustify()
         .OnFrame(e=>{
-            typ.Ph("str", str.Substring(0, e.frame + 1));
+            typ.Ph("str", str.Substring(0, Math.Min(str.Length, e.frame + 1)));
             })
         .Align(0,-1).Margin(20),
 ]).Margin(100)

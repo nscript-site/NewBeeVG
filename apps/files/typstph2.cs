@@ -5,7 +5,7 @@ VStack([
     TextBlock("PlaceHolder 动画").Margin(10),
     TypstFile("typst/placeholder.typ").Ref(out var typ)
         .OnFrame(e=>{
-            typ.Ph("str", str.Substring(0, e.frame + 1));
+            typ.Ph("str", str.Substring(0, Math.Min(str.Length, e.frame + 1)));
          })
         .Align(0,-1).Margin(20)
  ]).Margin(100)
