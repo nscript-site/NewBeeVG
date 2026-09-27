@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Collections;
 using Typst.NET;
 
 namespace NewBeeVG;
@@ -48,6 +49,21 @@ public class NBTypst : NBSvg
     }
 
     protected Dictionary<string, SKColor> SegColors = new Dictionary<string, SKColor>();
+    protected Dictionary<string, string> PlaceHolders = new Dictionary<string, string>();
+
+    public void SetPlaceHolder(string id, string value)
+    {
+        PlaceHolders[id] = value;
+        InvalidContent();
+    }
+
+    public void SetPlaceHolders(IList<String> ids, string value)
+    {
+        foreach (var id in ids)
+            PlaceHolders[id] = value;
+
+        InvalidContent();
+    }
 
     public void SetSegColor(string id, SKColor color, byte? alpha = null)
     {
@@ -80,6 +96,16 @@ public class NBTypst : NBSvg
             {
                 var key = $"#{c.Key}[";
                 var val = $"#text(fill: rgb(\"#{c.Value.ToTypstRGBString()}\"))[";
+                content = content.Replace(key, val);
+            }
+        }
+
+        if(PlaceHolders.Count > 0)
+        {
+            foreach(var ph in PlaceHolders)
+            {
+                var key = $"#ph(\"{ph.Key}\")";
+                var val = ph.Value;
                 content = content.Replace(key, val);
             }
         }
@@ -267,6 +293,30 @@ public static partial class NBExtentions
     public static T Seg<T>(this T self, IList<string> ids, SKColor color, byte? alpha = null) where T : NBTypst
     {
         self.SetSegColors(ids, color, alpha);
+        return self;
+    }
+
+    public static T Ph<T>(this T self,string key, string value) where T : NBTypst
+    {
+        self.SetPlaceHolder(key, value);
+        return self;
+    }
+
+    public static T PlaceHolder<T>(this T self, string key, string value) where T : NBTypst
+    {
+        self.SetPlaceHolder(key, value);
+        return self;
+    }
+
+    public static T Ph<T>(this T self, IList<string> keys, string value) where T : NBTypst
+    {
+        self.SetPlaceHolders(keys, value);
+        return self;
+    }
+
+    public static T PlaceHolder<T>(this T self, IList<string> keys, string value) where T : NBTypst
+    {
+        self.SetPlaceHolders(keys, value);
         return self;
     }
 }

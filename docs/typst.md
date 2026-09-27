@@ -39,9 +39,51 @@ VStack([
 run(stage(bg: SKColors.Orange), [clip]);
 ```
 > [!NOTE]
-> 在 typ 文件中设置 `#set page(fill: none)`，生成的图像的背景为透明色。设置 `#set page(  width: auto, height: auto)` 可以让图像大小适应内容。
+> 在 typ 文件中设置 `#set page(fill: none)`，生成的图像的背景为透明色。设置 `#set page(  width: auto, height: auto)` 可以让图像大小适应内容。也可以设置宽度，让高度自适应，比如，设置 `#set page(  width: 600pt, height: auto)`，表示为 A4 纸张的宽度，高度根据自适应。
 
-## 嵌入 Typst 动画
+## 直接嵌入 Typst 内容
+
+通过 `TypstContent` 扩展方法，可以很方便的直接嵌入 Typst 内容。该方法原型为:
+
+```csharp
+public static NBTypstContent TypstContent(string content, int? pageMargin = 10)
+{
+    var file = new NBTypstContent();
+    file.TypstContent = content;
+    if (pageMargin != null)
+        file.PageMargin(pageMargin.Value);
+    return file;
+}
+```
+
+> [!NOTE]
+> 通过 `TypstContent` 扩展方法嵌入的 Typst 内容不需要设置 page 参数，相关参数可通过创建的 `NBTypstContent` 的 `PageMargin`、`PageSize`、`FontSize`、`ParagraphJustify`、`ParJustify(ParagraphJustify的简写)`、`PageBackgroud`、`PageBg(PageBackgroud的简写)` 等扩展方法来设置。
+
+示例([typstcontent.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstcontent.cs))如下：
+
+```csharp
+#!/usr/bin/env dotnet
+
+var content = """
+    2025年，中国对外直接投资流量2135.8亿美元，比上年增长11.1%，对外投资存量3.4万亿美元，连续9年保持全球前三，占全球投资的比重增加到7.4%。对外投资行业覆盖国民经济的18个行业门类，主要集中在租赁和商务服务、批发零售、制造和金融四个领域，近年来逐步向绿色低碳、数字经济和绿色矿产等领域稳步拓展。
+
+    截至2025年末，我国在境外设立企业5.8万家，遍布189个国家和地区，境外企业从业员工总数476.1万人，其中雇用外方员工296.5万人。
+    """;
+
+VStack([
+    TextBlock("TypstContent 直接嵌入内容").Margin(10),
+    TypstContent(content).PageMargin(10).PageSize(500,null)
+        .PageBg(SKColors.White).ParagraphJustify()
+        .Align(0,-1).Margin(20),
+    TypstContent(content).PageMargin(10).PageSize(500,null)
+        .Align(0,-1).Margin(20)
+]).Margin(100)
+.AsClip(out var clip, 30, name: "typstcontent");
+
+run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
+```
+
+## 通过编译参数生成 Typst 动画
 
 > [!NOTE]
 > typ 文件中可以通过 `sys.inputs.at` 获取编译参数。在每一帧，传入不同的参数，生成不同的图像，即可使用 typst 来生成动画。
@@ -120,49 +162,9 @@ public static T UpdateInputs<T>(this T self, IList<(string, object)> inputs) whe
 }
 ```
 
-## 直接嵌入 Typst 内容
+## 使用 Seg 语法生成动画
 
-通过 `TypstContent` 扩展方法，可以很方便的直接嵌入 Typst 内容。该方法原型为:
-
-```csharp
-public static NBTypstContent TypstContent(string content, int? pageMargin = 10)
-{
-    var file = new NBTypstContent();
-    file.TypstContent = content;
-    if (pageMargin != null)
-        file.PageMargin(pageMargin.Value);
-    return file;
-}
-```
-
-> [!NOTE]
-> 通过 `TypstContent` 扩展方法嵌入的 Typst 内容不需要设置 page 参数，相关参数可通过创建的 `NBTypstContent` 的 `PageMargin`、`PageSize`、`FontSize`、`ParagraphJustify`、`ParJustify(ParagraphJustify的简写)`、`PageBackgroud`、`PageBg(PageBackgroud的简写)` 等扩展方法来设置。
-
-示例([typstcontent.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstcontent.cs))如下：
-
-```csharp
-#!/usr/bin/env dotnet
-
- var content = """
-     2025年，中国对外直接投资流量2135.8亿美元，比上年增长11.1%，对外投资存量3.4万亿美元，连续9年保持全球前三，占全球投资的比重增加到7.4%。对外投资行业覆盖国民经济的18个行业门类，主要集中在租赁和商务服务、批发零售、制造和金融四个领域，近年来逐步向绿色低碳、数字经济和绿色矿产等领域稳步拓展。
-
-     截至2025年末，我国在境外设立企业5.8万家，遍布189个国家和地区，境外企业从业员工总数476.1万人，其中雇用外方员工296.5万人。
-     """;
-
- VStack([
-    TextBlock("TypstContent 直接嵌入内容").Margin(10),
-    TypstContent(content).PageMargin(10).PageSize(500,null)
-        .PageBg(SKColors.White).ParagraphJustify()
-        .Align(0,-1).Margin(20),
-    TypstContent(content).PageMargin(10).PageSize(500,null)
-        .Align(0,-1).Margin(20)
- ]).Margin(100)
- .AsClip(out var clip, 30, name: "typstcontent");
-
-run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
-```
-
-## 使用 Seg 动画
+### Seg 语法简介
 
 对于 Typst 内容，可以标记一段文字作为一个 Seg，然后，通过 `Seg` 扩展方法动态改变文字属性，实现文字动画。
 
@@ -174,6 +176,8 @@ Seg 标注语法如下为 `#seg-id[seg-content]`，示例如下:
 
 > [!WARNING]
 > seg-id 不能和 typst 的已有函数名 ( text 等) 冲突。
+
+### 在 TypstContent 中使用 Seg 语法
 
 示例([typstseg1.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstseg1.cs))如下：
 
@@ -188,7 +192,7 @@ Seg 标注语法如下为 `#seg-id[seg-content]`，示例如下:
     #t3[2025年，中国企业对共建“一带一路”国家直接投资460.5亿美元，占当年对外投资流量的21.6%，在共建“一带一路”国家设立境外企业数量2.2万家，投资存量4072.5亿美元。]
     """;
 
- VStack([
+VStack([
     TextBlock("Seg 动画").Margin(10),
     TypstContent(content).Ref(out var typ)
         .PageMargin(10).PageSize(500,null)
@@ -201,8 +205,8 @@ Seg 标注语法如下为 `#seg-id[seg-content]`，示例如下:
         .Align(0,-1).Margin(20),
     TypstContent(content).PageMargin(10).PageSize(500,null)
         .Align(0,-1).Margin(20)
- ]).Margin(100)
- .AsClip(out var clip, 30, name: "typst seg");
+]).Margin(100)
+.AsClip(out var clip, 30, name: "typst seg");
 
 run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
 ```
@@ -220,9 +224,11 @@ run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
 
 `NBTypstContent` 默认已经定义了 `t0`,`t1`,...,`t19` 共20个预定义 Seg 变量。如果使用了这些变量，则不调用对应的 `Seg` 扩展方法，也不会报错。
 
-当然，可以以对 TypstFile 应用 Seg 语法。
+可以通过 `DefineSegFunc` 扩展方法，修改默认预定义的 Seg 变量前缀和变量数量。
 
-示例 typst 文件  ( [seg.typ](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typst/seg.typ) ):
+### 在 TypstFile 中使用 Seg 语法
+
+也可以以对 TypstFile 应用 Seg 语法。示例 typst 文件  ( [seg.typ](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typst/seg.typ) ):
 
 ```typst
 #set page(fill: white)
@@ -253,7 +259,7 @@ run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
 ```csharp
 #!/usr/bin/env dotnet
 
- VStack([
+VStack([
     TextBlock("Seg 动画").Margin(10),
     TypstFile("typst/seg.typ").Ref(out var typ)
         .OnFrame(e=>{
@@ -262,8 +268,82 @@ run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
             typ.Seg("t3", SKColors.Blue, 30 + e.frame * 4);
          })
         .Align(0,-1).Margin(20)
+]).Margin(100)
+.AsClip(out var clip, 30, name: "typst seg");
+
+run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
+```
+
+## 使用占位符函数生成动画
+
+### 占位符函数简介
+
+可以使用预定义的占位符(placeholder) 函数 `ph` 来生成动画。该函数定义如下:
+
+```typst
+#let ph(key)=text("{" + key + "}")
+```
+
+### 在 TypstContent 中使用占位符函数
+
+使用 TypstContent 时，会自动生成上述 `ph` 函数。可通过 `PlaceHolder` 或其缩写 `Ph` 扩展方法，动态修改占位符内容来生成动画。
+
+> [!NOTE]
+> 定义 `ph` 函数时，在 () 内部以及 ph 和 () 之间，不要添加空格等额外的字符。
+
+动画示例([typstph1.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstph1.cs))如下：
+
+```csharp
+#!/usr/bin/env dotnet
+
+var str = "2025年，中国对外直接投资流量2135.8亿美元，比上年增长11.1%";
+var content = """
+    #ph("str")
+    """;
+VStack([
+    TextBlock("PlaceHolder 动画").Margin(10),
+    TypstContent(content).Ref(out var typ)
+        .PageMargin(10).PageSize(500,null)
+        .PageBg(SKColors.White).ParagraphJustify()
+        .OnFrame(e=>{
+            typ.Ph("str", str.Substring(0, e.frame + 1));
+         })
+        .Align(0,-1).Margin(20),
+]).Margin(100)
+.AsClip(out var clip, 60, name: "typst ph1");
+
+run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
+```
+
+### 在 TypstFile 中使用占位符函数
+
+也可以以对 TypstFile 应用占位符函数。示例 typst 文件  ( [placeholder.typ](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typst/placeholder.typ) ):
+
+```typst
+#set page(fill: none)
+#set page(width: 600pt, height: auto, margin: 10pt )
+#let ph(key)=text("{" + key + "}")
+
+#ph("str")
+```
+
+文件头部通过 let 定义 ph 函数，避免 typst 预览报错。 
+
+动画示例([typstph2.cs](https://github.com/nscript-site/NewBeeVG/blob/main/apps/files/typstph2.cs))如下：
+
+```csharp
+#!/usr/bin/env dotnet
+
+var str = "2025年，中国对外直接投资流量2135.8亿美元，比上年增长11.1%";
+VStack([
+    TextBlock("PlaceHolder 动画").Margin(10),
+    TypstFile("typst/placeholder.typ").Ref(out var typ)
+        .OnFrame(e=>{
+            typ.Ph("str", str.Substring(0, e.frame + 1));
+         })
+        .Align(0,-1).Margin(20)
  ]).Margin(100)
- .AsClip(out var clip, 30, name: "typst seg");
+.AsClip(out var clip, 60, name: "typst ph2");
 
 run(stage(1920, 1080, bg: SKColors.Orange), [clip]);
 ```

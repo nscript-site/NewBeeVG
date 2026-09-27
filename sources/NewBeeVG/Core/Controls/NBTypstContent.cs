@@ -14,6 +14,7 @@ public class NBTypstContent : NBTypst
 
     public bool DefineSegFunc { get; set; } = true;
     public int DefineSegFuncCount { get; set; } = 20;
+    public string SegFuncPrefix { get; set; } = "t";
 
     protected override string OnLoadConent(string content)
     {
@@ -48,7 +49,7 @@ public class NBTypstContent : NBTypst
 
         for (int i = 0; i < DefineSegFuncCount; i++)
         {
-            sb.AppendLine($"#let t{i}(b)=text(b)");
+            sb.AppendLine($"#let {SegFuncPrefix}{i}(b)=text(b)");
         }
 
         //#set page(
@@ -187,8 +188,9 @@ public static partial class NBExtentions
         return self;
     }
 
-    public static T DefineSegFunc<T>(this T self, int segFuncCount = 20) where T : NBTypstContent
+    public static T DefineSegFunc<T>(this T self, string segFuncPrefix = "t", int segFuncCount = 20) where T : NBTypstContent
     {
+        self.SegFuncPrefix = segFuncPrefix;
         self.DefineSegFuncCount = segFuncCount;
         return self;
     }
