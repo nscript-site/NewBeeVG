@@ -335,5 +335,8 @@ VStack([
 run(stage(bg: SKColors.Orange), [clip]);
 ```
 
+> [!NOTE]
+> 默认使用 typst 的 `zebraw` 包显示代码，`zebraw` 的语法详细参考 [zenbraw 的文档](https://typst.app/universe/package/zebraw/)。
+
 > [!WARNING]
 > 嵌入代码不支持 Seg 动画。
