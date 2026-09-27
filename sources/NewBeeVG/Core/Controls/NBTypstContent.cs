@@ -9,6 +9,8 @@ public class NBTypstContent : NBTypst
     public int? PageHeight { get; set; }
     public Thickness? PageMargin { get; set; }
     public float? FontSize { get; set; }
+    public bool ParagraphJustify { get; set; }
+    public SKColor? PageBackgroudColor { get; set; }
 
     protected override string OnLoadConent(string content)
     {
@@ -26,7 +28,14 @@ public class NBTypstContent : NBTypst
     {
         var sb = new StringBuilder();
 
-        sb.AppendLine($"#set page(fill: none)");
+        if(PageBackgroudColor == null || PageBackgroudColor.Value == SKColors.Transparent)
+        {
+            sb.AppendLine($"#set page(fill: none)");
+        }
+        else
+        {
+            sb.AppendLine($"#set page(fill: rgb(\"{PageBackgroudColor.Value.ToTypstRGBString()}\"))");
+        }
 
         var width = PageWidth == null ? "auto" : $"{PageWidth}pt";
         var height = PageHeight == null ? "auto" : $"{PageHeight}pt";
@@ -54,6 +63,11 @@ public class NBTypstContent : NBTypst
                     )
                 )
                 """);
+        }
+
+        if(ParagraphJustify == true)
+        {
+            sb.AppendLine($"#set par(justify: true)");
         }
 
         if(FontSize != null)
@@ -124,6 +138,30 @@ public static partial class NBExtentions
     public static T PageMargin<T>(this T self, int horizontal, int vertical) where T : NBTypstContent
     {
         self.PageMargin = new Thickness(horizontal, vertical);
+        return self;
+    }
+
+    public static T ParagraphJustify<T>(this T self, bool justify = true) where T : NBTypstContent
+    {
+        self.ParagraphJustify = justify;
+        return self;
+    }
+
+    public static T ParJustify<T>(this T self, bool justify = true) where T : NBTypstContent
+    {
+        self.ParagraphJustify = justify;
+        return self;
+    }
+
+    public static T PageBg<T>(this T self, SKColor? bg = null) where T : NBTypstContent
+    {
+        self.PageBackgroudColor = bg;
+        return self;
+    }
+
+    public static T PageBackgroud<T>(this T self, SKColor? bg = null) where T : NBTypstContent
+    {
+        self.PageBackgroudColor = bg;
         return self;
     }
 
