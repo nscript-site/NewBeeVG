@@ -1,6 +1,7 @@
 ﻿using Avalonia.Interactivity;
 using Avalonia.Threading;
 using NewBeeMedia;
+using NewBeeMedia.Encoders.Gif;
 using SkiaSharp;
 
 namespace NewBeeVG.Viewer.Widgets;
@@ -88,18 +89,19 @@ public class ExportVideoView : BaseView
     {
         // 帧延迟：单位是 1/100 秒
         int delayHundredths = (int)Math.Round(100.0 / stage.FrameRate);
-        using var gifEncoder2 = Encoders.GifEncoder.Create(filePath, delayHundredths);
-        //using var gifEncoder = AnimatedGif.AnimatedGif.Create(filePath, delayHundredths);
+
+        var opt = new GifEncoderOptions();
+        opt.MaxWidth = 1200;
+        opt.MaxHeight = 1200;
+
+        using var gifEncoder2 = GifEncoder.Create(filePath, delayHundredths, opt);
 
         for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
         {
             using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
             if (bmp == null) break;
 
-            using var sbmp = ResizeProportionalMaxSize(bmp, maxSize);
-            //using var gbmp = DrawingHelper.ToGdiBitmap(sbmp);
-            //gifEncoder.AddFrame(gbmp);
-            gifEncoder2.AddFrame(sbmp);
+            gifEncoder2.AddFrame(bmp);
 
             if (CurrentFrame % 10 == 0)
             {

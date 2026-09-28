@@ -1,8 +1,6 @@
-﻿// 本文件由 Kimi K3 生成
+﻿using SkiaSharp;
 
-using SkiaSharp;
-
-namespace NewBeeVG.Encoders;
+namespace NewBeeMedia.Encoders.Gif;
 
 // -----------------------------------------------------------------------------
 // GifEncoder.cs
@@ -10,7 +8,9 @@ namespace NewBeeVG.Encoders;
 // 基于 SkiaSharp 的 GIF89a 动画编码器：
 //   - 将多张尺寸相同的 SKBitmap 逐帧编码为一个 GIF 动画
 //   - 支持缩放压缩（Scale / MaxWidth / MaxHeight），可显著减小体积
-//   - 内置 NeuQuant 神经网络调色板量化（自动裁剪未用颜色）+ GIF LZW 压缩
+//   - 帧差优化：只编码与上一帧相比变化的区域，未变化像素输出为透明
+//   - LZW 压缩可开关：关闭时使用字面量码流（合法 GIF，更大但编码更快）
+//   - 内置 NeuQuant 神经网络调色板量化（自动裁剪未用颜色）
 //   - 支持透明像素（Alpha 阈值二值化）、循环次数、逐帧延迟
 //
 // 依赖：NuGet 包 SkiaSharp（代码按 2.88.x API 编写，3.x 适配方式见
@@ -31,9 +31,10 @@ namespace NewBeeVG.Encoders;
 //       new GifEncoderOptions { Scale = 0.5 });
 // 或限制最长边：
 //   new GifEncoderOptions { MaxWidth = 480 }
+//
+// 关闭帧差优化 / LZW 压缩：
+//   new GifEncoderOptions { EnableFrameDiff = false, EnableLzwCompression = false }
 // -----------------------------------------------------------------------------
-
-
 /// <summary>GIF 编码选项。</summary>
 public sealed class GifEncoderOptions
 {
@@ -67,14 +68,42 @@ public sealed class GifEncoderOptions
     /// <summary>
     /// 半透明像素的衬底色。设置后 Alpha ≥ <see cref="AlphaThreshold"/> 且 &lt; 255
     /// 的像素会合成到该颜色上；null 表示直接使用原始 RGB。
+    /// 帧差模式下还用于填充"消失"的像素（上一帧不透明、当前帧透明的区域）。
     /// </summary>
     public SKColor? MatteColor { get; set; }
 
     /// <summary>
     /// GIF 处置方式（Disposal Method）：0/1 = 保留上一帧（默认 1）；
-    /// 2 = 恢复背景；3 = 恢复上一帧之前。透明帧叠加出现问题时可尝试 2。
+    /// 2 = 恢复背景；3 = 恢复上一帧之前。
+    /// 注意：帧差优化（<see cref="EnableFrameDiff"/>）要求该值为 1。
     /// </summary>
     public int DisposalMethod { get; set; } = 1;
+
+    /// <summary>
+    /// 帧差优化（默认开启）：只编码与上一帧相比发生变化的矩形区域，
+    /// 区域内未变化的像素输出为透明（靠处置方式 1 透出上一帧内容）。
+    /// 对"局部变化"的动画可大幅减小体积；完全无变化的帧会编码为 1x1 透明帧。
+    /// 要求 <see cref="DisposalMethod"/> = 1，否则创建编码器时抛异常。
+    /// 注意：若帧中存在"消失"的像素（上一帧不透明、当前帧透明），GIF 的
+    /// 透明无法覆盖旧内容，请设置 <see cref="MatteColor"/> 让编码器用衬底色填充。
+    /// </summary>
+    public bool EnableFrameDiff { get; set; } = true;
+
+    /// <summary>
+    /// 帧差判定容差（每通道 0~255，默认 0）：两帧对应像素的
+    /// R/G/B 差值均不超过该值时视为"未变化"。
+    /// 抗锯齿边缘有轻微抖动时可设为 2~8，能进一步缩小变化区域。
+    /// </summary>
+    public byte FrameDiffThreshold { get; set; } = 0;
+
+    /// <summary>
+    /// LZW 压缩开关（默认开启）。GIF 规范要求像素数据必须是 LZW 码流，
+    /// 因此"关闭"并非输出原始数据，而是使用字面量模式：每个像素直接作为
+    /// 字面量码输出、周期性插入 Clear Code，不做字典压缩。
+    /// 输出仍是合法可解码的 GIF，但文件更大；编码速度更快，
+    /// 适合帧内容高度随机（压缩率趋近于 1）或追求编码速度的场景。
+    /// </summary>
+    public bool EnableLzwCompression { get; set; } = true;
 }
 
 /// <summary>
@@ -94,6 +123,8 @@ public sealed class GifEncoder : IDisposable
     private bool _headerWritten;
     private bool _finished;
     private bool _disposed;
+
+    private SKColor[] _prevPixels; // 上一帧像素（帧差优化用，输出尺寸）
 
     /// <summary>已写入的帧数。</summary>
     public int FrameCount => _frameCount;
@@ -151,6 +182,10 @@ public sealed class GifEncoder : IDisposable
         _ownsStream = ownsStream;
         _defaultDelayHundredths = delayHundredths;
         _options = options ?? new GifEncoderOptions();
+
+        if (_options.EnableFrameDiff && _options.DisposalMethod != 1)
+            throw new ArgumentException(
+                "帧差优化要求 DisposalMethod = 1（保留上一帧）", nameof(options));
     }
 
     // ---------------------------------------------------------------------
@@ -197,8 +232,44 @@ public sealed class GifEncoder : IDisposable
                 ? bitmap
                 : ScaleBitmap(bitmap, tw, th);
 
-            // 2. 量化 + 写帧
-            WriteFrame(frame, delay);
+            SKColor[] pixels = frame.Pixels;
+
+            // 2. 帧差 / 全帧编码
+            if (_options.EnableFrameDiff && _prevPixels != null)
+            {
+                if (TryGetDiffRegion(pixels, _prevPixels, _width, _height,
+                        out int left, out int top, out int rw, out int rh))
+                {
+                    // 只编码变化区域；区域内未变化像素输出为透明
+                    var unchanged = new bool[rw * rh];
+                    int tol = _options.FrameDiffThreshold;
+                    byte ath = _options.AlphaThreshold;
+                    for (int ry = 0; ry < rh; ry++)
+                    {
+                        int srcRow = (top + ry) * _width + left;
+                        int dstRow = ry * rw;
+                        for (int rx = 0; rx < rw; rx++)
+                            unchanged[dstRow + rx] = PixelsEqual(
+                                pixels[srcRow + rx], _prevPixels[srcRow + rx], tol, ath);
+                    }
+                    EncodeRegion(pixels, _width, _prevPixels,
+                        left, top, rw, rh, unchanged, delay);
+                }
+                else
+                {
+                    // 与上一帧完全一致：写 1x1 全透明帧（几乎不占体积）
+                    EncodeRegion(TransparentPixel1x1, 1, null, 0, 0, 1, 1, null, delay);
+                }
+            }
+            else
+            {
+                // 首帧或未开启帧差：整帧编码
+                EncodeRegion(pixels, _width, null, 0, 0, _width, _height, null, delay);
+            }
+
+            if (_options.EnableFrameDiff)
+                _prevPixels = pixels;
+
             _frameCount++;
         }
         finally
@@ -208,6 +279,8 @@ public sealed class GifEncoder : IDisposable
                 frame.Dispose();
         }
     }
+
+    private static readonly SKColor[] TransparentPixel1x1 = { new SKColor(0, 0, 0, 0) };
 
     /// <summary>结束编码并写入 GIF 文件尾。Dispose 时会自动调用。</summary>
     public void Finish()
@@ -232,6 +305,56 @@ public sealed class GifEncoder : IDisposable
             if (_ownsStream)
                 _stream.Dispose();
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // 帧差
+    // ---------------------------------------------------------------------
+
+    /// <summary>两像素是否在容差内视为相同（双透明视为相同）。</summary>
+    private static bool PixelsEqual(SKColor a, SKColor b, int tol, byte alphaThreshold)
+    {
+        bool ta = a.Alpha < alphaThreshold;
+        bool tb = b.Alpha < alphaThreshold;
+        if (ta && tb) return true;   // 都透明，视觉一致
+        if (ta != tb) return false;  // 一方透明一方不透明
+        return Math.Abs(a.Red - b.Red) <= tol
+            && Math.Abs(a.Green - b.Green) <= tol
+            && Math.Abs(a.Blue - b.Blue) <= tol;
+    }
+
+    /// <summary>计算两帧之间的变化区域（包围盒）。无变化返回 false。</summary>
+    private bool TryGetDiffRegion(SKColor[] cur, SKColor[] prev, int w, int h,
+        out int left, out int top, out int rw, out int rh)
+    {
+        int tol = _options.FrameDiffThreshold;
+        byte ath = _options.AlphaThreshold;
+        int x0 = w, y0 = h, x1 = -1, y1 = -1;
+
+        for (int y = 0; y < h; y++)
+        {
+            int row = y * w;
+            for (int x = 0; x < w; x++)
+            {
+                if (!PixelsEqual(cur[row + x], prev[row + x], tol, ath))
+                {
+                    if (x < x0) x0 = x;
+                    if (x > x1) x1 = x;
+                    if (y < y0) y0 = y;
+                    if (y > y1) y1 = y;
+                }
+            }
+        }
+
+        if (x1 < 0)
+        {
+            left = top = rw = rh = 0;
+            return false;
+        }
+        left = x0; top = y0;
+        rw = x1 - x0 + 1;
+        rh = y1 - y0 + 1;
+        return true;
     }
 
     // ---------------------------------------------------------------------
@@ -283,48 +406,78 @@ public sealed class GifEncoder : IDisposable
     }
 
     // ---------------------------------------------------------------------
-    // 帧编码：量化 + 调色板 + LZW
+    // 区域编码：量化 + 调色板 + LZW
     // ---------------------------------------------------------------------
 
-    private void WriteFrame(SKBitmap bmp, int delay)
+    /// <summary>
+    /// 编码一帧（或帧内的一个变化区域）。
+    /// </summary>
+    /// <param name="src">源像素数组（完整帧，输出尺寸）。</param>
+    /// <param name="srcW">源像素数组的行宽。</param>
+    /// <param name="prev">上一帧像素（帧差模式用，可为 null）。</param>
+    /// <param name="left">区域左上角 X。</param>
+    /// <param name="top">区域左上角 Y。</param>
+    /// <param name="rw">区域宽。</param>
+    /// <param name="rh">区域高。</param>
+    /// <param name="unchanged">区域内与上一帧相同的像素标记（输出为透明），可为 null。</param>
+    /// <param name="delay">延迟（1/100 秒）。</param>
+    private void EncodeRegion(SKColor[] src, int srcW, SKColor[] prev,
+        int left, int top, int rw, int rh, bool[] unchanged, int delay)
     {
-        int w = bmp.Width, h = bmp.Height;
-        int pixelCount = w * h;
+        int pixelCount = rw * rh;
         byte alphaThreshold = _options.AlphaThreshold;
         SKColor? matte = _options.MatteColor;
 
-        // --- 第一遍：拆分透明/不透明像素 --------------------------
-        SKColor[] pixels = bmp.Pixels;
-        var rgb = new byte[pixelCount * 3];       // 不透明像素的 RGB 序列
+        // --- 拆分透明/不透明像素，并做衬底合成 ------------------------
+        var rgbAll = new byte[pixelCount * 3]; // 区域内全部像素的合成 RGB
         var isTransparent = new bool[pixelCount];
         int opaqueCount = 0;
         bool hasTransparency = false;
 
-        for (int i = 0; i < pixelCount; i++)
+        for (int ry = 0; ry < rh; ry++)
         {
-            SKColor c = pixels[i];
-            if (c.Alpha < alphaThreshold)
+            int srcRow = (top + ry) * srcW + left;
+            int dstRow = ry * rw;
+            for (int rx = 0; rx < rw; rx++)
             {
-                isTransparent[i] = true;
-                hasTransparency = true;
-                continue;
+                int i = dstRow + rx;
+                int si = srcRow + rx;
+                SKColor c = src[si];
+                bool same = unchanged != null && unchanged[i];
+                bool transp = same || c.Alpha < alphaThreshold;
+                byte r = c.Red, g = c.Green, b = c.Blue;
+
+                if (transp && !same && prev != null && matte.HasValue &&
+                    prev[si].Alpha >= alphaThreshold)
+                {
+                    // 像素"消失"（上一帧不透明、当前帧透明）：
+                    // 处置方式 1 下透明会露出旧内容，用衬底色覆盖
+                    transp = false;
+                    r = matte.Value.Red; g = matte.Value.Green; b = matte.Value.Blue;
+                }
+                else if (!transp && c.Alpha < 255 && matte.HasValue)
+                {
+                    // 半透明像素合成到衬底色
+                    float a = c.Alpha / 255f;
+                    SKColor m = matte.Value;
+                    r = (byte)(r * a + m.Red * (1 - a) + 0.5f);
+                    g = (byte)(g * a + m.Green * (1 - a) + 0.5f);
+                    b = (byte)(b * a + m.Blue * (1 - a) + 0.5f);
+                }
+
+                isTransparent[i] = transp;
+                if (transp)
+                {
+                    hasTransparency = true;
+                    continue;
+                }
+                int o = i * 3;
+                rgbAll[o] = r; rgbAll[o + 1] = g; rgbAll[o + 2] = b;
+                opaqueCount++;
             }
-            byte r = c.Red, g = c.Green, b = c.Blue;
-            if (c.Alpha < 255 && matte.HasValue)
-            {
-                // 半透明像素合成到衬底色
-                float a = c.Alpha / 255f;
-                SKColor m = matte.Value;
-                r = (byte)(r * a + m.Red * (1 - a) + 0.5f);
-                g = (byte)(g * a + m.Green * (1 - a) + 0.5f);
-                b = (byte)(b * a + m.Blue * (1 - a) + 0.5f);
-            }
-            int o = opaqueCount * 3;
-            rgb[o] = r; rgb[o + 1] = g; rgb[o + 2] = b;
-            opaqueCount++;
         }
 
-        // --- 量化 ---------------------------------------------------
+        // --- 量化（只采样不透明像素） ----------------------------------
         // NeuQuant 固定输出 256 项调色板，之后裁剪掉未使用的颜色。
         int quantColors;
         byte[] quantPalette;   // RGB，长度 = quantColors * 3
@@ -332,8 +485,16 @@ public sealed class GifEncoder : IDisposable
 
         if (opaqueCount > 0)
         {
-            byte[] sample = new byte[opaqueCount * 3];
-            Array.Copy(rgb, sample, sample.Length);
+            var sample = new byte[opaqueCount * 3];
+            int s = 0;
+            for (int i = 0; i < pixelCount; i++)
+            {
+                if (isTransparent[i]) continue;
+                int o = i * 3;
+                sample[s++] = rgbAll[o];
+                sample[s++] = rgbAll[o + 1];
+                sample[s++] = rgbAll[o + 2];
+            }
             int quality = _options.SampleQuality;
             if (quality < 1) quality = 1;
             if (quality > 30) quality = 30;
@@ -343,12 +504,12 @@ public sealed class GifEncoder : IDisposable
         }
         else
         {
-            // 全透明帧：只需一个占位颜色
+            // 全透明区域：只需一个占位颜色
             quantPalette = new byte[] { 0, 0, 0 };
             quantColors = 1;
         }
 
-        // --- 建立索引位图 + 裁剪未用颜色 -----------------------------
+        // --- 建立索引位图 ----------------------------------------------
         var indexed = new byte[pixelCount];
         var used = new bool[quantColors];
 
@@ -356,35 +517,22 @@ public sealed class GifEncoder : IDisposable
         {
             for (int i = 0; i < pixelCount; i++)
             {
-                if (isTransparent[i]) continue; // 稍后统一填透明索引
-                SKColor c = pixels[i];
-                byte r = c.Red, g = c.Green, b = c.Blue;
-                if (c.Alpha < 255 && matte.HasValue)
-                {
-                    float a = c.Alpha / 255f;
-                    SKColor m = matte.Value;
-                    r = (byte)(r * a + m.Red * (1 - a) + 0.5f);
-                    g = (byte)(g * a + m.Green * (1 - a) + 0.5f);
-                    b = (byte)(b * a + m.Blue * (1 - a) + 0.5f);
-                }
-                int idx = nq.Inxsearch(r, g, b); // 与量化输入同为 RGB 顺序
+                if (isTransparent[i]) continue;
+                int o = i * 3;
+                int idx = nq.Inxsearch(rgbAll[o], rgbAll[o + 1], rgbAll[o + 2]);
                 indexed[i] = (byte)idx;
                 used[idx] = true;
             }
         }
 
-        // 裁剪调色板：旧索引 -> 新索引
+        // --- 裁剪调色板：旧索引 -> 新索引 -------------------------------
         var remap = new int[quantColors];
         int usedCount = 0;
         for (int i = 0; i < quantColors; i++)
-        {
             remap[i] = used[i] ? usedCount++ : -1;
-        }
         for (int i = 0; i < pixelCount; i++)
-        {
             if (!isTransparent[i])
                 indexed[i] = (byte)remap[indexed[i]];
-        }
 
         // 透明索引排在已用颜色之后
         int transparentIndex = -1;
@@ -419,14 +567,14 @@ public sealed class GifEncoder : IDisposable
         }
         // 透明索引位置颜色值无所谓（不会被显示），保持 (0,0,0)
 
-        // --- 写文件头（首帧时）--------------------------------------
+        // --- 写文件头（首帧时）------------------------------------------
         if (!_headerWritten)
         {
             WriteHeader(_width, _height, palette, sizeBits);
             _headerWritten = true;
         }
 
-        // --- Graphic Control Extension -------------------------------
+        // --- Graphic Control Extension -----------------------------------
         WriteByte(0x21);          // Extension Introducer
         WriteByte(0xF9);          // Graphic Control Label
         WriteByte(4);             // Block Size
@@ -437,18 +585,19 @@ public sealed class GifEncoder : IDisposable
         WriteByte(hasTransparency ? transparentIndex : 0);
         WriteByte(0x00);          // Block Terminator
 
-        // --- Image Descriptor + 局部调色板 ----------------------------
+        // --- Image Descriptor + 局部调色板 --------------------------------
         WriteByte(0x2C);          // Image Separator
-        WriteShort(0);            // Left
-        WriteShort(0);            // Top
-        WriteShort(_width);
-        WriteShort(_height);
+        WriteShort(left);
+        WriteShort(top);
+        WriteShort(rw);
+        WriteShort(rh);
         WriteByte(0x80 | (sizeBits - 1)); // 使用局部调色板
         _stream.Write(palette, 0, palette.Length);
 
-        // --- LZW 压缩像素索引 ----------------------------------------
+        // --- LZW 像素索引码流 ---------------------------------------------
         int minCodeSize = Math.Max(2, sizeBits);
-        new LzwEncoder(_width, _height, indexed, minCodeSize).Encode(_stream);
+        new LzwEncoder(rw, rh, indexed, minCodeSize,
+            _options.EnableLzwCompression).Encode(_stream);
     }
 
     // ---------------------------------------------------------------------
@@ -501,10 +650,8 @@ public sealed class GifEncoder : IDisposable
 // NeuQuant 神经网络调色板量化器
 // NeuQuant Neural-Net Quantization Algorithm
 // Copyright (c) 1994 Anthony Dekker
-// NEUQUANT Neural-Net quantization algorithm by Anthony Dekker, 1994.
 // See "Kohonen neural networks for optimal colour quantization"
 // in "Network: Computation in Neural Systems" Vol. 5 (1994) pp 351-367.
-// for a discussion of the algorithm.
 // =========================================================================
 internal sealed class NeuQuant
 {
@@ -857,6 +1004,9 @@ internal sealed class NeuQuant
 
 // =========================================================================
 // GIF LZW 压缩器（经典实现移植）
+//   Compress 模式：完整字典压缩；
+//   字面量模式（EnableLzwCompression = false）：每个像素直接输出字面量码，
+//   周期性插入 Clear Code 防止解码端码宽增长，输出仍是合法 GIF。
 // =========================================================================
 internal sealed class LzwEncoder
 {
@@ -869,6 +1019,7 @@ internal sealed class LzwEncoder
     private readonly int _imgH;
     private readonly byte[] _pixAry;
     private readonly int _initCodeSize;
+    private readonly bool _compress;
 
     private int _remaining;
     private int _curPixel;
@@ -897,12 +1048,14 @@ internal sealed class LzwEncoder
     private int _aCount;
     private readonly byte[] _accum = new byte[256];
 
-    public LzwEncoder(int width, int height, byte[] pixels, int colorDepth)
+    public LzwEncoder(int width, int height, byte[] pixels, int colorDepth,
+        bool compress = true)
     {
         _imgW = width;
         _imgH = height;
         _pixAry = pixels;
         _initCodeSize = Math.Max(2, colorDepth);
+        _compress = compress;
     }
 
     public void Encode(Stream os)
@@ -910,10 +1063,52 @@ internal sealed class LzwEncoder
         os.WriteByte((byte)_initCodeSize); // 最小码长
         _remaining = _imgW * _imgH;
         _curPixel = 0;
-        Compress(_initCodeSize + 1, os);
+
+        if (_compress)
+            Compress(_initCodeSize + 1, os);
+        else
+            WriteLiteral(os);
+
         os.WriteByte(0); // 块结束符
     }
 
+    // ---------------------------------------------------------------------
+    // 字面量模式：不做字典压缩
+    // ---------------------------------------------------------------------
+    private void WriteLiteral(Stream outs)
+    {
+        _gInitBits = _initCodeSize + 1;
+        _nBits = _gInitBits;
+        _maxCode = MaxCode(_nBits);
+        _clearCode = 1 << _initCodeSize;
+        _eofCode = _clearCode + 1;
+        _freeEnt = _clearCode + 2;
+        _aCount = 0;
+        _curAccum = 0;
+        _curBits = 0;
+
+        // Clear 之后解码端每读一个码字典增长 1 项，
+        // 在码宽被迫增长之前最多可安全输出 clearCode - 2 个字面量。
+        int runLength = Math.Max(1, _clearCode - 2);
+
+        Output(_clearCode, outs);
+        int n = 0;
+        int c;
+        while ((c = NextPixel()) != Eof)
+        {
+            Output(c, outs);
+            if (++n >= runLength)
+            {
+                Output(_clearCode, outs);
+                n = 0;
+            }
+        }
+        Output(_eofCode, outs);
+    }
+
+    // ---------------------------------------------------------------------
+    // 字典压缩模式
+    // ---------------------------------------------------------------------
     private void Compress(int initBits, Stream outs)
     {
         _gInitBits = initBits;

@@ -138,7 +138,7 @@ public class PlayerView : BaseView
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = title,
-            SuggestedFileName = $"out_{Playable!.FullName}.{fileType}",
+            SuggestedFileName = $"out_{Playable!.Name}.{fileType}",
             DefaultExtension = fileType,
             FileTypeChoices =
             [

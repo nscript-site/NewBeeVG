@@ -35,4 +35,6 @@ public interface IPlayable
     int Measure();
 
     string FullName { get; }
+
+    string Name { get; }
 }
