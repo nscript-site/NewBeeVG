@@ -88,7 +88,8 @@ public class ExportVideoView : BaseView
     {
         // 帧延迟：单位是 1/100 秒
         int delayHundredths = (int)Math.Round(100.0 / stage.FrameRate);
-        using var gifEncoder = AnimatedGif.AnimatedGif.Create(filePath, delayHundredths);
+        using var gifEncoder2 = Encoders.GifEncoder.Create(filePath, delayHundredths);
+        //using var gifEncoder = AnimatedGif.AnimatedGif.Create(filePath, delayHundredths);
 
         for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
         {
@@ -96,8 +97,9 @@ public class ExportVideoView : BaseView
             if (bmp == null) break;
 
             using var sbmp = ResizeProportionalMaxSize(bmp, maxSize);
-            using var gbmp = DrawingHelper.ToGdiBitmap(sbmp);
-            gifEncoder.AddFrame(gbmp);
+            //using var gbmp = DrawingHelper.ToGdiBitmap(sbmp);
+            //gifEncoder.AddFrame(gbmp);
+            gifEncoder2.AddFrame(sbmp);
 
             if (CurrentFrame % 10 == 0)
             {

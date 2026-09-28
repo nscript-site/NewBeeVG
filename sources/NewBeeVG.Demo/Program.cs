@@ -10,9 +10,9 @@
 
 //LayerSample.Run();
 
-//Canvas3DSample.Run();
+Canvas3DSample.Run();
 
-TypstSample.Run();
+//TypstSample.Run();
 
 //UtilsSample.Run();
 
