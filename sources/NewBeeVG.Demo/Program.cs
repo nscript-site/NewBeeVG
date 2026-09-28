@@ -8,9 +8,9 @@
 
 //LottieSample.Run();
 
-//LayerSample.Run();
+LayerSample.Run();
 
-Canvas3DSample.Run();
+//Canvas3DSample.Run();
 
 //TypstSample.Run();
 
