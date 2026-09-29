@@ -59,6 +59,18 @@ public class NBClip : IPlayable
     {
         if (ControlBuilder == null) return;
 
+        if(includeStageBackground == true && stage.Background != null)
+        {
+            var skColor = stage.Background.Value;
+            using var paint = new SKPaint
+            {
+                Style = SKPaintStyle.Fill,
+                Color = skColor,
+                IsAntialias = true
+            };
+            canvas.DrawRect(new SKRect(0, 0, stage.Width, stage.Height), paint);
+        }
+
         var context = CreateDrawContext(stage, frame);
         ControlBuilder(context, this, canvas);
     }
