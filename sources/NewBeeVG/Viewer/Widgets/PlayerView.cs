@@ -37,6 +37,20 @@ public class PlayerView : BaseView
         .Return(out content);
     }
 
+    protected bool _isPlaying = false;
+
+    public void Stop()
+    {
+        Playing = false;
+        while(true)
+        {
+            if (_isPlaying == false)
+                break;
+
+            Thread.Sleep(100);
+        }
+    }
+
     public void Load(IPlayable? playable, NBWork? work)
     {
         Playing = false;
@@ -66,12 +80,14 @@ public class PlayerView : BaseView
     {
         if (Work == null) return;
 
+
         // Run the playback loop on a background thread.
         Task.Run(() =>
         {
             int targetMs = Math.Max(10,(int)(1000.0/Work.Fps));
             var sw = Stopwatch.StartNew();
             Playing = true;
+            _isPlaying = true;
 
             try
             {
@@ -121,6 +137,7 @@ public class PlayerView : BaseView
             finally
             {
                 Playing = false;
+                _isPlaying = false;
             }
         });
     }

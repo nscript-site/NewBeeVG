@@ -6,6 +6,8 @@ public class WorkNodeView : BaseView
 
     public Action<IPlayable, NBWork>? OnPlayableClicked { get; set; }
 
+    public IPlayable? Root => WorkNode.Tracks.FirstOrDefault();
+
     protected override void Build(out Control content)
     {
         var arrs = new List<Control>();
