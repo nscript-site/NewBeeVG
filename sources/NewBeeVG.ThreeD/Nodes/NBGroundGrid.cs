@@ -46,8 +46,8 @@ public class NBGroundGrid : NBNode3D
             for (int i = -halfLines; i <= halfLines; i++)
             {
                 float p = i * spacing;
-                AddLineSegment(geo, idx * 4, new Vector3(-extent, 0, p), new Vector3(extent, 0, p), c, c);
-                AddLineSegment(geo, idx * 4 + 2, new Vector3(p, 0, -extent), new Vector3(p, 0, extent), c, c);
+                SetLineSegment(geo, idx * 4, new Vector3(-extent, 0, p), new Vector3(extent, 0, p), c, c);
+                SetLineSegment(geo, idx * 4 + 2, new Vector3(p, 0, -extent), new Vector3(p, 0, extent), c, c);
                 idx++;
             }
         }

@@ -41,18 +41,6 @@ public class NBLine3D : NBNode3D
         return geo;
     }
 
-    private Geometry GenerateAxes(float length)
-    {
-        var geo = new Geometry();
-        var red = new Vector4(1f, 0.1f, 0.1f, 1f);
-        var green = new Vector4(0.1f, 1f, 0.1f, 1f);
-        var blue = new Vector4(0.2f, 0.4f, 1f, 1f);
-        SetLineSegment(geo, Vector3.Zero, new Vector3(length, 0, 0), red, red);
-        SetLineSegment(geo, Vector3.Zero, new Vector3(0, length, 0), green, green);
-        SetLineSegment(geo, Vector3.Zero, new Vector3(0, 0, length), blue, blue);
-        return geo;
-    }
-
     public override void FireOnFrameUpdated(NBFrameUpdateEvent e)
     {
         base.FireOnFrameUpdated(e);

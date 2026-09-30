@@ -39,12 +39,26 @@ internal class Canvas3DSample
                         Line3D(Vec3(),Vec3(0,len,0),SKColors.Green,thickness),
                         Line3D(Vec3(),Vec3(len,0,0),SKColors.Blue,thickness),
                     ]).Align(0,-1)
-            ])
+            ]),
         ])
         .Align(0, 0)
         .AsClip(out var clip1, frames: 40, name: "3d");
 
-        run(stage(1920, 1080, bg: SKColors.Orange), [clip1]);
+        VStack([
+            TextBlock("3D动画 (Polyline3D)").Font(40, SKColors.Black),
+            Canvas3D(800,800,SKColors.White).Ref(out var canvas2)
+                .OnFrame(e=>{ canvas2.RotateCamera(2f,0); canvas2.ZoomCamera(-0.1f); })
+                .Camera(PerspectiveCamera(Vec3(0, 12, -25)))
+                .Nodes([
+                    GroundGrid(10,1,SKColors.DimGray,1),
+                    Polyline3D(
+                        Curves3D.CylindricalHelix(5, 0.01, 0.02, -500, 500, axis: new Vector3(0,1,0)),
+                        SKColors.Red, thickness: 2)
+                ]).Align(0,-1)
+        ])
+        .Align(0, 0)
+        .AsClip(out var clip2, frames: 40, name: "3d2");
+        run(stage(1920, 1080, bg: SKColors.Orange), [clip1, clip2]);
     }
 }
 

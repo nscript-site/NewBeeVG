@@ -24,7 +24,15 @@ public class NBNode3D
         geo.VertexColors[1] = (cb);
     }
 
-    protected static void AddLineSegment(Geometry geo, int idx, Vector3 a, Vector3 b, Vector4 ca, Vector4 cb)
+    protected static void AddLineSegment(Geometry geo, Vector3 a, Vector3 b, Vector4 ca, Vector4 cb)
+    {
+        geo.Vertices.Add(a.ToVector4(1));
+        geo.Vertices.Add(b.ToVector4(1));
+        geo.VertexColors.Add(ca);
+        geo.VertexColors.Add(cb);
+    }
+
+    protected static void SetLineSegment(Geometry geo, int idx, Vector3 a, Vector3 b, Vector4 ca, Vector4 cb)
     {
         geo.Vertices[idx + 0] = a.ToVector4(1);
         geo.Vertices[idx + 1] = b.ToVector4(1);
