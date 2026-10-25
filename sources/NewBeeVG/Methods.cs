@@ -545,6 +545,19 @@ public static class Methods
         _globalFontFaminy = name;
     }
 
+    /// <summary>
+    /// 创建一段 SK 动画，用于逐帧渲染并导出图片。
+    /// </summary>
+    /// <param name="size">单帧画面尺寸（像素），内部会截断为整数宽高。</param>
+    /// <param name="frames">动画总帧数，有效帧号为 0 ~ frames-1。</param>
+    /// <param name="onFrame">逐帧绘制回调：参数依次为画布、画面尺寸、当前帧号。</param>
+    /// <returns>创建好的动画对象，可调用 <see cref="SKAnimation.BuildFrame"/> 渲染单帧，或调用 <see cref="SKAnimation.SavePNG"/> 导出为 PNG。</returns>
+    public static SKAnimation skanim(SKSize size, int frames, Action<SKCanvas, SKSize, int> onFrame)
+    {
+        // SKAnimation 只接受整数宽高，这里把浮点尺寸截断为 int
+        return new SKAnimation((int)size.Width, (int)size.Height, frames, onFrame);
+    }
+
     public static NBText Text(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)
     {
         return TextBlock(text, fontSize, color, fontFamily, wrap, textAlign);
