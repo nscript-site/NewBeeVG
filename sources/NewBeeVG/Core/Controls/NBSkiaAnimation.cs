@@ -20,6 +20,16 @@ public class NBSkiaAnimation : NBBaseImage
 
     public NBAnimateLoopMode LoopMode { get; set; } = NBAnimateLoopMode.Loop;
 
+    protected override SKSize? GetImageSize()
+    {
+        var size = AnimSize;
+        if (size != null)
+        {
+            return new SKSize(size.Value.Width, size.Value.Height);
+        }
+        return null;
+    }
+
     protected override void Draw(SKCanvas context, SKRect src, SKRect dest, SKPaint paint)
     {
         if (Animation == null || AnimSize == null || TotalFrames <= 0) return;

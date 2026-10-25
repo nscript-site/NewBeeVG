@@ -1,6 +1,6 @@
 ---
 name: newbeevg-skia-animation
-description: This skill should be used when creating, editing, or debugging frame-by-frame animations rendered with SkiaSharp in the NewBeeVG codebase, especially in file-based apps under apps/files where a subclass of SKCustomAnimation overrides DrawFrame, or when working with ISKAnimation, SKAnimation, skanim(...), SKCanvas frame callbacks, PNG frame export (SavePNG), MP4/GIF export (SaveMp4/SaveGif), frame index to progress conversion, transparency, frame rate, and bitmap disposal.
+description: This skill should be used when creating, editing, or debugging frame-by-frame animations rendered with SkiaSharp in the NewBeeVG codebase, especially in file-based apps under apps/files where a subclass of SKCustomAnimation overrides DrawFrame, or when working with ISKAnimation, SKAnimation, SKCanvas frame callbacks, PNG frame export (SavePNG), MP4/GIF export (SaveMp4/SaveGif), frame index to progress conversion, transparency, frame rate, and bitmap disposal.
 ---
 
 # NewBeeVG SkiaSharp 逐帧动画
@@ -13,7 +13,7 @@ description: This skill should be used when creating, editing, or debugging fram
 - MP4 视频（`SaveMp4`，H.264）；
 - GIF 动图（`SaveGif`）。
 
-推荐做法是**在 file-based app 中新建 `SKCustomAnimation` 的子类并重写 `DrawFrame`**；只有一次性、绘制逻辑很短时才使用 `skanim(...)` 的 lambda 写法。
+推荐做法是**在 file-based app 中新建 `SKCustomAnimation` 的子类并重写 `DrawFrame`**。
 
 该动画体系与基于 Avalonia 布局的 `NBVisual` / `NBClip` 动画相互独立：它只操作原始 `SKCanvas`，不参与布局计算。
 
@@ -150,25 +150,12 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
        output/animation.mp4
 ```
 
-### 备选：skanim 的 lambda 写法
-
-绘制逻辑只有几行、不需要复用类型时，可以用工厂方法：
-
-```csharp
-var anim = skanim(new SKSize(1080, 1920), 90, (canvas, size, frame) =>
-{
-    canvas.Clear(SKColors.White);
-    canvas.DrawCircle(size.Width / 2f, size.Height / 2f, 80f, new SKPaint());
-});
-```
-
 ## API 摘要
 
 | 成员 | 说明 |
 | --- | --- |
 | `SKCustomAnimation(int width, int height, int frames)` | 推荐基类；子类重写 `DrawFrame` 提供每帧绘制 |
 | `SKAnimation(int width, int height, int frames, Action<...>? onFrame)` | 回调式实现；`onFrame` 可为 `null` |
-| `skanim(SKSize size, int frames, Action<SKCanvas, SKSize, int> onFrame)` | 工厂方法；`size` 的浮点宽高被截断为整数 |
 | `Frames` / `Width` / `Height` | 总帧数、单帧像素尺寸 |
 | `BuildFrame(int frame)` | 返回新的 `SKBitmap`；越界、尺寸非法或回调为空时返回 `null`，调用方负责释放 |
 | `Draw(SKCanvas canvas, int frame)` | 直接把帧绘制到已有画布，不创建位图；成功返回 `true` |

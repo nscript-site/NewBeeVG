@@ -109,8 +109,6 @@ public class ClockAnimation : SKCustomAnimation
 - `Draw` 会先校验帧号与尺寸，`DrawFrame` 内无需重复判断；
 - `apps/files/` 已通过 `Directory.Build.props` 全局导入 `NewBeeVG`、`SkiaSharp` 与静态 `Methods`。
 
-若绘制逻辑只有几行，可用 `skanim(...)` 的 lambda 写法作为等价替代；该写法无法继承复用。
-
 ## 帧号与插值
 
 ```csharp
@@ -304,10 +302,6 @@ GIF 帧延迟精度为 1/100 秒。例如：
 ### 图片格式与扩展名不一致
 
 `SavePNG` 固定输出 PNG。写成 `.jpg` 得到的仍是 PNG 内容，需要其他格式时自行调用 `SKImage.Encode`。
-
-### 宽高出现小数偏差
-
-`skanim` 接收浮点 `SKSize`，但内部强制转换为 `int`，小数被截断。需要四舍五入时先传入 `new SKSize(MathF.Round(w), MathF.Round(h))`。
 
 ### 并发渲染
 

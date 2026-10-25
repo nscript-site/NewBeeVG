@@ -10,7 +10,9 @@
 
 //LayerSample.Run();
 
-SVGSample.Run();
+SKAnimationSample.Run();
+
+//SVGSample.Run();
 
 //Canvas3DSample.Run();
 

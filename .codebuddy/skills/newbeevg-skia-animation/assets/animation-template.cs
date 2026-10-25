@@ -1,5 +1,9 @@
 #!/usr/bin/env dotnet
 
+#:package NewBeeVG@1.0.1.11
+using NewBeeVG;
+using SkiaSharp;
+
 // NewBeeVG SkiaSharp 逐帧动画模板（file-based app）
 // 用法：复制到 apps/files/ 下，修改尺寸、帧数、帧率与 DrawFrame 内的绘制逻辑后运行
 // 注意：顶层语句在前，类型声明必须放在文件末尾
