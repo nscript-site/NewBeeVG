@@ -1,16 +1,12 @@
 ﻿using NewBeeMedia;
 using NewBeeMedia.Encoders.Gif;
 using SkiaSharp;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Tmds.DBus.Protocol;
 
 namespace NewBeeVG;
 
 /// <summary>
 /// SK 动画接口：描述一段可以逐帧渲染的位图动画。
-/// 实现方需提供总帧数、单帧尺寸，以及按帧号生成位图、导出图片文件的能力。
+/// 实现方需提供总帧数、单帧尺寸，以及按帧号直接绘制、生成位图、导出图片/视频的能力。
 /// </summary>
 public interface ISKAnimation
 {
@@ -31,12 +27,42 @@ public interface ISKAnimation
     public SKBitmap? BuildFrame(int frame);
 
     /// <summary>
+    /// 将指定帧直接绘制到给定画布（不创建中间位图），用于嵌入已有渲染流程。
+    /// </summary>
+    /// <param name="canvas">目标画布；其当前变换矩阵与裁切状态由调用方负责。</param>
+    /// <param name="frame">帧号，有效范围为 0 ~ Frames-1。</param>
+    /// <returns>绘制成功返回 true；帧号越界、尺寸非法或未设置渲染回调时返回 false。</returns>
+    public bool Draw(SKCanvas canvas, int frame);
+
+    /// <summary>
     /// 将指定帧渲染并保存为 PNG 图片（无损格式，保留 Alpha 通道）。
     /// </summary>
     /// <param name="frame">帧号，从 0 开始。</param>
     /// <param name="filePath">输出文件路径；所在目录不存在时会自动创建。</param>
     /// <returns>保存成功返回 true；帧号越界或渲染结果为空时返回 false。</returns>
     public bool SavePNG(int frame, string filePath);
+
+    /// <summary>
+    /// 将全部帧渲染并编码为 MP4（H.264）视频。
+    /// 输出目录不会自动创建，<paramref name="filePath"/> 所在目录必须已存在。
+    /// </summary>
+    /// <param name="fps">视频帧率（帧/秒），必须大于 0；视频时长 = Frames / fps。</param>
+    /// <param name="filePath">输出 MP4 文件路径。</param>
+    public void SaveMp4(double fps, string filePath);
+
+    /// <summary>
+    /// 将全部帧渲染并编码为 GIF 动图。
+    /// 输出目录不会自动创建，<paramref name="filePath"/> 所在目录必须已存在。
+    /// </summary>
+    /// <param name="fps">目标帧率（帧/秒），必须大于 0，用于换算 GIF 帧延迟。</param>
+    /// <param name="filePath">输出 GIF 文件路径。</param>
+    /// <remarks>
+    /// GIF 帧延迟以 1/100 秒为单位，精度有限：建议使用能整除 100 的帧率（如 10、20、25、50），
+    /// 30fps 等会被取整，实际播放速度与目标值存在偏差。
+    /// 输出尺寸受 MaxWidth/MaxHeight 限制（当前为 1200），超出时按比例缩小；
+    /// GIF 仅支持二值透明（Alpha 阈值 128）。
+    /// </remarks>
+    public void SaveGif(double fps, string filePath);
 }
 
 /// <summary>
@@ -60,7 +86,7 @@ public class SKAnimation : ISKAnimation
     /// <param name="height">单帧画面高度（像素），应大于 0。</param>
     /// <param name="frames">动画总帧数。</param>
     /// <param name="onFrame">逐帧渲染回调：参数依次为画布、画面尺寸、当前帧号；可为 null。</param>
-    public SKAnimation(int width, int height, int frames, Action<SKCanvas, SKSize, int>? onFrame)
+    public SKAnimation(int width, int height, int frames, Action<SKCanvas, SKSize, int>? onFrame = null)
     {
         this.Width = width;
         this.Height = height;
@@ -73,6 +99,23 @@ public class SKAnimation : ISKAnimation
     /// 为 null 时无法生成任何帧。
     /// </summary>
     public Action<SKCanvas,SKSize,int>? OnFrame { get; init; }
+
+    /// <summary>
+    /// 将指定帧直接绘制到给定画布（不创建中间位图）。
+    /// </summary>
+    /// <param name="canvas">目标画布；其当前变换矩阵与裁切状态由调用方负责。</param>
+    /// <param name="frame">帧号，有效范围为 0 ~ Frames-1。</param>
+    /// <returns>绘制成功返回 true；帧号越界、尺寸非法或未设置回调时返回 false。</returns>
+    public bool Draw(SKCanvas canvas,int frame)
+    {
+        // 帧号越界、尺寸非法或缺少渲染回调时不绘制，直接返回 false
+        if (frame < 0 || frame >= Frames || OnFrame == null) return false;
+        if (Width <= 0 || Height <= 0) return false;
+
+        // 把画布与帧号一并交给回调，由回调完成该帧的实际绘制
+        OnFrame(canvas, new SKSize(Width, Height), frame);
+        return true;
+    }
 
     /// <summary>
     /// 构建指定帧的位图：创建与动画尺寸一致的 SKBitmap，再调用 <see cref="OnFrame"/> 完成绘制。
@@ -90,7 +133,7 @@ public class SKAnimation : ISKAnimation
 
         // Canvas 仅用于绘制，绘制结束后立即释放；位图本身返回给调用方
         using var canvas = new SKCanvas(bmp);
-        OnFrame(canvas, new SKSize(Width,Height), frame);
+        Draw(canvas, frame);
         return bmp;
     }
 
@@ -208,5 +251,35 @@ public class SKAnimation : ISKAnimation
         }
 
         Console.WriteLine($"gif 导出完毕: {filePath}");
+    }
+}
+
+/// <summary>
+/// <see cref="SKAnimation"/> 的子类实现：通过重写 <see cref="DrawFrame"/> 提供每帧绘制逻辑，
+/// 适合绘制代码较多、需要拆分为方法的场景。
+/// </summary>
+public class SKCustomAnimation : SKAnimation
+{
+    /// <summary>
+    /// 创建自定义动画实例。
+    /// </summary>
+    /// <param name="width">单帧画面宽度（像素），应大于 0。</param>
+    /// <param name="height">单帧画面高度（像素），应大于 0。</param>
+    /// <param name="frames">动画总帧数，有效帧号为 0 ~ frames-1。</param>
+    public SKCustomAnimation(int width, int height, int frames)
+        : base(width, height, frames, null)
+    {
+        // 基类构造传入 null，这里把逐帧回调指向子类的 DrawFrame
+        this.OnFrame = this.DrawFrame;
+    }
+
+    /// <summary>
+    /// 每帧绘制逻辑，子类重写此方法即可；默认实现为空（输出全透明画面）。
+    /// </summary>
+    /// <param name="canvas">目标画布，绘制前需自行清空或铺背景。</param>
+    /// <param name="size">当前画面尺寸（像素），通常等于 <see cref="SKAnimation.Width"/> / <see cref="SKAnimation.Height"/>。</param>
+    /// <param name="frame">当前帧号，有效范围为 0 ~ Frames-1。</param>
+    protected virtual void DrawFrame(SKCanvas canvas, SKSize size, int frame)
+    {
     }
 }

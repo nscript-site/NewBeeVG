@@ -546,16 +546,37 @@ public static class Methods
     }
 
     /// <summary>
-    /// 创建一段 SK 动画，用于逐帧渲染并导出图片。
+    /// 将已有的 <see cref="ISKAnimation"/> 包装为 NewBeeVG 可视节点，便于放入 Grid、Stack、Layer 等布局容器中渲染。
+    /// </summary>
+    /// <param name="animation">动画实例；节点的尺寸与总帧数均取自该实例。</param>
+    /// <returns>可直接参与布局与渲染的 <see cref="NBSkiaAnimation"/> 节点。</returns>
+    /// <remarks>
+    /// 节点不会复制动画数据，而是与传入实例共享同一份 <see cref="ISKAnimation"/>。
+    /// 默认循环播放（<see cref="NBSkiaAnimation.LoopMode"/> 为 <see cref="NBAnimateLoopMode.Loop"/>），
+    /// 帧号取自 <see cref="NBDrawContext.Current"/>，并按节点布局区域把画面映射到目标矩形。
+    /// </remarks>
+    public static NBSkiaAnimation SkiaAnim(ISKAnimation animation)
+    {
+        // 只做包装，不复制动画，节点与调用方共享同一个动画实例
+        return new NBSkiaAnimation { Animation = animation };
+    }
+
+    /// <summary>
+    /// 使用绘制回调创建 SK 动画，并直接包装为 NewBeeVG 可视节点。
     /// </summary>
     /// <param name="size">单帧画面尺寸（像素），内部会截断为整数宽高。</param>
     /// <param name="frames">动画总帧数，有效帧号为 0 ~ frames-1。</param>
     /// <param name="onFrame">逐帧绘制回调：参数依次为画布、画面尺寸、当前帧号。</param>
-    /// <returns>创建好的动画对象，可调用 <see cref="SKAnimation.BuildFrame"/> 渲染单帧，或调用 <see cref="SKAnimation.SavePNG"/> 导出为 PNG。</returns>
-    public static SKAnimation skanim(SKSize size, int frames, Action<SKCanvas, SKSize, int> onFrame)
+    /// <returns>可直接参与布局与渲染的 <see cref="NBSkiaAnimation"/> 节点。</returns>
+    /// <remarks>
+    /// 等价于先用 <see cref="skanim"/> 创建 <see cref="SKAnimation"/>，再调用
+    /// <see cref="SkiaAnim(ISKAnimation)"/> 包装为节点。
+    /// </remarks>
+    public static NBSkiaAnimation SkiaAnim(SKSize size, int frames, Action<SKCanvas, SKSize, int> onFrame)
     {
-        // SKAnimation 只接受整数宽高，这里把浮点尺寸截断为 int
-        return new SKAnimation((int)size.Width, (int)size.Height, frames, onFrame);
+        var skanim = new SKAnimation((int)size.Width, (int)size.Height, frames, onFrame);
+        // 先创建原始动画，再包装为可视节点
+        return new NBSkiaAnimation { Animation = skanim };
     }
 
     public static NBText Text(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)

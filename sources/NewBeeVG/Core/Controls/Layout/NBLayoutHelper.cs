@@ -4,6 +4,7 @@
  ***********************/
 
 using Avalonia.VisualTree;
+using SkiaSharp;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -247,5 +248,27 @@ public static class NBLayoutHelper
         }
 
         return scaling;
+    }
+
+    /// <summary>
+    /// 计算把 src 矩形映射到 dest 矩形的变换矩阵（仅包含缩放与平移，无旋转/斜切）。
+    /// </summary>
+    /// <param name="src">源矩形，宽高必须大于 0。</param>
+    /// <param name="dest">目标矩形，允许左右/上下翻转（宽高为负）。</param>
+    /// <returns>可直接用于 SKCanvas.Concat / SetMatrix 的矩阵。</returns>
+    internal static SKMatrix CreateRectTransform(SKRect src, SKRect dest)
+    {
+        if (src.Width <= 0 || src.Height <= 0)
+            throw new ArgumentException("src 的宽高必须大于 0", nameof(src));
+
+        // 缩放系数：目标尺寸 / 源尺寸
+        float sx = dest.Width / src.Width;
+        float sy = dest.Height / src.Height;
+
+        // 平移量：保证 src 左上角映射到 dest 左上角
+        float tx = dest.Left - src.Left * sx;
+        float ty = dest.Top - src.Top * sy;
+
+        return SKMatrix.CreateScaleTranslation(sx, sy, tx, ty);
     }
 }

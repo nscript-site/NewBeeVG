@@ -9,82 +9,107 @@ public interface ISKAnimation
     int Width { get; }
     int Height { get; }
     SKBitmap? BuildFrame(int frame);
+    bool Draw(SKCanvas canvas, int frame);
     bool SavePNG(int frame, string filePath);
+    void SaveMp4(double fps, string filePath);
+    void SaveGif(double fps, string filePath);
 }
 ```
 
-`SKAnimation` 是默认实现：通过构造函数传入的 `OnFrame` 回调逐帧绘制。除接口成员外，`SKAnimation` 还提供两个整体导出方法：
+`SKAnimation` 是默认实现：通过构造函数传入的 `OnFrame` 回调逐帧绘制。
 
-```csharp
-public void SaveMp4(double fps, string filePath);
-public void SaveGif(double fps, string filePath);
-```
+`Draw` 直接把指定帧画到已有画布，不创建中间位图，适合嵌入其他渲染流程；调用方负责画布的变换与裁切状态。
 
-## 完整示例
+绘制逻辑较多时，可继承 `SKCustomAnimation`（`SKAnimation` 的子类），重写 `DrawFrame(SKCanvas canvas, SKSize size, int frame)` 即可，无需在构造时传入回调。
+
+## 完整示例（file-based app）
+
+在 `apps/files/` 下新建 `.cs` 文件：顶层语句在前，`SKCustomAnimation` 子类声明放在文件末尾。
 
 生成 90 帧、1080×1920 的动画：中心圆呼吸缩放、外圈刻度旋转、底部显示帧号。
 
 ```csharp
-using NewBeeVG;
-using SkiaSharp;
+#!/usr/bin/env dotnet
 
 const int Width = 1080;
 const int Height = 1920;
 const int Frames = 90;
 
-var anim = Methods.skanim(new SKSize(Width, Height), Frames, (canvas, size, frame) =>
+var anim = new ClockAnimation(Width, Height, Frames);
+
+// 导出见下文
+anim.SavePNG(0, "output/preview.png");
+
+public class ClockAnimation : SKCustomAnimation
 {
-    canvas.Clear(new SKColor(0xFF101820));
-
-    float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
-
-    float cx = size.Width / 2f;
-    float cy = size.Height / 2f;
-    float radius = 160f + 60f * MathF.Sin(t * MathF.PI * 2f);
-
-    using (var fill = new SKPaint { IsAntialias = true, Color = new SKColor(0xFFF0B429) })
+    public ClockAnimation(int width, int height, int frames)
+        : base(width, height, frames)
     {
-        canvas.DrawCircle(cx, cy, radius, fill);
     }
 
-    canvas.Save();
-    canvas.Translate(cx, cy);
-    canvas.RotateDegrees(t * 360f);
+    protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
+    {
+        canvas.Clear(new SKColor(0xFF101820));
 
-    using (var tick = new SKPaint
-    {
-        IsAntialias = true,
-        Color = SKColors.White,
-        Style = SKPaintStyle.Stroke,
-        StrokeWidth = 8
-    })
-    {
-        for (int i = 0; i < 12; i++)
+        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+
+        float cx = size.Width / 2f;
+        float cy = size.Height / 2f;
+        float radius = 160f + 60f * MathF.Sin(t * MathF.PI * 2f);
+
+        using (var fill = new SKPaint { IsAntialias = true, Color = new SKColor(0xFFF0B429) })
         {
-            float angle = i * 30f * MathF.PI / 180f;
-            float x0 = MathF.Cos(angle) * (radius + 40f);
-            float y0 = MathF.Sin(angle) * (radius + 40f);
-            float x1 = MathF.Cos(angle) * (radius + 90f);
-            float y1 = MathF.Sin(angle) * (radius + 90f);
-            canvas.DrawLine(x0, y0, x1, y1, tick);
+            canvas.DrawCircle(cx, cy, radius, fill);
         }
+
+        canvas.Save();
+        canvas.Translate(cx, cy);
+        canvas.RotateDegrees(t * 360f);
+
+        using (var tick = new SKPaint
+        {
+            IsAntialias = true,
+            Color = SKColors.White,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 8
+        })
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                float angle = i * 30f * MathF.PI / 180f;
+                float x0 = MathF.Cos(angle) * (radius + 40f);
+                float y0 = MathF.Sin(angle) * (radius + 40f);
+                float x1 = MathF.Cos(angle) * (radius + 90f);
+                float y1 = MathF.Sin(angle) * (radius + 90f);
+                canvas.DrawLine(x0, y0, x1, y1, tick);
+            }
+        }
+
+        canvas.Restore();
+
+        using var typeface = SKTypeface.FromFamilyName("Microsoft YaHei");
+        using var font = new SKFont(typeface, 48);
+        using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
+
+        canvas.DrawText(
+            $"Frame {frame:000} / {Frames - 1:000}",
+            cx,
+            size.Height - 140f,
+            SKTextAlign.Center,
+            font,
+            textPaint);
     }
-
-    canvas.Restore();
-
-    using var typeface = SKTypeface.FromFamilyName("Microsoft YaHei");
-    using var font = new SKFont(typeface, 48);
-    using var textPaint = new SKPaint { IsAntialias = true, Color = SKColors.White };
-
-    canvas.DrawText(
-        $"Frame {frame:000} / {Frames - 1:000}",
-        cx,
-        size.Height - 140f,
-        SKTextAlign.Center,
-        font,
-        textPaint);
-});
+}
 ```
+
+要点：
+
+- 类声明必须在顶层语句之后，否则 file-based app 无法编译；
+- `SKCustomAnimation` 构造时已把 `OnFrame` 指向 `DrawFrame`，子类不要再赋值 `OnFrame`；
+- `Draw` 会先校验帧号与尺寸，`DrawFrame` 内无需重复判断；
+- `apps/files/` 已通过 `Directory.Build.props` 全局导入 `NewBeeVG`、`SkiaSharp` 与静态 `Methods`。
+
+若绘制逻辑只有几行，可用 `skanim(...)` 的 lambda 写法作为等价替代；该写法无法继承复用。
 
 ## 帧号与插值
 
@@ -223,6 +248,13 @@ canvas.Clear(SKColors.Transparent);
 ### SavePNG 返回 false
 
 原因：`frame` 越界、宽高小于等于 0、或 `OnFrame` 为 `null`。
+
+### 子类编译失败或 DrawFrame 不生效
+
+- file-based app 中 `class` 必须写在顶层语句之后，否则编译失败；
+- 必须使用 `protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)`，签名不一致时不会构成重写；
+- 构造函数必须调用 `base(width, height, frames)`（基类没有无参构造函数）；
+- 不要在子类中再给 `OnFrame` 赋值，`SKCustomAnimation` 构造时已将其指向 `DrawFrame`，覆盖后重写的方法不会执行。
 
 ### SavePNG 抛出异常
 
