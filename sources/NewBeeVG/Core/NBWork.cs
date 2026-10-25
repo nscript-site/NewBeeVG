@@ -79,7 +79,7 @@ public class NBWork : IPlayable
         foreach (var track in Tracks)
         {
             if (track.IsVisible == false) continue;
-            track.Render(canvas, stage, frame, includeStageBackground);
+            track.Render(canvas, stage, frame, false);
         }
     }
 }

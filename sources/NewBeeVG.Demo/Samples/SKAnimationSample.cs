@@ -9,60 +9,63 @@ internal class SKAnimationSample
 {
     public static void Run()
     {
-        SkiaAnim(new SKAnimationHelloWorld(1920, 1080, 120))
-            .AsClip(out var clip, 120);
-        run(stage(1920, 1080), [clip]);
+        SKColor Backdrop = new(0xFF04060C);
+        SkiaAnim(new TextIntroAnimation(1920, 1080, 120, "HELLO WORLD", "> SYSTEM ONLINE", true))
+            .AsClip(out var clip1, 120, name: "clip1");
+        SkiaAnim(new TextIntroAnimation(1920, 1080, 120, "YOUR TEXT", "> YOUT SUBTITLE", true))
+            .AsClip(out var clip2, 120, name: "clip2");
+        Text("By NewBeeVG").Align(1, -1).Margin(100).Foreground(SKColors.White)
+            .AsClip(out var clip3, -1, start: -1, name: "clip3");
+        run(stage(1920, 1080, bg: SKColors.DarkBlue), [clip1, clip2, clip3]);
     }
 }
 
-public class MyAnimation : SKCustomAnimation
+// ------------------------------------------------------------
+//  动画本体：SKCustomAnimation 子类
+//  file-based app 约定：顶层语句在前，类型声明在文件末尾
+// ------------------------------------------------------------
+public sealed class TextIntroAnimation : SKCustomAnimation
 {
-    public MyAnimation(int width, int height, int frames)
-        : base(width, height, frames)
-    {
-    }
+    // ---------- 文案约束 ----------
+    public const string DefaultText = "Hello World";   // 未传文案时的示例
+    public const int MinChars = 1;
+    public const int MaxChars = 12;
 
-    protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
-    {
-        // 每帧清空背景；位图带 Alpha，可改用 SKColors.Transparent 导出透明背景
-        canvas.Clear(new SKColor(0xFF101820));
+    /// <summary>清洗后的实际文案（去空白、压空格）。</summary>
+    public string Text => _text;
 
-        // 帧号 -> 0..1 进度
-        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+    /// <summary>进文件名用的安全片段。</summary>
+    public string Slug { get; }
 
-        float cx = size.Width / 2f;
-        float cy = size.Height / 2f;
-
-        // 在这里替换为实际绘制逻辑
-        using (var paint = new SKPaint { IsAntialias = true, Color = new SKColor(0xFFF0B429) })
-        {
-            canvas.DrawCircle(cx, cy, 120f + 40f * MathF.Sin(t * MathF.PI * 2f), paint);
-        }
-    }
-}
-
-public sealed class SKAnimationHelloWorld : SKCustomAnimation
-{
-    // ---------- 文案 ----------
-    private const string Title = "HELLO WORLD";
-    private const string Subtitle = "> SYSTEM ONLINE";
     private const string Charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&*+=<>/\\|[]{}";
 
     // ---------- 时间轴 ----------
-    private const float LockStart = 0.12f;    // 首个字符锁定
-    private const float LockStep = 0.030f;    // 逐字步进
+    private const float LockStart = 0.12f;    // 首个字符开始解码
+    private const float LockSpan = 0.30f;     // 全部锁定完成的目标跨度（自适应摊分）
     private const float LockFlash = 0.13f;    // 锁定闪光时长
     private const float ScanStart = 0.48f;
     private const float ScanEnd = 0.86f;
     private const float SubStart = 0.58f;
     private const float SubChar = 0.016f;     // 每字打字间隔
 
+    // ---------- 版式比例（按画布比例算，换分辨率不用改） ----------
+    private const float TargetWidthRatio = 0.688f;   // 标题目标宽度 / 画布宽
+    private const float InkHeightRatio = 0.400f;     // 字形墨迹最大高度 / 画布高
+    private const float TrackingEm = 0.012f;         // 字距（相对字号）
+
     // ---------- 配色 ----------
     private static readonly SKColor Cyan = new(0xFF5FE3FF);
     private static readonly SKColor Magenta = new(0xFFFF5FD8);
     private static readonly SKColor Ice = new(0xFFDFF7FF);
+    private static readonly SKColor Backdrop = new(0xFF04060C);
 
-    // ---------- 几何 / 资源 ----------
+    // ---------- 文案 / 几何 / 资源 ----------
+    private readonly string _text;
+    private readonly string _subtitle;
+    private readonly string[] _glyphs;        // 逐字预切，避免每帧 Substring
+    private readonly int _glyphCount;         // 非空格字符数
+    private readonly bool _transparent;
+
     private readonly int _w;
     private readonly int _h;
     private readonly SKTypeface _titleTypeface;
@@ -74,14 +77,18 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
     private readonly float[] _charX;
     private readonly float[] _charW;
     private readonly float[] _lockT;
+    private readonly float _lockStep;
     private readonly float _cx;
     private readonly float _textLeft;
     private readonly float _textRight;
     private readonly float _textW;
     private readonly float _baseline;
-    private readonly float _capH;
+    private readonly float _inkTop;           // 墨迹上沿（相对 baseline，负值）
+    private readonly float _inkBottom;        // 墨迹下沿（相对 baseline，含降部）
+    private readonly float _inkH;             // 墨迹总高
     private readonly float _midY;
     private readonly float _lastLock;
+    private readonly float _fontSize;
 
     private readonly SKShader _bgShader;
     private readonly SKShader _vignetteShader;
@@ -98,54 +105,123 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
         (0.760f, 0.026f)
     };
 
-    public SKAnimationHelloWorld(int width, int height, int frames) : base(width, height, frames)
+    public TextIntroAnimation(int width, int height, int frames, string text,
+                     string? subtitle = null, bool transparent = false)
+        : base(width, height, frames)
     {
+        // 文案在这里统一清洗与校验：非法文本直接抛 ArgumentException，不进入渲染
+        _text = NormalizeText(text);
+        Slug = ToSlug(_text);
+
+        _subtitle = subtitle ?? "> SYSTEM ONLINE";
+        _transparent = transparent;
         _w = width;
         _h = height;
         _cx = width / 2f;
+
+        _glyphs = new string[_text.Length];
+        for (int i = 0; i < _text.Length; i++) _glyphs[i] = _text.Substring(i, 1);
+
+        _glyphCount = 0;
+        foreach (char c in _text) if (c != ' ') _glyphCount++;
+        _glyphCount = Math.Max(1, _glyphCount);
 
         _titleTypeface = SKTypeface.FromFamilyName("Bahnschrift", SKFontStyle.Bold)
                          ?? SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold);
         _monoTypeface = SKTypeface.FromFamilyName("Cascadia Mono")
                         ?? SKTypeface.FromFamilyName("Consolas");
 
-        // 标题字号：按目标字宽收敛
-        const float targetW = 1320f;
-        using (var probe = new SKFont(_titleTypeface, 210f))
+        // ----- 用 100pt 探测：每 pt 的字宽 + 实际墨迹上下沿 -----
+        // 注意：不能只看 Metrics.CapHeight。Hello World 里 l 比 H 高、y 有降部，
+        // 用小写混合时按 cap 高度算会导致字号偏移、垂直位置发飘。
+        float wPerPt;
+        float inkTopPt;
+        float inkBotPt;
+
+        using (var probe = new SKFont(_titleTypeface, 100f))
         {
-            float tw = probe.GetGlyphWidths(Title, null).Sum();
-            float size = tw > 1f ? 210f * targetW / tw : 210f;
-            _titleFont = new SKFont(_titleTypeface, size);
+            // GetGlyphWidths 的 out 版本能同时拿到每字宽度与墨迹框（相对 baseline）
+            float[] widths = probe.GetGlyphWidths(_text, out SKRect[] boxes, null);
+
+            float sum = 0f;
+            foreach (float w in widths) sum += w;
+            wPerPt = sum / 100f;
+
+            bool first = true;
+            inkTopPt = 0f;
+            inkBotPt = 0f;
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                if (_text[i] == ' ') continue;
+                SKRect r = boxes[i];
+                if (r.Height <= 0f) continue;
+                if (first) { inkTopPt = r.Top; inkBotPt = r.Bottom; first = false; }
+                else
+                {
+                    inkTopPt = MathF.Min(inkTopPt, r.Top);
+                    inkBotPt = MathF.Max(inkBotPt, r.Bottom);
+                }
+            }
+            if (first) { inkTopPt = -70f; inkBotPt = 0f; }   // 全是空格时兜底
         }
+
+        // ----- 字号自适应：宽度收敛 + 墨迹高度封顶 -----
+        float targetW = width * TargetWidthRatio;
+        float trackingPerPt = TrackingEm * (_text.Length - 1);
+        float inkPerPt = MathF.Max(0.2f, (inkBotPt - inkTopPt) / 100f);
+
+        float sizeByWidth = wPerPt + trackingPerPt > 0.0001f
+            ? targetW / (wPerPt + trackingPerPt)
+            : targetW;
+
+        // 关键补丁：字符很少时 sizeByWidth 会非常大（1 个字符能到 1300pt 以上），
+        // 必须用墨迹高度封顶，否则字形直接顶出画面
+        float sizeByHeight = (height * InkHeightRatio) / inkPerPt;
+
+        _fontSize = MathF.Max(24f, MathF.Min(sizeByWidth, sizeByHeight));
+        _titleFont = new SKFont(_titleTypeface, _fontSize);
 
         _subFont = new SKFont(_monoTypeface, 27f);
         _microFont = new SKFont(_monoTypeface, 15f);
 
-        _charW = _titleFont.GetGlyphWidths(Title, null);
-        _textW = _charW.Sum();
-        _charX = new float[Title.Length];
+        // ----- 逐字排版（含字距） -----
+        _charW = _titleFont.GetGlyphWidths(_text, null);
+        float tracking = _fontSize * TrackingEm;
+        _charX = new float[_text.Length];
         {
             float acc = 0f;
-            for (int i = 0; i < Title.Length; i++) { _charX[i] = acc; acc += _charW[i]; }
+            for (int i = 0; i < _text.Length; i++)
+            {
+                _charX[i] = acc;
+                acc += _charW[i] + tracking;
+            }
+            _textW = acc - tracking;   // 末字后面不留字距
         }
 
         _textLeft = _cx - _textW / 2f;
         _textRight = _cx + _textW / 2f;
 
-        var fm = _titleFont.Metrics;
-        _capH = MathF.Abs(fm.CapHeight);
-        _baseline = height * 0.50f + _capH * 0.30f;
-        _midY = _baseline - _capH * 0.5f;
+        // ----- 垂直定位：让「墨迹框」中心落在 46% 高处（视觉重心略偏上） -----
+        float scale = _fontSize / 100f;
+        _inkTop = inkTopPt * scale;
+        _inkBottom = inkBotPt * scale;
+        _inkH = _inkBottom - _inkTop;
+        _baseline = height * 0.46f - (_inkTop + _inkBottom) * 0.5f;
+        _midY = _baseline + (_inkTop + _inkBottom) * 0.5f;
 
-        // 逐字锁定时刻（跳过空格计时）
-        _lockT = new float[Title.Length];
+        // ----- 逐字锁定时刻：总跨度归一，字数多少都读得舒服 -----
+        _lockStep = _glyphCount <= 1
+            ? 0f
+            : Math.Clamp(LockSpan / (_glyphCount - 1), 0.022f, 0.055f);
+
+        _lockT = new float[_text.Length];
         int seq = 0;
-        for (int i = 0; i < Title.Length; i++)
+        for (int i = 0; i < _text.Length; i++)
         {
-            _lockT[i] = LockStart + seq * LockStep;
-            if (Title[i] != ' ') seq++;
+            _lockT[i] = LockStart + seq * _lockStep;
+            if (_text[i] != ' ') seq++;
         }
-        _lastLock = LockStart + (seq - 1) * LockStep;
+        _lastLock = LockStart + (_glyphCount - 1) * _lockStep;
 
         // ---------- 缓存着色器 ----------
         _bgShader = SKShader.CreateRadialGradient(
@@ -163,9 +239,8 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             new[] { new SKColor(0xFFFFFFFF), new SKColor(0xFFFFFFFF), new SKColor(0x00FFFFFF) },
             new[] { 0f, 0.42f, 1f }, SKShaderTileMode.Clamp);
 
-        float yTop = _baseline - _capH;
         _textShader = SKShader.CreateLinearGradient(
-            new SKPoint(0, yTop - 8f), new SKPoint(0, _baseline + 10f),
+            new SKPoint(0, _baseline + _inkTop - 8f), new SKPoint(0, _baseline + _inkBottom + 10f),
             new[] { new SKColor(0xFFFFFFFF), new SKColor(0xFF9FEFFF), new SKColor(0xFF46CFFF), new SKColor(0xFF8E8BFF) },
             new[] { 0f, 0.20f, 0.58f, 1f }, SKShaderTileMode.Clamp);
 
@@ -185,7 +260,22 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
     {
         float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
 
-        canvas.Clear(new SKColor(0xFF04060C));
+        // 透明模式必须清成透明，否则 alpha 通道全被底色填死
+        if(_transparent != true)
+            canvas.Clear(_transparent ? SKColors.Transparent : Backdrop);
+
+        // 透明模式下的入场淡入：不能再用「盖一层黑」，改用图层 alpha 调制，
+        // 这样叠到任何底图上都是干净地浮现
+        float enter = _transparent ? EaseOut(Clamp01(t / 0.09f)) : 1f;
+        bool useEnterLayer = _transparent && enter < 0.999f;
+        if (useEnterLayer)
+        {
+            using var layerPaint = new SKPaint
+            {
+                Color = new SKColor(255, 255, 255, (byte)(255 * enter))
+            };
+            canvas.SaveLayer(layerPaint);
+        }
 
         // 极轻推镜，让静止画面保持呼吸
         float zoom = 1f + 0.030f * EaseInOut(t);
@@ -194,7 +284,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
         canvas.Scale(zoom, zoom);
         canvas.Translate(-_cx, -_h * 0.5f);
 
-        DrawBackground(canvas, t);
+        if (!_transparent) DrawBackground(canvas, t);
         DrawGrid(canvas, t);
         DrawAura(canvas, t);
         DrawTitle(canvas, t, frame);
@@ -204,8 +294,10 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
 
         canvas.Restore();
 
-        DrawVignette(canvas);
+        if (!_transparent) DrawVignette(canvas);
         DrawGlobalFlash(canvas, t);
+
+        if (useEnterLayer) canvas.Restore();
     }
 
     // ================= 背景 =================
@@ -225,12 +317,15 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
         const float step = 96f;
         float drift = (t * 28f) % step;
 
+        // 透明底上网格会直接叠到别人画面上，alpha 压到 45%
+        float mul = _transparent ? 0.45f : 1f;
+
         using (var minor = new SKPaint
         {
             Style = SKPaintStyle.Stroke,
             StrokeWidth = 1f,
             IsAntialias = false,
-            Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, (byte)(11 * grow))
+            Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, (byte)(11 * grow * mul))
         })
         {
             for (float x = 0; x <= _w + 1; x += step) canvas.DrawLine(x, 0, x, _h, minor);
@@ -242,7 +337,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             Style = SKPaintStyle.Stroke,
             StrokeWidth = 1f,
             IsAntialias = false,
-            Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, (byte)(26 * grow))
+            Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, (byte)(26 * grow * mul))
         })
         {
             for (float x = 0; x <= _w + 1; x += step * 4f) canvas.DrawLine(x, 0, x, _h, major);
@@ -258,8 +353,14 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
 
     private void DrawAura(SKCanvas canvas, float t)
     {
-        float lockP = Clamp01((t - LockStart) / (LockStep * 10f));
+        // 光晕强度跟随「解码进度」，跨度随字符数变化，不能写死步进倍数
+        float span = MathF.Max(0.06f, _lastLock - LockStart + _lockStep);
+        float lockP = Clamp01((t - LockStart) / span);
         float a = 0.08f + 0.30f * lockP + 0.05f * MathF.Sin(t * 7.2f);
+
+        // 透明模式：大面积青色光会在实拍画面上形成一层灰雾，压到 30%
+        if (_transparent) a *= 0.30f;
+
         using var paint = new SKPaint
         {
             Shader = _auraShader,
@@ -284,6 +385,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             split = 7f * prox + 9f * GlitchPulse(t);
         }
 
+        // 注意：文字带字距，整串绘制会与逐字绘制错位，因此色散/辉光也必须逐字画
         if (split > 0.4f)
         {
             byte fa = (byte)(Math.Min(104f, 16f + split * 5f));
@@ -293,21 +395,35 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
                 BlendMode = SKBlendMode.Plus,
                 Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, fa)
             };
-            canvas.DrawText(Title, _textLeft - split, _baseline, SKTextAlign.Left, _titleFont, fringe);
+            for (int i = 0; i < _text.Length; i++)
+            {
+                if (_text[i] == ' ') continue;
+                float x0 = _textLeft + _charX[i];
+                canvas.DrawText(_glyphs[i], x0 - split, _baseline, SKTextAlign.Left, _titleFont, fringe);
+            }
             fringe.Color = new SKColor(Magenta.Red, Magenta.Green, Magenta.Blue, fa);
-            canvas.DrawText(Title, _textLeft + split, _baseline, SKTextAlign.Left, _titleFont, fringe);
+            for (int i = 0; i < _text.Length; i++)
+            {
+                if (_text[i] == ' ') continue;
+                float x0 = _textLeft + _charX[i];
+                canvas.DrawText(_glyphs[i], x0 + split, _baseline, SKTextAlign.Left, _titleFont, fringe);
+            }
         }
 
-        // 全字锁定后的整体辉光（一次模糊绘制，成本可控）
+        // 全字锁定后的整体辉光
         if (t >= _lastLock)
         {
             using var glow = new SKPaint
             {
                 IsAntialias = true,
                 Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, 46),
-                MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 26f)
+                MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, MathF.Max(12f, _inkH * 0.14f))
             };
-            canvas.DrawText(Title, _textLeft, _baseline, SKTextAlign.Left, _titleFont, glow);
+            for (int i = 0; i < _text.Length; i++)
+            {
+                if (_text[i] == ' ') continue;
+                canvas.DrawText(_glyphs[i], _textLeft + _charX[i], _baseline, SKTextAlign.Left, _titleFont, glow);
+            }
         }
 
         using var fill = new SKPaint { IsAntialias = true, Shader = _textShader };
@@ -321,9 +437,9 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             Color = Magenta
         };
 
-        for (int i = 0; i < Title.Length; i++)
+        for (int i = 0; i < _text.Length; i++)
         {
-            if (Title[i] == ' ') continue;
+            if (_text[i] == ' ') continue;
 
             float x0 = _textLeft + _charX[i];
             float w = _charW[i];
@@ -337,7 +453,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
                 float r = Hash(i, seed);
                 int ci = (int)(r * (Charset.Length - 1));
                 string c = Charset.Substring(ci, 1);
-                if (c == Title.Substring(i, 1)) c = Charset.Substring((ci + 7) % Charset.Length, 1);
+                if (c == _glyphs[i]) c = Charset.Substring((ci + 7) % Charset.Length, 1);
 
                 float jitter = (Hash(i, seed + 911) - 0.5f) * 7f;
                 ghost.Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, (byte)(150 * appear));
@@ -353,12 +469,12 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             canvas.Scale(scale, scale);
             canvas.Translate(-(x0 + w * 0.5f), -_midY);
 
-            canvas.DrawText(Title.Substring(i, 1), x0, _baseline, SKTextAlign.Left, _titleFont, fill);
+            canvas.DrawText(_glyphs[i], x0, _baseline, SKTextAlign.Left, _titleFont, fill);
 
             if (flash > 0.01f)
             {
                 hot.Color = new SKColor(Ice.Red, Ice.Green, Ice.Blue, (byte)(230 * flash * flash));
-                canvas.DrawText(Title.Substring(i, 1), x0, _baseline, SKTextAlign.Left, _titleFont, hot);
+                canvas.DrawText(_glyphs[i], x0, _baseline, SKTextAlign.Left, _titleFont, hot);
             }
             canvas.Restore();
 
@@ -368,8 +484,10 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
                 tick.Color = new SKColor(Magenta.Red, Magenta.Green, Magenta.Blue, (byte)(210 * flash));
                 float l = 26f * EaseOut(flash);
                 float cxm = x0 + w * 0.5f;
-                canvas.DrawLine(cxm, _baseline - _capH - 14f, cxm, _baseline - _capH - 14f - l, tick);
-                canvas.DrawLine(cxm, _baseline + 14f, cxm, _baseline + 14f + l, tick);
+                float topTick = _baseline + _inkTop - 14f;
+                float botTick = _baseline + _inkBottom + 14f;
+                canvas.DrawLine(cxm, topTick, cxm, topTick - l, tick);
+                canvas.DrawLine(cxm, botTick, cxm, botTick + l, tick);
             }
         }
     }
@@ -411,15 +529,17 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             IsAntialias = true,
             Color = new SKColor(Cyan.Red, Cyan.Green, Cyan.Blue, (byte)(70 * grow))
         };
-        canvas.DrawText("SEQ/0F3A-2026", inset + 22f, _h - inset - 22f, SKTextAlign.Left, _microFont, microDim);
+        // 左下角显示实际字形数，方便确认自适应生效
+        canvas.DrawText($"GLYPH/{_glyphCount:00}", inset + 22f, _h - inset - 22f, SKTextAlign.Left, _microFont, microDim);
         canvas.DrawText($"FRM/{frame:000}", _w - inset - 22f, _h - inset - 22f, SKTextAlign.Right, _microFont, microDim);
 
         // 标题下的装饰线：从中心向两侧展开
         float lineP = EaseOut(Clamp01((t - 0.16f) / 0.34f));
         if (lineP > 0.001f)
         {
-            float y = _baseline + 64f;
-            float half = (_textW * 0.5f + 30f) * lineP;
+            float y = MathF.Min(_baseline + _inkBottom + 64f, _baseline + 120f);
+            // 最短 210px：单字符时线条才不会缩成一个点
+            float half = (MathF.Max(_textW * 0.5f, 210f) + 30f) * lineP;
             using var lineShader = SKShader.CreateLinearGradient(
                 new SKPoint(_cx - half, y), new SKPoint(_cx + half, y),
                 new[] { new SKColor(0x005FE3FF), new SKColor(0xE6BFEFFF), new SKColor(0x005FE3FF) },
@@ -465,15 +585,15 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
         if (t < SubStart) return;
 
         float typed = (t - SubStart) / SubChar;
-        int n = Math.Min(Subtitle.Length, (int)typed);
+        int n = Math.Min(_subtitle.Length, (int)typed);
         if (n <= 0) return;
 
         const float tracking = 3.5f;
-        float[] sw = _subFont.GetGlyphWidths(Subtitle, null);
-        float total = sw.Sum() + tracking * (Subtitle.Length - 1);
+        float[] sw = _subFont.GetGlyphWidths(_subtitle, null);
+        float total = sw.Sum() + tracking * (_subtitle.Length - 1);
 
         float x = _cx - total / 2f;
-        float y = _baseline + 132f;
+        float y = _baseline + _inkBottom + 132f;
 
         using var paint = new SKPaint
         {
@@ -483,13 +603,13 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
 
         for (int i = 0; i < n; i++)
         {
-            string c = Subtitle.Substring(i, 1);
+            string c = _subtitle.Substring(i, 1);
             if (c != " ") canvas.DrawText(c, x, y, SKTextAlign.Left, _subFont, paint);
             x += sw[i] + tracking;
         }
 
         // 光标：打字时实心，打完闪烁
-        bool done = n >= Subtitle.Length;
+        bool done = n >= _subtitle.Length;
         bool on = done ? (t * 4.2f) % 1f < 0.55f : true;
         if (on)
         {
@@ -541,6 +661,10 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
         canvas.Save();
         canvas.Translate(0, y);
 
+        // 透明模式：整屏横扫的青带叠到实拍上会很扎眼，只保留文字区宽度并压低
+        float w = _transparent ? MathF.Min(_w, _textW + 260f) : _w;
+        float x0 = (_w - w) * 0.5f;
+
         using (var trail = new SKPaint
         {
             IsAntialias = false,
@@ -548,7 +672,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             BlendMode = SKBlendMode.Plus
         })
         {
-            canvas.DrawRect(new SKRect(0, -190f, _w, 0f), trail);
+            canvas.DrawRect(new SKRect(x0, -190f, x0 + w, 0f), trail);
         }
 
         using (var core = new SKPaint
@@ -560,7 +684,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             BlendMode = SKBlendMode.Plus
         })
         {
-            canvas.DrawLine(0, 0, _w, 0, core);
+            canvas.DrawLine(x0, 0, x0 + w, 0, core);
         }
 
         using (var haze = new SKPaint
@@ -573,7 +697,7 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
             BlendMode = SKBlendMode.Plus
         })
         {
-            canvas.DrawLine(0, 0, _w, 0, haze);
+            canvas.DrawLine(x0, 0, x0 + w, 0, haze);
         }
 
         canvas.Restore();
@@ -588,12 +712,15 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
 
     private void DrawGlobalFlash(SKCanvas canvas, float t)
     {
-        // 入场黑场
-        float black = 1f - EaseOut(Clamp01(t / 0.07f));
-        if (black > 0.003f)
+        // 入场黑场：仅不透明模式需要（透明模式已用图层 alpha 淡入）
+        if (!_transparent)
         {
-            using var bp = new SKPaint { Color = new SKColor(0, 0, 0, (byte)(255 * black)) };
-            canvas.DrawRect(new SKRect(0, 0, _w, _h), bp);
+            float black = 1f - EaseOut(Clamp01(t / 0.07f));
+            if (black > 0.003f)
+            {
+                using var bp = new SKPaint { Color = new SKColor(0, 0, 0, (byte)(255 * black)) };
+                canvas.DrawRect(new SKRect(0, 0, _w, _h), bp);
+            }
         }
 
         // 全字锁定瞬间：中心径向的白光脉冲（加法混合，不压暗四角）
@@ -603,18 +730,68 @@ public sealed class SKAnimationHelloWorld : SKCustomAnimation
 
         if (pulse > 0.012f)
         {
+            float peak = _transparent ? 90f : 140f;
             using var sh = SKShader.CreateRadialGradient(
                 new SKPoint(_cx, _midY), 940f,
                 new[]
                 {
-                    new SKColor(206, 246, 255, (byte)(140 * pulse)),
-                    new SKColor(110, 198, 255, (byte)(44 * pulse)),
+                    new SKColor(206, 246, 255, (byte)(peak * pulse)),
+                    new SKColor(110, 198, 255, (byte)(peak * 0.31f * pulse)),
                     new SKColor(0, 0, 0, 0)
                 },
                 new[] { 0f, 0.44f, 1f }, SKShaderTileMode.Clamp);
             using var p = new SKPaint { Shader = sh, BlendMode = SKBlendMode.Plus };
             canvas.DrawRect(new SKRect(0, 0, _w, _h), p);
         }
+    }
+
+    // ================= 文案清洗 / 命名 =================
+    /// <summary>
+    /// 去首尾空白、压缩连续空格、校验字符集与长度，保留原始大小写。
+    /// 不合法时抛 ArgumentException，由调用方决定如何提示。
+    /// </summary>
+    private static string NormalizeText(string raw)
+    {
+        var sb = new System.Text.StringBuilder(raw.Length);
+        bool prevSpace = false;
+
+        foreach (char c in raw.Trim())
+        {
+            if (c < ' ' || c > '~')
+                throw new ArgumentException(
+                    $"只支持英文/数字/常用符号（可见 ASCII），不支持的字符：U+{(int)c:X4} '{c}'");
+
+            if (c == ' ')
+            {
+                if (prevSpace) continue;   // 连续空格压成一个
+                prevSpace = true;
+            }
+            else prevSpace = false;
+
+            sb.Append(c);
+        }
+
+        string s = sb.ToString();
+        if (s.Length < MinChars)
+            throw new ArgumentException($"文本不能为空，请输入 {MinChars}-{MaxChars} 个英文字符。");
+        if (s.Length > MaxChars)
+            throw new ArgumentException(
+                $"文本共 {s.Length} 个字符（含空格），超过上限 {MaxChars}。请缩短后再试。");
+
+        return s;
+    }
+
+    /// <summary>把文案变成安全的文件名片段：非字母数字一律替成下划线。</summary>
+    private static string ToSlug(string text)
+    {
+        var sb = new System.Text.StringBuilder(text.Length);
+        foreach (char c in text.ToLowerInvariant())
+        {
+            if (c >= 'a' && c <= 'z') sb.Append(c);
+            else if (c >= '0' && c <= '9') sb.Append(c);
+            else sb.Append('_');
+        }
+        return sb.ToString();
     }
 
     // ================= 工具 =================

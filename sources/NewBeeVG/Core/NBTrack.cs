@@ -86,10 +86,11 @@ public class NBTrack : IPlayable
                 };
                 canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
             }
+
             foreach (var clip in Clips)
             {
                 if (clip.IsVisible == false || clip.NeedRenderInTrack(frame) == false) continue;
-                clip.Render(canvas, stage, frame - clip.StartFrame ?? 0, includeStageBackground);
+                clip.Render(canvas, stage, frame - clip.StartFrame ?? 0, false);
             }
         }
     }
