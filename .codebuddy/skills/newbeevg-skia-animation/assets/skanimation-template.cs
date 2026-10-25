@@ -1,15 +1,18 @@
 // NewBeeVG SkiaSharp 逐帧动画模板
-// 用法：复制到 apps/files/ 下，修改尺寸、帧数、帧率与绘制逻辑后运行
+// 用法：修改尺寸、帧数、帧率与绘制逻辑后运行
+
+#:package NewBeeVG@1.0.1.9
 
 using NewBeeVG;
 using SkiaSharp;
+using static NewBeeVG.Methods;
 
 const int Width = 1080;
 const int Height = 1920;
 const int Frames = 90;
 const int Fps = 30;
 
-var anim = Methods.skanim(new SKSize(Width, Height), Frames, (canvas, size, frame) =>
+var anim = skanim(new SKSize(Width, Height), Frames, (canvas, size, frame) =>
 {
     // 1) 每帧清空背景；位图带 Alpha，可改用 SKColors.Transparent 导出透明背景
     canvas.Clear(new SKColor(0xFF101820));
@@ -31,15 +34,15 @@ var anim = Methods.skanim(new SKSize(Width, Height), Frames, (canvas, size, fram
 anim.SavePNG(0, "output/preview.png");
 
 // 5) 导出 PNG 序列
-for (int i = 0; i < anim.Frames; i++)
-{
-    if (!anim.SavePNG(i, $"output/frames/{i:0000}.png"))
-        Console.WriteLine($"第 {i} 帧渲染失败");
-}
+// for (int i = 0; i < anim.Frames; i++)
+// {
+//     if (!anim.SavePNG(i, $"output/frames/{i:0000}.png"))
+//         Console.WriteLine($"第 {i} 帧渲染失败");
+// }
 
 // 6) 直接导出 MP4 / GIF（不会自动创建目录，先确保 output 存在）
 // Directory.CreateDirectory("output");
-// anim.SaveMp4(Fps, "output/animation.mp4");
+anim.SaveMp4(Fps, "output/animation.mp4");
 // anim.SaveGif(25, "output/animation.gif");
 
 // 7) 或手动合成视频（在项目根目录执行）：

@@ -164,4 +164,4 @@ var bmp = new SKBitmap(info);
 ## 资源
 
 - `references/api-and-pitfalls.md`：完整示例、逐帧技巧、三种导出方式的细节、常见问题。
-- `assets/animation-template.cs`：可直接复制修改的动画模板。
+- `assets/skanimation-template.cs`：可直接复制修改的动画模板。

@@ -221,3 +221,4 @@ __pycache__
 
 apps/_lib
 *.lscache
+output
