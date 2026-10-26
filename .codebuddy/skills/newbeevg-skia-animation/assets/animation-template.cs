@@ -1,8 +1,13 @@
 #!/usr/bin/env dotnet
 
+#:package NewBeeVG@1.0.1.12
+
 // NewBeeVG SkiaSharp 逐帧动画模板（file-based app）
 // 用法：复制到 apps/files/ 下，修改尺寸、帧数、帧率、ContentSetting / ContentTheme 与 DrawFrame 后运行
 // 注意：顶层语句在前，类型声明必须放在文件末尾
+
+using NewBeeVG;
+using SkiaSharp;
 
 const int Width = 1080;
 const int Height = 1920;
