@@ -15,6 +15,17 @@ public class NBClip : IPlayable
     public int? StartFrame { get; internal set; }
 
     /// <summary>
+    /// 未设置 StartFrame 时，如果设置了 ReferenceClip，则起始帧是 ReferenceClipStartFrame 
+    /// 加上该 Clip 的 StartFrame
+    /// </summary>
+    public NBClip? ReferenceClip { get; set; }
+
+    /// <summary>
+    /// 相关帧
+    /// </summary>
+    public int ReferenceClipStartFrame { get; set; }
+
+    /// <summary>
     /// duration frames 如果 <= 0, 则表示持续到最后一帧
     /// </summary>
     public int DurationFrames { get; set; }

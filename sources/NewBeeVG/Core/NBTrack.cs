@@ -32,10 +32,29 @@ public class NBTrack : IPlayable
         for(int i = 0; i < Clips.Count; i++)
         {
             var clip = Clips[i];
-            if (clip.StartFrame == null)
+            if (clip.StartFrame == null && clip.ReferenceClip == null)
                 clip.StartFrame = max;
 
             max = Math.Max(max, clip.StartFrame.Value + clip.DurationFrames);
+        }
+
+        for(int i = 0; i < Clips.Count; i++)
+        {
+            int count = 0;
+            foreach (var clip in Clips)
+            {
+                if (clip.StartFrame == null && clip.ReferenceClip != null)
+                {
+                    count++;
+                    var r = clip.ReferenceClip;
+                    if(r.StartFrame != null)
+                    {
+                        clip.StartFrame = r.StartFrame.Value + clip.ReferenceClipStartFrame;
+                        max = Math.Max(max, clip.StartFrame.Value + clip.DurationFrames);
+                    }
+                }
+            }
+            if (count == 0) break;
         }
         
         _frames = max;
@@ -43,34 +62,6 @@ public class NBTrack : IPlayable
     }
 
     public virtual void Prepare(NBStage stage) { }
-
-    //public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
-    //{
-    //    if (ContainsVisualClip == false) return null;
-
-    //    var bitmap = new SKBitmap(stage.Width, stage.Height);
-    //    using var canvas = new SKCanvas(bitmap);
-    //    {
-    //        if (includeStageBackground == true && stage.Background != null)
-    //        {
-    //            var paint = new SKPaint
-    //            {
-    //                Style = SKPaintStyle.Fill,
-    //                Color = stage.Background.Value,
-    //                IsAntialias = true
-    //            };
-    //            canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
-    //        }
-    //        foreach (var clip in Clips)
-    //        {
-    //            if (clip.IsVisible == false || clip.NeedRenderInTrack(frame) == false) continue;
-    //            var bmp = clip.Render(stage, frame - clip.StartFrame ?? 0, false);
-    //            if (bmp != null)
-    //                canvas.DrawBitmap(bmp, 0, 0);
-    //        }
-    //    }
-    //    return bitmap;
-    //}
 
     public void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {

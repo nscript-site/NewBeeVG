@@ -8,6 +8,34 @@ namespace NewBeeVG;
 
 public static class Methods
 {
+    private static List<NBClip> clipLists = new List<NBClip>();
+    private static Dictionary<string,NBClip> clipDict = new Dictionary<string, NBClip>();
+
+    public static List<NBClip> clips(bool reset = false)
+    {
+        var list = clipLists;
+        if(reset == true)
+        {
+            clipLists = new List<NBClip>();
+            clipDict = new Dictionary<string, NBClip>();
+        }
+        return list;
+    }
+
+    public static NBClip? clip(string key)
+    {
+        if(clipDict.TryGetValue(key, out var clip))
+            return clip;
+        return null;
+    }
+
+    public static void add(NBClip clip, string? key)
+    {
+        clipLists.Add(clip);
+        if(key != null)
+            clipDict[key] = clip;
+    }
+
     public static NBStage stage(int width = 1080, int height = 1920, SKColor? bg = null, double fps = 25.0)
     {
         return new NBStage

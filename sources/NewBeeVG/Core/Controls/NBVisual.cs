@@ -404,10 +404,24 @@ public static partial class NBExtentions
         return widget;
     }
 
+    public static T Reference<T>(this T widget, T referenceClip, int startFrame = 0) where T : NBClip
+    {
+        widget.ReferenceClip = referenceClip;
+        widget.ReferenceClipStartFrame = startFrame;
+        return widget;
+    }
+
     public static NBDrawingClip AsClip<T>(this T widget, out NBDrawingClip value, int frames, int? start = null, string name = "clip") where T : NBVisual
     {
         value = Methods.clip(widget, name: name, frames: frames, start: start); 
         return value;
+    }
+
+    public static NBDrawingClip AsClip<T>(this T widget, int frames, int? start = null, string name = "clip") where T : NBVisual
+    {
+        var clip = Methods.clip(widget, name: name, frames: frames, start: start);
+        add(clip, name);
+        return clip;
     }
 
     public static T OnFrame<T>(this T widget, Action<NBFrameUpdateEvent>? onFrame) where T : NBVisual

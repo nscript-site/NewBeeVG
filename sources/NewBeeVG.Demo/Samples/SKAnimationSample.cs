@@ -10,24 +10,28 @@ internal class SKAnimationSample
 {
     public static void Run()
     {
-        var content = new MyAnimation.ContentSetting
-        {
-            Title = "NewBee VG",
-            TitleSize = 96f,
-            Radius = 120f
-        };
-        var anim = new MyAnimation(1920, 1080, 120, content, NBVideoThemes.Ocean);
 
         SKColor Backdrop = new(0xFF04060C);
         SkiaAnim(new TextIntroAnimation(1920, 1080, 120, "HELLO WORLD", "> SYSTEM ONLINE", true))
-            .AsClip(out var clip1, 120, name: "clip1");
+            .AsClip(120, name: "clip1");
         SkiaAnim(new TextIntroAnimation(1920, 1080, 120, "YOUR TEXT", "> YOUT SUBTITLE", true))
-            .AsClip(out var clip2, 120, name: "clip2");
-        SkiaAnim(anim)
-            .AsClip(out var clip3, 120, name: "clip3");
+            .AsClip(120, name: "clip2");
+        
+        {
+            var content = new MyAnimation.ContentSetting
+            {
+                Title = "NewBee VG",
+                TitleSize = 96f,
+                Radius = 120f
+            };
+            var anim = new MyAnimation(1920, 1080, 120, content, NBVideoThemes.Ocean);
+            SkiaAnim(anim)
+                .AsClip(120, name: "clip3");
+        }
+
         Text("By NewBeeVG").Align(1, -1).Margin(100).Foreground(SKColors.White)
-            .AsClip(out var clip4, -1, start: -1, name: "logo");
-        run(stage(1920, 1080, bg: SKColors.DarkBlue), [clip1, clip2, clip3, clip4]);
+            .AsClip(-1, start: -1, name: "logo");
+        run(stage(1920, 1080, bg: SKColors.DarkBlue), clips());
     }
 }
 
