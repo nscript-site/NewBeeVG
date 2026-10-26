@@ -71,7 +71,8 @@ public class ExportVideoView : BaseView
         });
 
         // 32000 / 44100 / 48000
-        var pcm = Work.ExportStereoPcm(stage.FrameRate, 44100);
+        int audioSampleRate = 44100;
+        var pcm = Work.ExportStereoPcm(stage.FrameRate, audioSampleRate);
         string prevMsg = pcm.IsEmpty ? "未检测到音频" : "检测到音频";
         Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -79,10 +80,12 @@ public class ExportVideoView : BaseView
             this.UpdateState();
         });
 
-        var writer = new MediaWriter(filePath, stage.Width, stage.Height, stage.FrameRate, true);
+        var writer = new MediaWriter(filePath, stage.Width, stage.Height, stage.FrameRate, true, audioSampleRate);
 
         if (pcm.IsEmpty == false)
         {
+            // 保存 wav，备对比
+            //pcm.SaveWav(filePath + "_dump.wav");
             pcm.WriteTo(writer);
         }
 

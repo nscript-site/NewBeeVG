@@ -98,28 +98,31 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
     }
 
     /// <summary>
-    /// 创建视频写入器（H.264 + MP3 音轨）。
+    /// 创建视频写入器（H.264 + AAC 音轨，48kHz 立体声 192kbps）。
     /// </summary>
     /// <param name="containAudio">为 false 时不创建音轨。</param>
-    public MediaWriter(string fileName, int width, int height, double framerate, bool containAudio = true) : base()
+    public MediaWriter(string fileName, int width, int height, double framerate, bool containAudio = true, int audioSampleRate = 48000) : base()
     {
         Open(fileName, width, height, AVCodecID.AV_CODEC_ID_H264, framerate,
-            containAudio ? AVCodecID.AV_CODEC_ID_MP3 : AVCodecID.AV_CODEC_ID_NONE,
-            DateTime.Now);
+            containAudio ? AVCodecID.AV_CODEC_ID_AAC : AVCodecID.AV_CODEC_ID_NONE,
+            DateTime.Now, audioSampleRate, 2, 192000);
     }
 
     /// <summary>
-    /// 创建带音轨的视频写入器，并显式指定音频采样率与声道数。
+    /// 创建带音轨的视频写入器，并显式指定音频采样率、声道数、编码器与码率。
     /// </summary>
-    /// <param name="audioSampleRate">音频采样率（Hz），需为编码器支持的值（MP3：32000/44100/48000）。</param>
+    /// <param name="audioSampleRate">音频采样率（Hz）。AAC 支持常见的 44100/48000。</param>
     /// <param name="audioChannels">音频声道数，默认 2（立体声）。</param>
     /// <param name="containAudio">为 false 时不创建音轨。</param>
+    /// <param name="audioCodec">音频编码器，默认 AAC；MP4 推荐 AAC，MP3 建议 192kbps 以上。</param>
+    /// <param name="audioBitrate">音频码率（bps），默认 192000。</param>
     public MediaWriter(string fileName, int width, int height, double framerate,
-        int audioSampleRate, int audioChannels = 2, bool containAudio = true) : base()
+        int audioSampleRate, int audioChannels = 2, bool containAudio = true,
+        AVCodecID audioCodec = AVCodecID.AV_CODEC_ID_AAC, int audioBitrate = 192000) : base()
     {
         Open(fileName, width, height, AVCodecID.AV_CODEC_ID_H264, framerate,
-            containAudio ? AVCodecID.AV_CODEC_ID_MP3 : AVCodecID.AV_CODEC_ID_NONE,
-            DateTime.Now, audioSampleRate, audioChannels);
+            containAudio ? audioCodec : AVCodecID.AV_CODEC_ID_NONE,
+            DateTime.Now, audioSampleRate, audioChannels, audioBitrate);
     }
 
     public MediaWriter(string fileName, int width, int height, AVCodecID videoCodec, int framerate,
@@ -156,7 +159,7 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
     }
 
     private void Open(string fileName, int width, int height, AVCodecID videoCodec, double framerate, AVCodecID audioCodec, DateTime created,
-        int audioSampleRate = 44100, int audioChannels = 2)
+        int audioSampleRate = 44100, int audioChannels = 2, int audioBitrate = 192000)
     {
         CreatedDate = created;
         Filename = fileName;
@@ -211,7 +214,7 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
 
         if (audioCodec != AVCodecID.AV_CODEC_ID_NONE)
         {
-            AddAudioStream(audioCodec, audioSampleRate, audioChannels);
+            AddAudioStream(audioCodec, audioSampleRate, audioChannels, audioBitrate);
             OpenAudio();
         }
 
@@ -1013,7 +1016,7 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
     /// <param name="audioCodec">音频编码器。</param>
     /// <param name="sampleRate">采样率（Hz），需为编码器支持的值。</param>
     /// <param name="channels">声道数，通常为 2。</param>
-    private void AddAudioStream(AVCodecID audioCodec, int sampleRate = 44100, int channels = 2)
+    private void AddAudioStream(AVCodecID audioCodec, int sampleRate = 44100, int channels = 2, int bitRate = 192000)
     {
         var codec = ffmpeg.avcodec_find_encoder(audioCodec);
         if (codec == null)
@@ -1039,6 +1042,9 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
             _audioCodecContext->sample_fmt = AVSampleFormat.AV_SAMPLE_FMT_S32P;
 
         _audioCodecContext->sample_rate = sampleRate;
+
+        // 显式设置码率：不设置时 FFmpeg 的 MP3 编码器可能使用很低的默认码率，音质会明显变差
+        _audioCodecContext->bit_rate = bitRate;
 
         AudioSampleRate = sampleRate;
         AudioChannels = channels;

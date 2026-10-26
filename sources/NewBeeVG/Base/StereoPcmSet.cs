@@ -129,4 +129,68 @@ internal class StereoPcmDataSet
             throw new InvalidOperationException($"写入音频失败：{ex.Message}", ex);
         }
     }
+
+    /// <summary>
+    /// 将混音结果保存为 32 位浮点立体声 WAV 文件（IEEE float）。
+    /// </summary>
+    /// <param name="filePath">输出文件路径（建议使用 .wav 扩展名）；所在目录不存在时会自动创建。</param>
+    /// <remarks>没有可混音数据时不生成文件；WAV 的采样率取自 <see cref="SampleRate"/>。</remarks>
+    public void SaveWav(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("filePath 不能为空", nameof(filePath));
+
+        var mixed = Mixing();
+        if (mixed == null) return;
+
+        var pcm = mixed.Pcm;
+
+        const short channels = 2;
+        const short bitsPerSample = 32;          // IEEE float 每个样本 32 位
+        const short blockAlign = channels * bitsPerSample / 8;
+        const short formatIeeeFloat = 3;
+
+        int dataSize = pcm.Length * sizeof(float);
+        int riffSize = 36 + dataSize;
+
+        // 确保目录存在
+        var dir = Path.GetDirectoryName(Path.GetFullPath(filePath));
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+
+        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+        using var bw = new BinaryWriter(fs);
+
+        // ---------- RIFF ----------
+        bw.Write((byte)'R'); bw.Write((byte)'I'); bw.Write((byte)'F'); bw.Write((byte)'F');
+        bw.Write(riffSize);
+        bw.Write((byte)'W'); bw.Write((byte)'A'); bw.Write((byte)'V'); bw.Write((byte)'E');
+
+        // ---------- fmt ----------
+        bw.Write((byte)'f'); bw.Write((byte)'m'); bw.Write((byte)'t'); bw.Write((byte)' ');
+        bw.Write(16);                              // fmt 块大小
+        bw.Write(formatIeeeFloat);                 // 3 = IEEE float
+        bw.Write(channels);
+        bw.Write(SampleRate);
+        bw.Write(SampleRate * blockAlign);         // 每秒字节数
+        bw.Write(blockAlign);
+        bw.Write(bitsPerSample);
+
+        // ---------- data ----------
+        bw.Write((byte)'d'); bw.Write((byte)'a'); bw.Write((byte)'t'); bw.Write((byte)'a');
+        bw.Write(dataSize);
+
+        // BinaryWriter 按小端写入；交错 float 直接分块拷贝，避免一次性分配过大数组
+        const int chunkBytes = 64 * 1024;
+        var buffer = new byte[Math.Min(chunkBytes, Math.Max(dataSize, 1))];
+        int offset = 0;
+
+        while (offset < dataSize)
+        {
+            int count = Math.Min(buffer.Length, dataSize - offset);
+            Buffer.BlockCopy(pcm, offset, buffer, 0, count);
+            bw.Write(buffer, 0, count);
+            offset += count;
+        }
+    }
 }
