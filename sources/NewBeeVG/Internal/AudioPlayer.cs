@@ -64,6 +64,16 @@ public class AudioPlayer : IDisposable
         catch { }
     }
 
+    public async Task PlayAndWaitAsync(string filePath, CancellationToken ct = default)
+    {
+        PlayFromFile(filePath);
+        while (PlaybackState == PlaybackState.Playing)
+        {
+            ct.ThrowIfCancellationRequested();
+            await Task.Delay(100, ct);
+        }
+    }
+
     public async Task PlayAndWaitAsync(byte[] data, CancellationToken ct = default)
     {
         PlayFromBytes(data);
