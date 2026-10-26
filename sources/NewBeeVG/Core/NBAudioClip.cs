@@ -1,4 +1,5 @@
 ﻿using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using NewBeeVG.Internal;
 using SkiaSharp;
 
@@ -23,6 +24,105 @@ public class NBAudioClip : NBClip
     {
         if (frame == 0)
             Play();
+    }
+
+    /// <summary>
+    /// 导出浮点格式（float，范围 -1.0 到 1.0）的立体声 PCM。
+    /// 返回交错排列的样本数组：<c>[L0, R0, L1, R1, ...]</c>。
+    /// </summary>
+    /// <param name="sampleRate">目标采样率（Hz），默认 44100；源采样率不同时自动重采样。</param>
+    /// <returns>
+    /// 交错立体声样本；文件未配置、读取失败或参数非法时返回 <c>null</c>。
+    /// 单声道源会复制为左右两路；多声道源只取前两个声道。
+    /// </returns>
+    public override float[]? ExportStereoPcm(int sampleRate = 44100)
+    {
+        if (_error == true) return null;
+        if (sampleRate <= 0)
+        {
+            Console.WriteLine($"[NBAudioClip({Name})] 无效的采样率: {sampleRate}");
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(_audioFilePath)) return null;
+
+        var path = Path.GetFullPath(_audioFilePath);
+        if (File.Exists(path) == false)
+        {
+            Console.WriteLine($"[NBAudioClip({Name})] 音频文件不存在: {path}");
+            return null;
+        }
+
+        try
+        {
+            // AudioFileReader 输出 32 位浮点样本，可直接按 -1.0 ~ 1.0 读取
+            using var reader = new AudioFileReader(path);
+
+            // 源采样率与目标不一致时进行重采样
+            ISampleProvider provider = reader;
+            if (reader.WaveFormat.SampleRate != sampleRate)
+            {
+                provider = new WdlResamplingSampleProvider(reader, sampleRate);
+            }
+
+            int channels = provider.WaveFormat.Channels;
+            if (channels <= 0)
+            {
+                Console.WriteLine($"[NBAudioClip({Name})] 无效的声道数: {channels}");
+                return null;
+            }
+
+            // 按预计时长预分配，读取过程中不足时自动扩容
+            long estimatedFrames = (long)Math.Ceiling(reader.TotalTime.TotalSeconds * sampleRate) + 1;
+            var result = new float[Math.Max(2L, estimatedFrames * 2)];
+            var buffer = new float[4096 * channels];
+            int frameCount = 0;
+
+            int read;
+            while ((read = provider.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                int frames = read / channels;
+                for (int i = 0; i < frames; i++)
+                {
+                    int writeIndex = frameCount * 2;
+                    if (writeIndex + 1 >= result.Length)
+                    {
+                        Array.Resize(ref result, result.Length * 2);
+                    }
+
+                    int sourceIndex = i * channels;
+                    if (channels == 1)
+                    {
+                        // 单声道同时写入左右声道
+                        float value = buffer[sourceIndex];
+                        result[writeIndex] = value;
+                        result[writeIndex + 1] = value;
+                    }
+                    else
+                    {
+                        // 双声道直接拷贝；多声道只取前两个声道
+                        result[writeIndex] = buffer[sourceIndex];
+                        result[writeIndex + 1] = buffer[sourceIndex + 1];
+                    }
+
+                    frameCount++;
+                }
+            }
+
+            // 长度可能因重采样估算略有偏差，按实际帧数截断
+            int length = frameCount * 2;
+            if (length != result.Length)
+            {
+                Array.Resize(ref result, length);
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[NBAudioClip({Name})] 导出立体声 PCM 失败: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>

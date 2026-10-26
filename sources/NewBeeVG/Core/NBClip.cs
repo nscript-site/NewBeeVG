@@ -42,6 +42,16 @@ public class NBClip : IPlayable
     {
     }
 
+    /// <summary>
+    /// 导出立体声。从第一帧起。
+    /// </summary>
+    /// <param name="sampleRate"></param>
+    /// <returns></returns>
+    public virtual float[]? ExportStereoPcm(int sampleRate = 44100)
+    {
+        return null;
+    }
+
     public NBClip(string name = "clip", Action<NBDrawContext, NBClip, SKCanvas>? builder = null, int duration = 1, int? start = null)
     {
         Name = name;

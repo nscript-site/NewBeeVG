@@ -80,4 +80,22 @@ public class NBTrack : IPlayable
             }
         }
     }
+
+    internal StereoPcmDataSet ExportStereoPcm(int frameRate, int sampleRate)
+    {
+        StereoPcmDataSet ds = new StereoPcmDataSet() { SampleRate = sampleRate, FrameRate = frameRate };
+        foreach(var clip in Clips)
+        {
+            if(clip.StartFrame != null)
+            {
+                var pcm = clip.ExportStereoPcm(sampleRate);
+                if (pcm != null)
+                {
+                    var item = new StereoPcmData() { Frame = clip.StartFrame.Value, Pcm = pcm };
+                    ds.Data.Add(item);
+                }
+            }
+        }
+        return ds;
+    }
 }
