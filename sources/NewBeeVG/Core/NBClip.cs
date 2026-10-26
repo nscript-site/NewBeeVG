@@ -64,6 +64,8 @@ public class NBClip : IPlayable
 
     public virtual void Prepare(NBStage stage) { }
 
+    public StereoPcmData? MixedAudioData { get; protected set; }
+
     public int Measure()
     {
         return DurationFrames; 

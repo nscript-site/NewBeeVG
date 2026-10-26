@@ -11,6 +11,7 @@ public class NBWorkspace
     {
         var track = new NBTrack();
         track.Clips.AddRange(clips);
+        track.Prepare(stage);
 
         return Create(stage, [track]);
     }
@@ -22,6 +23,7 @@ public class NBWorkspace
             Stage = stage
         };
         work.Tracks.AddRange(tracks);
+        work.Prepare(stage);
 
         var ws = new NBWorkspace { Name = "Workspace" };
         ws.Works.Add(work);

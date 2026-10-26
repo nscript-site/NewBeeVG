@@ -70,23 +70,13 @@ public class ExportVideoView : BaseView
             this.UpdateState();
         });
 
-        // 32000 / 44100 / 48000
-        int audioSampleRate = 44100;
-        var pcm = Work.ExportStereoPcm(stage.FrameRate, audioSampleRate);
-        string prevMsg = pcm.IsEmpty ? "未检测到音频" : "检测到音频";
-        Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            Message = prevMsg;
-            this.UpdateState();
-        });
+        var pcm = Playable.MixedAudioData;
 
-        var writer = new MediaWriter(filePath, stage.Width, stage.Height, stage.FrameRate, true, audioSampleRate);
+        var writer = new MediaWriter(filePath, stage.Width, stage.Height, stage.FrameRate, true, stage.AudioFrameRate);
 
-        if (pcm.IsEmpty == false)
+        if (pcm != null)
         {
-            // 保存 wav，备对比
-            //pcm.SaveWav(filePath + "_dump.wav");
-            pcm.WriteTo(writer);
+            pcm.WriteTo(writer, stage.AudioFrameRate);
         }
 
         for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)

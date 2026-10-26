@@ -1,4 +1,5 @@
-﻿using SkiaSharp;
+﻿using HarfBuzzSharp;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -64,7 +65,22 @@ public class NBTrack : IPlayable
         return max;
     }
 
-    public virtual void Prepare(NBStage stage) { }
+    public StereoPcmData? MixedAudioData { get; protected set; }
+
+    public virtual void Prepare(NBStage stage) {
+        Measure();
+        StereoPcmDataSet ds = new StereoPcmDataSet() { SampleRate = stage.AudioFrameRate, FrameRate = stage.FrameRate };
+        foreach (var clip in Clips)
+        {
+            var mixed = clip.MixedAudioData;
+            if (mixed != null)
+            {
+                mixed.Frame = clip.StartFrame ?? 0;
+                ds.Data.Add(mixed);
+            }
+        }
+        MixedAudioData = ds.Mixing();
+    }
 
     public void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
@@ -81,23 +97,5 @@ public class NBTrack : IPlayable
                 clip.Render(canvas, stage, frame - clip.StartFrame ?? 0, false, false);
             }
         }
-    }
-
-    internal StereoPcmDataSet ExportStereoPcm(double frameRate, int sampleRate)
-    {
-        StereoPcmDataSet ds = new StereoPcmDataSet() { SampleRate = sampleRate, FrameRate = frameRate };
-        foreach(var clip in Clips)
-        {
-            if(clip.StartFrame != null)
-            {
-                var pcm = clip.ExportStereoPcm(sampleRate);
-                if (pcm != null)
-                {
-                    var item = new StereoPcmData() { Frame = clip.StartFrame.Value, Pcm = pcm };
-                    ds.Data.Add(item);
-                }
-            }
-        }
-        return ds;
     }
 }

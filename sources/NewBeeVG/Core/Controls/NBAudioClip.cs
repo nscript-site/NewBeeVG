@@ -22,9 +22,10 @@ public class NBAudioClip : NBClip
 
     public override void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
-        if (frame == 0)
-            Play();
     }
+
+    int cacheExportSampleRate = -1;
+    float[]? cacheExportData = null;
 
     /// <summary>
     /// 导出浮点格式（float，范围 -1.0 到 1.0）的立体声 PCM。
@@ -38,6 +39,9 @@ public class NBAudioClip : NBClip
     public override float[]? ExportStereoPcm(int sampleRate = 44100)
     {
         if (_error == true) return null;
+
+        if (cacheExportData != null && cacheExportSampleRate == sampleRate) return cacheExportData;
+
         if (sampleRate <= 0)
         {
             Console.WriteLine($"[NBAudioClip({Name})] 无效的采样率: {sampleRate}");
@@ -115,6 +119,9 @@ public class NBAudioClip : NBClip
             {
                 Array.Resize(ref result, length);
             }
+
+            cacheExportData = result;
+            cacheExportSampleRate = sampleRate;
 
             return result;
         }
@@ -208,6 +215,12 @@ public class NBAudioClip : NBClip
             DurationFrames = Math.Max(1, (int)Math.Ceiling(duration.TotalSeconds * fps));
 
             Console.WriteLine($"[NBAudioClip({Name})] 音频时长 {duration.TotalSeconds:F2} 秒，对应 {DurationFrames} 帧 @ {fps}fps");
+
+            var pcm = this.ExportStereoPcm(stage.AudioFrameRate);
+            if (pcm != null)
+            {
+                this.MixedAudioData = new StereoPcmData() { Frame = 0, Pcm = pcm };
+            }
         }
         catch (Exception ex)
         {

@@ -30,7 +30,22 @@ public class NBWork : IPlayable
         return max;
     }
 
-    public virtual void Prepare(NBStage stage) { }
+    public StereoPcmData? MixedAudioData { get; protected set; }
+
+    public virtual void Prepare(NBStage stage)
+    {
+        Measure();
+        StereoPcmDataSet ds = new StereoPcmDataSet() { SampleRate = stage.AudioFrameRate, FrameRate = stage.FrameRate };
+        foreach (var track in Tracks)
+        {
+            var mixed = track.MixedAudioData;
+            if (mixed != null)
+            {
+                ds.Data.Add(mixed);
+            }
+        }
+        MixedAudioData = ds.Mixing();
+    }
 
     public SKBitmap CreateBitmap()
     {
@@ -50,19 +65,5 @@ public class NBWork : IPlayable
             if (track.IsVisible == false) continue;
             track.Render(canvas, stage, frame, false, false);
         }
-    }
-
-    internal StereoPcmDataSet ExportStereoPcm(double frameRate, int sampleRate)
-    {
-        var set = new StereoPcmDataSet() { FrameRate = frameRate, SampleRate = sampleRate };
-        foreach (var track in Tracks)
-        {
-            var data = track.ExportStereoPcm(frameRate, sampleRate);
-            if (data != null && data.IsEmpty == false)
-            {
-                set.Data.AddRange(data.Data);
-            }
-        }
-        return set;
     }
 }

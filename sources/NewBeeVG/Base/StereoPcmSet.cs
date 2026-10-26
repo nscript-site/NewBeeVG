@@ -5,13 +5,41 @@ using System.Text;
 
 namespace NewBeeVG;
 
-internal class StereoPcmData
+public class StereoPcmData
 {
     public float[] Pcm { get; init; }
-    public int Frame { get; init; }
+    public int Frame { get; internal set; }
+
+    public void WriteTo(MediaWriter writer, int SampleRate)
+    {
+        if (writer == null) throw new ArgumentNullException(nameof(writer));
+
+        if (writer.AudioChannels != 2)
+        {
+            throw new ArgumentException(
+                $"MediaWriter 的音频声道数为 {writer.AudioChannels}，混音数据需要立体声（2）。",
+                nameof(writer));
+        }
+
+        if (writer.AudioSampleRate != SampleRate)
+        {
+            throw new ArgumentException(
+                $"采样率不一致：MediaWriter 为 {writer.AudioSampleRate}Hz，混音数据为 {SampleRate}Hz。",
+                nameof(writer));
+        }
+
+        try
+        {
+            writer.WriteAudio(Pcm, 0);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"写入音频失败：{ex.Message}", ex);
+        }
+    }
 }
 
-internal class StereoPcmDataSet
+public class StereoPcmDataSet
 {
     public int SampleRate = 48000;
     public double FrameRate = 25;

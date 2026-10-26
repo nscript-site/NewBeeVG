@@ -25,6 +25,8 @@ public interface IPlayable
         }
     }
 
+    StereoPcmData? MixedAudioData { get; }
+
     void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview);
 
     /// <summary>

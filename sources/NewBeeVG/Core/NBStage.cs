@@ -8,6 +8,7 @@ public class NBStage
     public int Height { get; set; }
     public double FrameRate { get; set; } = 25;
     public SKColor? Background { get; set; }
+    public int AudioFrameRate { get; set; } = 44100;
 
     public void DrawBackground(SKCanvas canvas, bool preview)
     {
