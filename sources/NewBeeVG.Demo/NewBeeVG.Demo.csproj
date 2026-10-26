@@ -46,6 +46,9 @@
     <None Update="Assets\anim_plot.typ">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Assets\audio01.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\code1.typ">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

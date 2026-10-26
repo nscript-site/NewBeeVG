@@ -914,5 +914,11 @@ public static class Methods
         return file;
     }
 
+    public static NBAudioClip AudioFile(string path)
+    {
+        var file = new NBAudioClip(path);
+        return file;
+    }
+
     #endregion
 }

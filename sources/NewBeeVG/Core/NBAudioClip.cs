@@ -1,5 +1,6 @@
 ﻿using NAudio.Wave;
 using NewBeeVG.Internal;
+using SkiaSharp;
 
 namespace NewBeeVG;
 
@@ -8,13 +9,20 @@ public class NBAudioClip : NBClip
     private string? _audioFilePath;
     private bool _error = false;
 
-    public NBAudioClip(string name = "audio", string? audioFilePath = null, int duration = 1, int? start = null)
+    public NBAudioClip(string? audioFilePath = null, int? start = null, string name = "audio")
     {
         Name = name;
         ControlBuilder = null;
         _audioFilePath = audioFilePath;
-        DurationFrames = duration;
+        DurationFrames = 1;
         StartFrame = start;
+        ContainsAudio = true;
+    }
+
+    public override void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
+    {
+        if (frame == 0)
+            Play();
     }
 
     /// <summary>

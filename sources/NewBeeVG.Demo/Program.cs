@@ -14,7 +14,9 @@
 
 //TransparentBgSample.Run();
 
-SKAnimationSample.Run();
+AudioSample.Run();
+
+//SKAnimationSample.Run();
 
 //SVGSample.Run();
 

@@ -33,9 +33,10 @@ public class NBTrack : IPlayable
         {
             var clip = Clips[i];
             if (clip.StartFrame == null && clip.ReferenceClip == null)
+            {
                 clip.StartFrame = max;
-
-            max = Math.Max(max, clip.StartFrame.Value + clip.DurationFrames);
+                max = Math.Max(max, clip.StartFrame.Value + clip.DurationFrames);
+            }
         }
 
         for(int i = 0; i < Clips.Count; i++)

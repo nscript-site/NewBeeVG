@@ -40,6 +40,7 @@ public class NBTTSClip : NBClip
         _audioFilePath = ComputeMd5(key) + ".wav";
         DurationFrames = -1;
         StartFrame = start;
+        ContainsAudio = true;
     }
 
     private bool _playing = false;

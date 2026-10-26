@@ -32,7 +32,9 @@ public class NBClip : IPlayable
 
     internal Action<NBDrawContext, NBClip, SKCanvas>? ControlBuilder { get; set; }
 
-    public string Name { get; init; }
+    public string Name { get; internal set; }
+
+    public bool ContainsAudio { get; protected set; } = false;
 
     public bool IsVisible { get; set; } = true;
 
@@ -95,7 +97,7 @@ public class NBClip : IPlayable
 
     internal bool NeedRenderInTrack(int frame)
     {
-        if (ControlBuilder == null) return false;
+        if (ControlBuilder == null && ContainsAudio == false) return false;
         
         if (StartFrame == null || DurationFrames <= 0) return true;
         else return frame >= StartFrame && frame < StartFrame + DurationFrames;
