@@ -180,6 +180,12 @@ public class PlayerView : BaseView
                 {
                     if (Playable == null) break;
 
+                    var stereoPcmData = Playable.MixedAudioData;
+                    if(stereoPcmData != null)
+                    {
+                        // 实现声音播放逻辑
+                    }
+
                     var frameStart = sw.ElapsedMilliseconds;
 
                     // Perform creation + rendering on UI thread and wait until it's done.
