@@ -8,6 +8,8 @@ public class NBTrack : IPlayable
     public List<NBClip> Clips { get; set; } = new List<NBClip>();
     public bool IsVisible { get; set; } = true;
 
+    public int DurationFrames { get; protected set; }
+
     public string FullName => $"[Track] {Name}";
 
     public bool ContainsVisualClip

@@ -22,7 +22,7 @@ public class PlayerView : BaseView
         FrameImage = new NBSkiaBitmapView();
         if (Work != null)
         {
-            VGrid("30,*", [
+            VGrid("30,*,5,40,5", [
                 HGrid("*,Auto,Auto", [
                 HStack([
                     TextBlock(()=>Playable?.FullName??String.Empty),
@@ -37,7 +37,32 @@ public class PlayerView : BaseView
             ]),
             Border(FrameImage)
                 .Background(Brushes.Gray)
-                .BorderBrush(Brushes.LightGray).BorderThickness(1)
+                .BorderBrush(Brushes.LightGray).BorderThickness(1),
+            null,
+            HGrid("Auto,20,*",[
+                HStack([
+                    IconButton(SkipPreviousIcon.Instance,"", scale: 1, iconSize:20).Size(26,26)
+                        .OnClick(_=>GotoFrame(0)),
+                    IconButton(ArrowLeftBoldBoxIcon.Instance,"", scale: 1, iconSize:20).Size(26,26)
+                        .OnClick(_=>GotoFrame(CurrentFrame - 1)),
+                    IconButton(()=> Playing ? PauseBoxIcon.Instance : PlayBoxIcon.Instance,"", scale: 1, iconSize:30).Size(36,36)
+                        .OnClick(_=>{ TogglePlaying(); }),
+                    IconButton(ArrowRightBoldBoxIcon.Instance,"", scale: 1, iconSize:20).Size(26,26)
+                        .OnClick(_=>GotoFrame(CurrentFrame + 1)),
+                    IconButton(SkipNextIcon.Instance,"", scale: 1, iconSize:20).Size(26,26)
+                        .OnClick(_=>GotoFrame(Frames)),
+                    ]).Spacing(0),
+                null,
+                new ProgressBar().Value(()=>CurrentFrame).Maximum(()=>Frames).Ref(out var progress)
+                    .Align(null,0).Cursor(new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand))
+                    .OnPointerPressed(e=>{
+                        if(Frames <= 0) return;
+                        var p = e.GetPosition(progress);
+                        var w = progress.Bounds.Width;
+                        var f = (int)Math.Round(p.X / w * Frames);
+                        GotoFrame(f);   
+                    })
+                ]),
             ])
             .Return(out content);
         }
@@ -53,6 +78,50 @@ public class PlayerView : BaseView
 
     protected bool _isPlaying = false;
 
+    public void GotoFrame(int frame)
+    {
+        if (Playable == null) return;
+        var old = CurrentFrame;
+        if (frame < 0) frame = 0;
+        else if (frame > Frames) frame = Frames;
+
+        CurrentFrame = frame;
+        if(old != CurrentFrame && Playing == false)
+        {
+            Task.Run(() => {
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var bitmap = Work!.CreateBitmap();
+
+                    if (Playable!.Render(bitmap, Work.Stage, CurrentFrame, true))
+                    {
+                        Bitmap = bitmap;
+                        FrameImage.Bitmap = bitmap;
+                        FrameImage.InvalidateVisual();
+                    }
+
+                    this.UpdateState();
+                }).GetAwaiter().GetResult(); // BLOCK until UI work finishes
+            });
+        }
+    }
+
+    public void TogglePlaying()
+    {
+        if(Playing)
+        {
+            Playing = false;
+            this.UpdateStateByUIThread();
+        }
+        else
+        {
+            if (CurrentFrame >= Frames)
+                CurrentFrame = 0;
+            Play();
+            this.UpdateStateByUIThread();
+        }
+    }
+
     public void Stop()
     {
         Playing = false;
@@ -63,6 +132,7 @@ public class PlayerView : BaseView
 
             Thread.Sleep(100);
         }
+        this.UpdateStateByUIThread();
     }
 
     public void Load(IPlayable? playable, NBWork? work)
@@ -104,7 +174,7 @@ public class PlayerView : BaseView
             var sw = Stopwatch.StartNew();
             Playing = true;
             _isPlaying = true;
-
+            bool breakByPlayingToogle = false;
             try
             {
                 while (Playing)
@@ -144,6 +214,8 @@ public class PlayerView : BaseView
                     }
                     // else: no sleep, we are running behind — skip waiting to catch up
                 }
+
+                breakByPlayingToogle = !Playing;
             }
             catch (Exception ex)
             {
@@ -152,8 +224,13 @@ public class PlayerView : BaseView
             }
             finally
             {
-                Playing = false;
+                if(breakByPlayingToogle == false)
+                {
+                    Playing = CurrentFrame < Frames;
+                }
+
                 _isPlaying = false;
+                this.UpdateStateByUIThread();
             }
         });
     }
