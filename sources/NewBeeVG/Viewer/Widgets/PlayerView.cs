@@ -79,8 +79,15 @@ public class PlayerView : BaseView
 
     protected bool _isPlaying = false;
 
+    private readonly object _audioLock = new();
     private WaveOutEvent? _audioOutput;
-    private WaveStream? _audioStream;
+    private BufferedWaveProvider? _audioBuffer;
+    private float[]? _audioPcm;
+    private int _audioSampleRate;
+    private double _audioFps;
+    private int _nextFeedFrame;
+    private int _audioPrebufferFrames;
+    private byte[]? _audioFeedBuffer;
     private int _audioSession;
     private bool _audioStartAttempted;
 
@@ -183,8 +190,10 @@ public class PlayerView : BaseView
         // Run the playback loop on a background thread.
         Task.Run(() =>
         {
-            int targetMs = Math.Max(10,(int)(1000.0/Work.Fps));
-            var sw = Stopwatch.StartNew();
+            double fps = Work.Fps > 0 ? Work.Fps : 25.0;
+            double frameIntervalMs = 1000.0 / fps;
+
+            var clock = Stopwatch.StartNew();
             Playing = true;
             _isPlaying = true;
             bool breakByPlayingToogle = false;
@@ -193,6 +202,11 @@ public class PlayerView : BaseView
             try
             {
                 _audioStartAttempted = false;
+
+                // 绝对时间基准：目标时间 = 起点 + n × 帧间隔。
+                // 不能每帧 Sleep(帧间隔 - 渲染耗时)，因为 Thread.Sleep 在 Windows 上有 10~15ms 粒度，
+                // 误差会逐帧累积，实际帧率低于设定值，音频持续被“少喂”而出现卡顿。
+                double nextFrameMs = clock.Elapsed.TotalMilliseconds;
 
                 while (Playing)
                 {
@@ -206,7 +220,10 @@ public class PlayerView : BaseView
                         StartAudio(audioSession, Playable.MixedAudioData, CurrentFrame);
                     }
 
-                    var frameStart = sw.ElapsedMilliseconds;
+                    // 等到该帧的绝对时间点（末尾几毫秒自旋，避免 Sleep 粒度误差）
+                    if (WaitUntil(nextFrameMs, clock) == false) break;
+
+                    int renderedFrame = CurrentFrame;
 
                     // Perform creation + rendering on UI thread and wait until it's done.
                     Dispatcher.UIThread.InvokeAsync(() =>
@@ -214,30 +231,38 @@ public class PlayerView : BaseView
                         // Create bitmap and render on UI thread to avoid cross-thread issues.
                         var bitmap = Work!.CreateBitmap();
 
-                        if (Playable!.Render(bitmap, Work.Stage, CurrentFrame, true))
+                        if (Playable!.Render(bitmap, Work.Stage, renderedFrame, true))
                         {
+                            var oldBitmap = Bitmap;
                             Bitmap = bitmap;
                             FrameImage.Bitmap = bitmap;
                             FrameImage.InvalidateVisual();
                         }
 
-                        // TODO: 这里 bitmap 和 FrameImage.Source 的生命周期管理可能有问题，可能会导致内存泄漏。
-
                         this.UpdateState();
                     }).GetAwaiter().GetResult(); // BLOCK until UI work finishes
 
                     CurrentFrame++;
+                    nextFrameMs += frameIntervalMs;
+
+                    // 画面推进后才继续喂音频：渲染卡住时缓冲耗尽，声音随之停住
+                    FeedAudioUpTo(CurrentFrame + _audioPrebufferFrames);
 
                     if (CurrentFrame >= Frames)
                         break;
 
-                    var elapsed = (int)(sw.ElapsedMilliseconds - frameStart);
-                    var remaining = targetMs - elapsed;
-                    if (remaining > 0)
+                    // 渲染严重落后时丢帧追赶，避免越拖越久（音频保持实时）
+                    double behindMs = clock.Elapsed.TotalMilliseconds - nextFrameMs;
+                    if (behindMs > frameIntervalMs * 1.5)
                     {
-                        Thread.Sleep(remaining);
+                        int skip = Math.Min((int)(behindMs / frameIntervalMs), Frames - CurrentFrame);
+                        if (skip > 0)
+                        {
+                            CurrentFrame += skip;
+                            nextFrameMs += skip * frameIntervalMs;
+                            FeedAudioUpTo(CurrentFrame + _audioPrebufferFrames);
+                        }
                     }
-                    // else: no sleep, we are running behind — skip waiting to catch up
                 }
 
                 breakByPlayingToogle = !Playing;
@@ -264,42 +289,82 @@ public class PlayerView : BaseView
     }
 
     /// <summary>
-    /// 从指定视频帧对应的采样点开始播放混音结果。
+    /// 等到指定的绝对时间点（毫秒）。
+    /// 前半段 Sleep，最后几毫秒自旋，抵消 Thread.Sleep 在 Windows 上 10~15ms 的粒度误差。
+    /// </summary>
+    /// <returns>到达时间点返回 true；播放被停止返回 false。</returns>
+    private bool WaitUntil(double targetMs, Stopwatch clock)
+    {
+        while (Playing)
+        {
+            double remaining = targetMs - clock.Elapsed.TotalMilliseconds;
+            if (remaining <= 0) return true;
+
+            if (remaining > 4)
+            {
+                // 分段睡眠，保证暂停响应不会被长时间的 Sleep 拖住
+                int sleep = (int)Math.Min(remaining - 2, 20);
+                Thread.Sleep(Math.Max(1, sleep));
+            }
+            else
+            {
+                Thread.SpinWait(200);
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 从指定视频帧开始按「推送」方式播放混音结果。
+    /// 音频只在画面推进时补充数据，因此渲染卡住时缓冲耗尽，声音会自然停住。
     /// </summary>
     private void StartAudio(int session, StereoPcmData? data, int startFrame)
     {
-        // 旧会话直接忽略，避免覆盖新会话的音频设备
-        if (session != _audioSession) return;
-
-        DisposeAudio();
-
-        if (data?.Pcm == null || data.Pcm.Length < 2) return;
-        if (Work == null) return;
-
-        int sampleRate = Work.Stage.AudioFrameRate;
-        double fps = Work.Fps;
-        if (sampleRate <= 0 || fps <= 0) return;
-
-        int sampleFrames = data.Pcm.Length / 2;
-        if (sampleFrames <= 0) return;
-
-        // 视频帧号 -> 音频采样点
-        long startSample = (long)Math.Round(startFrame * (double)sampleRate / fps);
-        if (startSample < 0) startSample = 0;
-        if (startSample >= sampleFrames) return;
-
-        try
+        lock (_audioLock)
         {
-            _audioStream = new StereoPcm16WaveStream(data.Pcm, sampleRate, startSample);
-            _audioOutput = new WaveOutEvent();
-            _audioOutput.Init(_audioStream);
-            _audioOutput.Play();
-        }
-        catch (Exception ex)
-        {
-            // 声卡不可用或格式不支持时不阻断视频预览
-            DisposeAudio();
-            Console.WriteLine($"PlayerView.StartAudio exception: {ex.Message}");
+            // 旧会话直接忽略，避免覆盖新会话的音频设备
+            if (session != _audioSession) return;
+
+            DisposeAudioCore();
+
+            if (data?.Pcm == null || data.Pcm.Length < 2) return;
+            if (Work == null) return;
+
+            int sampleRate = Work.Stage.AudioFrameRate;
+            double fps = Work.Fps;
+            if (sampleRate <= 0 || fps <= 0) return;
+
+            try
+            {
+                _audioPcm = data.Pcm;
+                _audioSampleRate = sampleRate;
+                _audioFps = fps;
+
+                // 预缓冲约 100ms：既避免启动欠载，又不至于让声音明显领先画面
+                _audioPrebufferFrames = Math.Max(2, (int)Math.Ceiling(fps * 0.1));
+
+                _audioBuffer = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
+                {
+                    BufferDuration = TimeSpan.FromMilliseconds(400),
+                    DiscardOnBufferOverflow = true,
+                    // 缓冲耗尽时输出静音：画面卡住，声音也随之停住
+                    ReadFully = true
+                };
+
+                _nextFeedFrame = startFrame;
+                FeedAudioCore(startFrame + _audioPrebufferFrames);
+
+                _audioOutput = new WaveOutEvent { DesiredLatency = 100 };
+                _audioOutput.Init(_audioBuffer);
+                _audioOutput.Play();
+            }
+            catch (Exception ex)
+            {
+                // 声卡不可用或格式不支持时不阻断视频预览
+                DisposeAudioCore();
+                Console.WriteLine($"PlayerView.StartAudio exception: {ex.Message}");
+            }
         }
     }
 
@@ -308,8 +373,11 @@ public class PlayerView : BaseView
     /// </summary>
     private void StopAudio(int session)
     {
-        if (session != _audioSession) return;
-        DisposeAudio();
+        lock (_audioLock)
+        {
+            if (session != _audioSession) return;
+            DisposeAudioCore();
+        }
     }
 
     /// <summary>
@@ -317,69 +385,86 @@ public class PlayerView : BaseView
     /// </summary>
     private void DisposeAudio()
     {
+        lock (_audioLock)
+        {
+            DisposeAudioCore();
+        }
+    }
+
+    private void DisposeAudioCore()
+    {
         try { _audioOutput?.Stop(); } catch { }
         try { _audioOutput?.Dispose(); } catch { }
         _audioOutput = null;
 
-        try { _audioStream?.Dispose(); } catch { }
-        _audioStream = null;
+        _audioBuffer = null;
+        _audioPcm = null;
+        _audioFeedBuffer = null;
+        _audioPrebufferFrames = 0;
+        _nextFeedFrame = 0;
     }
 
     /// <summary>
-    /// 把交错立体声 float PCM（[-1, 1]）按需转换成 16 位 PCM 读取，
-    /// 避免为整段音频额外分配一份字节数组。
+    /// 把指定帧范围内的音频追加到缓冲。
     /// </summary>
-    private sealed class StereoPcm16WaveStream : WaveStream
+    private void FeedAudioUpTo(int throughFrame)
     {
-        private readonly float[] _pcm;
-        private readonly WaveFormat _format;
-        private readonly long _length;
-        private long _position;
-
-        public StereoPcm16WaveStream(float[] pcm, int sampleRate, long startSample)
+        lock (_audioLock)
         {
-            _pcm = pcm;
-            _format = new WaveFormat(sampleRate, 16, 2);
-            _length = (long)pcm.Length * sizeof(short);
-
-            // 每帧立体声占 2 个样本、每个样本 2 字节
-            _position = Math.Clamp(startSample * 2 * sizeof(short), 0, _length);
+            FeedAudioCore(throughFrame);
         }
+    }
 
-        public override WaveFormat WaveFormat => _format;
+    private void FeedAudioCore(int throughFrame)
+    {
+        if (_audioBuffer == null || _audioPcm == null) return;
+        if (_audioSampleRate <= 0 || _audioFps <= 0) return;
 
-        public override long Length => _length;
-
-        public override long Position
+        while (_nextFeedFrame <= throughFrame)
         {
-            get => _position;
-            set => _position = Math.Clamp(value, 0, _length);
-        }
+            int start = SampleIndexAtFrame(_nextFeedFrame);
+            int end = SampleIndexAtFrame(_nextFeedFrame + 1);
+            _nextFeedFrame++;
 
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (_position >= _length) return 0;
+            if (end <= start) continue;
 
-            const int bytesPerSample = sizeof(short);
-            long remainingSamples = (_length - _position) / bytesPerSample;
+            int sampleCount = end - start;
+            int byteCount = sampleCount * sizeof(short);
+            EnsureFeedBuffer(byteCount);
 
-            int samples = (int)Math.Min(count / bytesPerSample, remainingSamples);
-            if (samples <= 0) return 0;
-
-            long sampleIndex = _position / bytesPerSample;
-
-            for (int i = 0; i < samples; i++)
+            var buffer = _audioFeedBuffer!;
+            for (int i = 0; i < sampleCount; i++)
             {
-                float value = Math.Clamp(_pcm[sampleIndex + i], -1f, 1f);
+                float value = Math.Clamp(_audioPcm[start + i], -1f, 1f);
                 short pcm16 = (short)MathF.Round(value * short.MaxValue);
 
-                buffer[offset + i * 2] = (byte)(pcm16 & 0xFF);
-                buffer[offset + i * 2 + 1] = (byte)((pcm16 >> 8) & 0xFF);
+                buffer[i * 2] = (byte)(pcm16 & 0xFF);
+                buffer[i * 2 + 1] = (byte)((pcm16 >> 8) & 0xFF);
             }
 
-            int written = samples * bytesPerSample;
-            _position += written;
-            return written;
+            _audioBuffer.AddSamples(buffer, 0, byteCount);
+        }
+    }
+
+    /// <summary>
+    /// 视频帧号 -> 交错立体声样本下标。
+    /// </summary>
+    private int SampleIndexAtFrame(int frame)
+    {
+        if (_audioPcm == null) return 0;
+
+        double samplesPerFrame = (double)_audioSampleRate / _audioFps;
+        long sample = (long)Math.Round(frame * samplesPerFrame);
+        long index = sample * 2;
+
+        return (int)Math.Clamp(index, 0L, _audioPcm.Length);
+    }
+
+    private void EnsureFeedBuffer(int byteCount)
+    {
+        if (_audioFeedBuffer == null || _audioFeedBuffer.Length < byteCount)
+        {
+            _audioFeedBuffer = new byte[byteCount];
         }
     }
 
