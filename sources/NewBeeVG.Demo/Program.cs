@@ -10,6 +10,8 @@
 
 //LayerSample.Run();
 
+//VideoThemePreviewSample.Run();
+
 SKAnimationSample.Run();
 
 //SVGSample.Run();

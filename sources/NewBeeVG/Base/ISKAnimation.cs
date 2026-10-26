@@ -257,26 +257,42 @@ public class SKAnimation : ISKAnimation
 /// <summary>
 /// <see cref="SKAnimation"/> 的子类实现：通过重写 <see cref="DrawFrame"/> 提供每帧绘制逻辑，
 /// 适合绘制代码较多、需要拆分为方法的场景。
+/// 类中同时提供主题色 <see cref="Theme"/>，便于子类统一取用背景色、文字色与强调色。
 /// </summary>
 public class SKCustomAnimation : SKAnimation
 {
+    /// <summary>
+    /// 动画使用的主题色，子类可在 <see cref="DrawFrame"/> 中取用背景、文字、分隔线等颜色。
+    /// 由构造函数注入，构造完成后不可更改。
+    /// </summary>
+    public NBVideoTheme Theme { get; private set; }
+
     /// <summary>
     /// 创建自定义动画实例。
     /// </summary>
     /// <param name="width">单帧画面宽度（像素），应大于 0。</param>
     /// <param name="height">单帧画面高度（像素），应大于 0。</param>
     /// <param name="frames">动画总帧数，有效帧号为 0 ~ frames-1。</param>
-    public SKCustomAnimation(int width, int height, int frames)
+    /// <param name="theme">
+    /// 动画主题色；为 <c>null</c> 时使用默认的 <see cref="NBVideoThemes.Nature"/>（自然主题）。
+    /// </param>
+    public SKCustomAnimation(int width, int height, int frames, NBVideoTheme? theme = null)
         : base(width, height, frames, null)
     {
         // 基类构造传入 null，这里把逐帧回调指向子类的 DrawFrame
         this.OnFrame = this.DrawFrame;
+
+        // 未指定主题时使用自然主题作为默认配色
+        this.Theme = theme ?? NBVideoThemes.Nature;
     }
 
     /// <summary>
     /// 每帧绘制逻辑，子类重写此方法即可；默认实现为空（输出全透明画面）。
     /// </summary>
-    /// <param name="canvas">目标画布，绘制前需自行清空或铺背景。</param>
+    /// <param name="canvas">
+    /// 目标画布，绘制前需自行清空或铺背景；通常使用 <see cref="Theme"/> 的
+    /// <see cref="NBVideoTheme.Background"/> 作为底色。
+    /// </param>
     /// <param name="size">当前画面尺寸（像素），通常等于 <see cref="SKAnimation.Width"/> / <see cref="SKAnimation.Height"/>。</param>
     /// <param name="frame">当前帧号，有效范围为 0 ~ Frames-1。</param>
     protected virtual void DrawFrame(SKCanvas canvas, SKSize size, int frame)

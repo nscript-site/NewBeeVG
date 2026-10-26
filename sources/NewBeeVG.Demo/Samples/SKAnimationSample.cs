@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HelixToolkit.Nex.Shaders;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,14 +10,75 @@ internal class SKAnimationSample
 {
     public static void Run()
     {
+        var content = new MyAnimation.ContentSetting
+        {
+            Title = "NewBee VG",
+            TitleSize = 96f,
+            Radius = 120f
+        };
+        var anim = new MyAnimation(1920, 1080, 120, content, NBVideoThemes.Ocean);
+
         SKColor Backdrop = new(0xFF04060C);
         SkiaAnim(new TextIntroAnimation(1920, 1080, 120, "HELLO WORLD", "> SYSTEM ONLINE", true))
             .AsClip(out var clip1, 120, name: "clip1");
         SkiaAnim(new TextIntroAnimation(1920, 1080, 120, "YOUR TEXT", "> YOUT SUBTITLE", true))
             .AsClip(out var clip2, 120, name: "clip2");
+        SkiaAnim(anim)
+            .AsClip(out var clip3, 120, name: "clip3");
         Text("By NewBeeVG").Align(1, -1).Margin(100).Foreground(SKColors.White)
-            .AsClip(out var clip3, -1, start: -1, name: "clip3");
-        run(stage(1920, 1080, bg: SKColors.DarkBlue), [clip1, clip2, clip3]);
+            .AsClip(out var clip4, -1, start: -1, name: "logo");
+        run(stage(1920, 1080, bg: SKColors.DarkBlue), [clip1, clip2, clip3, clip4]);
+    }
+}
+
+public class MyAnimation : SKCustomAnimation
+{
+    private readonly ContentSetting _content;
+
+    // 推荐签名：尺寸 + 帧数 + 内容配置 + 可选主题
+    public MyAnimation(int width, int height, int frames, ContentSetting content, NBVideoTheme? theme = null)
+        : base(width, height, frames, theme)
+    {
+        _content = content ?? throw new ArgumentNullException(nameof(content));
+    }
+
+    protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
+    {
+        // 每帧清空背景；Theme 由构造参数注入，默认 NBVideoThemes.Nature
+        // 需要透明背景时改用 canvas.Clear(SKColors.Transparent)
+        canvas.Clear(Theme.Background);
+
+        // 帧号 -> 0..1 进度
+        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+
+        float cx = size.Width / 2f;
+        float cy = size.Height / 2f;
+
+        // 在这里替换为实际绘制逻辑
+        using (var paint = new SKPaint { IsAntialias = true, Color = Theme.Primary })
+        {
+            canvas.DrawCircle(cx, cy, _content.Radius * (1f + 0.3f * MathF.Sin(t * MathF.PI * 2f)), paint);
+        }
+
+        using var typeface = SKTypeface.FromFamilyName("Microsoft YaHei") ?? SKTypeface.Default;
+        using var font = new SKFont(typeface, _content.TitleSize);
+        using var titlePaint = new SKPaint { IsAntialias = true, Color = Theme.TextPrimary };
+        canvas.DrawText(_content.Title, cx, size.Height - 140f, SKTextAlign.Center, font, titlePaint);
+    }
+
+    /// <summary>
+    /// 动画内容配置：把标题、字号、半径等可变输入集中在一个内部类中。
+    /// </summary>
+    public class ContentSetting
+    {
+        /// <summary>标题文字。</summary>
+        public string Title { get; set; } = "";
+
+        /// <summary>标题字号（像素）。</summary>
+        public float TitleSize { get; set; } = 96f;
+
+        /// <summary>圆形半径（像素）。</summary>
+        public float Radius { get; set; } = 120f;
     }
 }
 
