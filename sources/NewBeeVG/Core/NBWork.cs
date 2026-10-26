@@ -30,7 +30,7 @@ public class NBWork : IPlayable
         return max;
     }
 
-    public virtual void Prepare() { }
+    public virtual void Prepare(NBStage stage) { }
 
     public SKBitmap CreateBitmap()
     {

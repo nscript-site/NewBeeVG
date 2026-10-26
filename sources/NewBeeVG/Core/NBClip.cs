@@ -39,7 +39,7 @@ public class NBClip : IPlayable
 
     public string FullName => $"[Clip] {Name}";
 
-    public virtual void Prepare() { }
+    public virtual void Prepare(NBStage stage) { }
 
     public int Measure()
     {

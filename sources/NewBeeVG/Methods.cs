@@ -232,13 +232,13 @@ public static class Methods
         run(stage(), []);
     }
 
-    private static void PrepareClips(IList<NBClip> clips)
+    private static void PrepareClips(IList<NBClip> clips, NBStage stage)
     {
         foreach (var clip in clips)
         {
             try
             {
-                clip.Prepare();
+                clip.Prepare(stage);
             }
             catch (Exception ex)
             {
@@ -249,14 +249,14 @@ public static class Methods
 
     public static void run(NBStage stage, IList<NBClip> clips, params IList<NBClip>[] clipLists)
     {
-        PrepareClips(clips);
+        PrepareClips(clips, stage);
         if(clipLists?.Length > 0)
         {
             var all = new List<NBClip>(clips.Count * 2);
             all.AddRange(clips);
             foreach(var list in clipLists)
             {
-                PrepareClips(list);
+                PrepareClips(list, stage);
                 all.AddRange(list);
             }
             NBWorkspace.Current = NBWorkspace.Create(stage, all);
@@ -281,7 +281,7 @@ public static class Methods
         {
             try
             {
-                clip.Prepare();
+                clip.Prepare(stage);
             }
             catch (Exception ex)
             {

@@ -30,7 +30,7 @@ public interface IPlayable
     /// <summary>
     /// 准备。有些 playable 需要准备工作。
     /// </summary>
-    void Prepare();
+    void Prepare(NBStage stage);
 
     int Measure();
 

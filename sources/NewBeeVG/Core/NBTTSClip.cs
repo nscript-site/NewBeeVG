@@ -50,7 +50,7 @@ public class NBTTSClip : NBClip
             Play();
     }
 
-    public override void Prepare()
+    public override void Prepare(NBStage stage)
     {
         var cacheDir = GetOrCreateCacheDir();
         var audioFile = Path.Combine(cacheDir.FullName, _audioFilePath);

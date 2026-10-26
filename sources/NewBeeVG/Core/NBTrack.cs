@@ -42,7 +42,7 @@ public class NBTrack : IPlayable
         return max;
     }
 
-    public virtual void Prepare() { }
+    public virtual void Prepare(NBStage stage) { }
 
     //public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
     //{
