@@ -67,7 +67,7 @@ public class ExportVideoView : BaseView
         var writer = new MediaWriter(filePath, stage.Width, stage.Height, stage.FrameRate, true);
         for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
         {
-            using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
+            using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);
             if (bmp == null) break;
 
             writer.WriteFrame(bmp);
@@ -98,7 +98,7 @@ public class ExportVideoView : BaseView
 
         for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
         {
-            using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
+            using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);
             if (bmp == null) break;
 
             gifEncoder2.AddFrame(bmp);

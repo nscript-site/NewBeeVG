@@ -72,25 +72,19 @@ public class NBTrack : IPlayable
     //    return bitmap;
     //}
 
-    public void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground)
+    public void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
         if (ContainsVisualClip == false) return;
         {
-            if (includeStageBackground == true && stage.Background != null)
+            if (includeStageBackground == true)
             {
-                var paint = new SKPaint
-                {
-                    Style = SKPaintStyle.Fill,
-                    Color = stage.Background.Value,
-                    IsAntialias = true
-                };
-                canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
+                stage.DrawBackground(canvas, preview);
             }
 
             foreach (var clip in Clips)
             {
                 if (clip.IsVisible == false || clip.NeedRenderInTrack(frame) == false) continue;
-                clip.Render(canvas, stage, frame - clip.StartFrame ?? 0, false);
+                clip.Render(canvas, stage, frame - clip.StartFrame ?? 0, false, false);
             }
         }
     }

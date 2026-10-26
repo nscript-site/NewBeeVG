@@ -55,20 +55,13 @@ public class NBClip : IPlayable
         return frame /(count - 1.0);
     }
 
-    public virtual void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground)
+    public virtual void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
         if (ControlBuilder == null) return;
 
-        if(includeStageBackground == true && stage.Background != null)
+        if(includeStageBackground == true)
         {
-            var skColor = stage.Background.Value;
-            using var paint = new SKPaint
-            {
-                Style = SKPaintStyle.Fill,
-                Color = skColor,
-                IsAntialias = true
-            };
-            canvas.DrawRect(new SKRect(0, 0, stage.Width, stage.Height), paint);
+            stage.DrawBackground(canvas, preview);
         }
 
         var context = CreateDrawContext(stage, frame);

@@ -310,7 +310,7 @@ public static class Methods
         {
             for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
             {
-                using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true);
+                using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);
                 if (bmp == null) break;
 
                 writer.WriteFrame(bmp);

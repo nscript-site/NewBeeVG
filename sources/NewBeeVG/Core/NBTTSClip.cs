@@ -44,7 +44,7 @@ public class NBTTSClip : NBClip
 
     private bool _playing = false;
 
-    public override void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground)
+    public override void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
         if (frame == 0)
             Play();

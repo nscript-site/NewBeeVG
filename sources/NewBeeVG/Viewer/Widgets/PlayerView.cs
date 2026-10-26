@@ -20,21 +20,35 @@ public class PlayerView : BaseView
     protected override void Build(out Control content)
     {
         FrameImage = new NBSkiaBitmapView();
-        VGrid("30,*", [
-            HGrid("*,Auto,Auto", [
+        if (Work != null)
+        {
+            VGrid("30,*", [
+                HGrid("*,Auto,Auto", [
                 HStack([
                     TextBlock(()=>Playable?.FullName??String.Empty),
                     TextBlock(()=>$"{Math.Min(Frames,CurrentFrame + 1)}/{Frames}"),
                 ]),
-                IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:16).Align(1,1)
+                IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:16)
+                    .Align(1,1)
                     .OnClick(_ => { Export(true); }),
-                IconButton( AnimationPlayOutlineIcon.Instance,"导出动画", scale: 1, iconSize:16).Align(1,1)
+                IconButton( AnimationPlayOutlineIcon.Instance,"导出动画", scale: 1, iconSize:16)
+                    .Align(1,1)
                     .OnClick(_ => { Export(false); }),
             ]),
-            Border(FrameImage).Background(Brushes.Gray)
-                .BorderBrush(Brushes.Gray).BorderThickness(1)
-        ])
-        .Return(out content);
+            Border(FrameImage)
+                .Background(Brushes.Gray)
+                .BorderBrush(Brushes.LightGray).BorderThickness(1)
+            ])
+            .Return(out content);
+        }
+        else
+        {
+            Border(
+                VStack([TextBlock("未选择任何项目 (No Item Selected)")]).Align(0,0)
+                )
+            .BorderBrush(Brushes.LightGray).BorderThickness(1)
+            .Return(out content);
+        }
     }
 
     protected bool _isPlaying = false;
@@ -53,9 +67,11 @@ public class PlayerView : BaseView
 
     public void Load(IPlayable? playable, NBWork? work)
     {
+        bool needReload = (Work == null) && (work != null);
         Playing = false;
         Playable = playable;
         Work = work;
+        if (needReload) this.Reload();
         Reset();
         Play();
     }
@@ -103,7 +119,7 @@ public class PlayerView : BaseView
                         // Create bitmap and render on UI thread to avoid cross-thread issues.
                         var bitmap = Work!.CreateBitmap();
 
-                        if (Playable!.Render(bitmap, Work.Stage, CurrentFrame))
+                        if (Playable!.Render(bitmap, Work.Stage, CurrentFrame, true))
                         {
                             Bitmap = bitmap;
                             FrameImage.Bitmap = bitmap;
@@ -183,5 +199,50 @@ public class PlayerView : BaseView
         {
             exportView.ShowInOverlay(this, true);
         });
+    }
+
+    /// <summary>
+    /// 创建一个棋盘格透明笔刷
+    /// </summary>
+    /// <param name="cellSize">单个小方块的大小（像素）</param>
+    /// <param name="color1">颜色1（如白色）</param>
+    /// <param name="color2">颜色2（如浅灰色）</param>
+    public static IBrush CreateCheckerboardBrush(double cellSize = 10, Color? color1 = null, Color? color2 = null)
+    {
+        var c1 = color1 ?? Colors.White;
+        var c2 = color2 ?? Color.Parse("#CCCCCC");
+        var halfSize = cellSize / 2;
+
+        return new DrawingBrush
+        {
+            TileMode = TileMode.Tile,
+            Stretch = Avalonia.Media.Stretch.None,
+            // 关键点：DestinationRect 必须是绝对单位，控制平铺单元大小
+            DestinationRect = new RelativeRect(0, 0, cellSize, cellSize, RelativeUnit.Absolute),
+            Drawing = new DrawingGroup
+            {
+                Children =
+                    {
+                        // 1. 绘制底色（填满整个 cellSize x cellSize 区域）
+                        new GeometryDrawing
+                        {
+                            Brush = new SolidColorBrush(c2),
+                            Geometry = new RectangleGeometry(new Rect(0, 0, cellSize, cellSize))
+                        },
+                        // 2. 绘制左上角小方块
+                        new GeometryDrawing
+                        {
+                            Brush = new SolidColorBrush(c1),
+                            Geometry = new RectangleGeometry(new Rect(0, 0, halfSize, halfSize))
+                        },
+                        // 3. 绘制右下角小方块
+                        new GeometryDrawing
+                        {
+                            Brush = new SolidColorBrush(c1),
+                            Geometry = new RectangleGeometry(new Rect(halfSize, halfSize, halfSize, halfSize))
+                        }
+                    }
+            }
+        };
     }
 }

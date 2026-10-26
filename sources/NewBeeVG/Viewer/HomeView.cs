@@ -24,15 +24,15 @@ public class HomeView : BaseView
             ]).Return(out content);
     }
 
-    protected override void OnLoaded(RoutedEventArgs e)
-    {
-        base.OnLoaded(e);
-        var playable = Work?.Tracks.FirstOrDefault();
-        if(playable != null && Work != null)
-        {
-            LoadPlayable(playable, Work);
-        }
-    }
+    //protected override void OnLoaded(RoutedEventArgs e)
+    //{
+    //    base.OnLoaded(e);
+    //    var playable = Work?.Tracks.FirstOrDefault();
+    //    if(playable != null && Work != null)
+    //    {
+    //        LoadPlayable(playable, Work);
+    //    }
+    //}
 
     protected void LoadPlayable(IPlayable playable, NBWork work)
     {

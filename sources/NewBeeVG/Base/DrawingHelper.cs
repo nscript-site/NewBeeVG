@@ -241,4 +241,36 @@ public class DrawingHelper
 
         return bmp;
     }
+
+    /// <summary>
+    /// 创建棋盘格着色器
+    /// </summary>
+    /// <param name="cellSize">单个小方块的大小（像素）</param>
+    /// <param name="color1">颜色1（如白色）</param>
+    /// <param name="color2">颜色2（如浅灰色）</param>
+    public static SKShader CreateCheckerboardShader(float cellSize = 10, SKColor? color1 = null, SKColor? color2 = null)
+    {
+        var c1 = color1 ?? SKColors.White;
+        var c2 = color2 ?? SKColor.Parse("#CCCCCC");
+
+        // 1. 创建一个 2x2 像素的极小位图作为图案单元
+        // 棋盘格的特点：左上和右下同色，右上和左下同色
+        var bitmap = new SKBitmap(2, 2);
+        bitmap.SetPixel(0, 0, c1);
+        bitmap.SetPixel(1, 0, c2);
+        bitmap.SetPixel(0, 1, c2);
+        bitmap.SetPixel(1, 1, c1);
+
+        // 2. 通过矩阵放大每个像素，从而控制最终格子的大小
+        // 这里将 2x2 的位图放大 cellSize 倍，使每个小格为 cellSize/2 像素
+        var matrix = SKMatrix.CreateScale(cellSize / 2f, cellSize / 2f);
+
+        // 3. 创建平铺着色器
+        return SKShader.CreateBitmap(
+            bitmap,
+            SKShaderTileMode.Repeat,
+            SKShaderTileMode.Repeat,
+            matrix
+        );
+    }
 }

@@ -12,6 +12,8 @@
 
 //VideoThemePreviewSample.Run();
 
+//TransparentBgSample.Run();
+
 SKAnimationSample.Run();
 
 //SVGSample.Run();

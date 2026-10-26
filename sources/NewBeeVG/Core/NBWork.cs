@@ -64,22 +64,17 @@ public class NBWork : IPlayable
     //    return bitmap;
     //}
 
-    public virtual void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground)
+    public virtual void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
-        if (includeStageBackground == true && stage.Background != null)
+        if (includeStageBackground == true)
         {
-            var paint = new SKPaint
-            {
-                Style = SKPaintStyle.Fill,
-                Color = stage.Background.Value,
-                IsAntialias = true
-            };
-            canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
+            stage.DrawBackground(canvas, preview);
         }
+
         foreach (var track in Tracks)
         {
             if (track.IsVisible == false) continue;
-            track.Render(canvas, stage, frame, false);
+            track.Render(canvas, stage, frame, false, false);
         }
     }
 }
