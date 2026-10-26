@@ -13,12 +13,12 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
 
     private static readonly bool Hwnvidia = true;
     private static bool _hwqsv = true;
-    private readonly byte[] _convOut = new byte[44100];
+    private readonly byte[] _convOut = new byte[65536];
     private readonly AutoResetEvent _frameWritten = new AutoResetEvent(false);
     private readonly bool _isAudio;
     private readonly AutoResetEvent _recordingClosed = new AutoResetEvent(false);
     private bool _abort;
-    private byte[] _audioBuffer = new byte[44100];
+    private byte[] _audioBuffer = new byte[65536];
     private int _audioBufferSizeCurrent;
     private AVCodecContext* _audioCodecContext;
     private AVFrame* _audioFrame, _videoFrame;
@@ -61,6 +61,12 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
     /// </summary>
     public AVSampleFormat AudioSampleFormat { get { return _audioCodecContext!=null? _audioCodecContext->sample_fmt : AVSampleFormat.AV_SAMPLE_FMT_NONE; } }
 
+    /// <summary>音频采样率（Hz）。</summary>
+    public int AudioSampleRate { get; private set; } = 44100;
+
+    /// <summary>音频声道数。</summary>
+    public int AudioChannels { get; private set; } = 2;
+
     public string Filename;
     public int InChannels = 1;
     public int InSampleRate = 44100;
@@ -91,9 +97,29 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
         Open(fileName, width, height, videoCodec, 0, AVCodecID.AV_CODEC_ID_NONE, created);
     }
 
+    /// <summary>
+    /// 创建视频写入器（H.264 + MP3 音轨）。
+    /// </summary>
+    /// <param name="containAudio">为 false 时不创建音轨。</param>
     public MediaWriter(string fileName, int width, int height, double framerate, bool containAudio = true) : base()
     {
-        Open(fileName, width, height, AVCodecID.AV_CODEC_ID_H264, framerate, AVCodecID.AV_CODEC_ID_MP3, DateTime.Now);
+        Open(fileName, width, height, AVCodecID.AV_CODEC_ID_H264, framerate,
+            containAudio ? AVCodecID.AV_CODEC_ID_MP3 : AVCodecID.AV_CODEC_ID_NONE,
+            DateTime.Now);
+    }
+
+    /// <summary>
+    /// 创建带音轨的视频写入器，并显式指定音频采样率与声道数。
+    /// </summary>
+    /// <param name="audioSampleRate">音频采样率（Hz），需为编码器支持的值（MP3：32000/44100/48000）。</param>
+    /// <param name="audioChannels">音频声道数，默认 2（立体声）。</param>
+    /// <param name="containAudio">为 false 时不创建音轨。</param>
+    public MediaWriter(string fileName, int width, int height, double framerate,
+        int audioSampleRate, int audioChannels = 2, bool containAudio = true) : base()
+    {
+        Open(fileName, width, height, AVCodecID.AV_CODEC_ID_H264, framerate,
+            containAudio ? AVCodecID.AV_CODEC_ID_MP3 : AVCodecID.AV_CODEC_ID_NONE,
+            DateTime.Now, audioSampleRate, audioChannels);
     }
 
     public MediaWriter(string fileName, int width, int height, AVCodecID videoCodec, int framerate,
@@ -129,7 +155,8 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
         return 0;
     }
 
-    private void Open(string fileName, int width, int height, AVCodecID videoCodec, double framerate, AVCodecID audioCodec, DateTime created)
+    private void Open(string fileName, int width, int height, AVCodecID videoCodec, double framerate, AVCodecID audioCodec, DateTime created,
+        int audioSampleRate = 44100, int audioChannels = 2)
     {
         CreatedDate = created;
         Filename = fileName;
@@ -184,7 +211,7 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
 
         if (audioCodec != AVCodecID.AV_CODEC_ID_NONE)
         {
-            AddAudioStream(audioCodec);
+            AddAudioStream(audioCodec, audioSampleRate, audioChannels);
             OpenAudio();
         }
 
@@ -356,6 +383,10 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
         _recordingClosed.Set();
     }
 
+    /// <summary>
+    /// 写入交错立体声浮点 PCM 字节流（样本范围 [-1, 1]）。
+    /// 采样率与声道必须与构造 MediaWriter 时一致；<paramref name="offset"/> 单位为采样点。
+    /// </summary>
     public void WriteAudio(byte[] soundBuffer, int soundBufferSize, long offset)
     {
         if (!_opened)
@@ -368,6 +399,21 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
         {
             _frameWritten.Set();
         }
+    }
+
+    /// <summary>
+    /// 写入交错立体声浮点 PCM（样本范围 [-1, 1]）。
+    /// 采样率必须等于构造 MediaWriter 时指定的 <c>audioSampleRate</c>。
+    /// </summary>
+    /// <param name="stereoPcm">交错样本：<c>[L0, R0, L1, R1, ...]</c></param>
+    /// <param name="offsetSamples">起始采样点；-1 表示紧接上一次写入。</param>
+    public void WriteAudio(float[] stereoPcm, long offsetSamples = -1)
+    {
+        if (stereoPcm == null || stereoPcm.Length < 2) return;
+
+        var bytes = new byte[stereoPcm.Length * sizeof(float)];
+        Buffer.BlockCopy(stereoPcm, 0, bytes, 0, bytes.Length);
+        WriteAudio(bytes, bytes.Length, offsetSamples);
     }
 
     public void WriteFrame(ImageBgr24 frame)
@@ -511,6 +557,9 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
             }
             if (_audioStream != null && _audioCodecContext != null)
             {
+                // 把缓冲区里不足一帧的剩余样本补零编码，避免尾部数据被丢弃
+                FlushAudioRemainder();
+
                 _lastPacket = DateTime.UtcNow;
                 var packet = new AVPacket();
                 //ffmpeg.av_init_packet(&packet);
@@ -541,125 +590,194 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
         }
     }
 
+    /// <summary>
+    /// 取一个编码帧包含的采样数（MP3 为 1152）。
+    /// </summary>
+    private int GetAudioFrameSize()
+    {
+        int size = _audioCodecContext != null ? _audioCodecContext->frame_size : 0;
+        return size > 0 ? size : 1024;
+    }
+
+    /// <summary>
+    /// 保证内部音频缓冲能容纳指定字节数，不足时按 2 倍扩容。
+    /// </summary>
+    private void EnsureAudioBuffer(int required)
+    {
+        if (required <= _audioBuffer.Length) return;
+
+        int size = _audioBuffer.Length;
+        while (size < required) size *= 2;
+
+        Array.Resize(ref _audioBuffer, size);
+    }
+
+    /// <summary>
+    /// 把输入缓冲中凑满一帧的数据用 swr 转成编码器格式并写入。
+    /// 输入固定为交错立体声 float（FLT），输出为编码器的平面格式（MP3 为 S32P）。
+    /// </summary>
     private void AddAudioSamples(byte[] soundBuffer, int soundBufferSize, long offsetByHz)
     {
-        if (_audioStream == null || _audioCodecContext == null || soundBufferSize <= 0 || _ignoreAudio)
+        if (_audioStream == null || _audioCodecContext == null || _ignoreAudio || soundBufferSize <= 0)
             return;
 
-        var srcSize = ffmpeg.av_samples_get_buffer_size(null, InChannels, _audioCodecContext->frame_size,
-            AVSampleFormat.AV_SAMPLE_FMT_S32P, 0);
+        int frameSize = GetAudioFrameSize();
+        const int inChannels = 2;
+        int srcSize = frameSize * inChannels * sizeof(float);
 
-        ffmpeg.av_frame_unref(_audioFrame);
-
-        _audioFrame->nb_samples = _audioCodecContext->frame_size;
-
-        var packet = new AVPacket();
+        EnsureAudioBuffer(_audioBufferSizeCurrent + soundBufferSize);
 
         Buffer.BlockCopy(soundBuffer, 0, _audioBuffer, _audioBufferSizeCurrent, soundBufferSize);
         _audioBufferSizeCurrent += soundBufferSize;
 
-        int remaining = _audioBufferSizeCurrent, cursor = 0;
+        int remaining = _audioBufferSizeCurrent;
+        int cursor = 0;
+
+        int outChannels = _audioCodecContext->ch_layout.nb_channels;
+        int bytesPerSample = ffmpeg.av_get_bytes_per_sample(_audioCodecContext->sample_fmt);
+        int outPlaneSize = frameSize * bytesPerSample;
+
+        long pts = offsetByHz >= 0 ? offsetByHz : _lastAudioPts;
+
         fixed (byte* p = _audioBuffer)
         {
-            var inPointerLocal = p;
-            var pts = offsetByHz <= 0 ? _lastAudioPts : offsetByHz;
+            byte* inPtr = p;
+
             while (remaining >= srcSize)
             {
-                //ffmpeg.av_init_packet(&packet);
+                byte* outBase = (byte*)_convHandle.AddrOfPinnedObject().ToPointer();
 
-                var ptr = _convHandle.AddrOfPinnedObject().ToPointer();
-                var convOutPointerLocal = (byte*)ptr;
-                var dstNbSamples =
-                    (int)
-                        ffmpeg.av_rescale_rnd(
-                            ffmpeg.swr_get_delay(_swrContext, _audioCodecContext->sample_rate) +
-                            _audioCodecContext->frame_size, _audioCodecContext->sample_rate,
-                            _audioCodecContext->sample_rate,
-                            AVRounding.AV_ROUND_UP);
+                // 交错输入只需要一个指针；平面输出每个声道一个指针
+                byte*[] inPlanes = { inPtr };
+                var outPlanes = new byte*[outChannels];
+                for (int c = 0; c < outChannels; c++)
+                {
+                    outPlanes[c] = outBase + c * outPlaneSize;
+                }
 
-                //Console.WriteLine($"dstNbSamples-{dstNbSamples},nb_samples-{_audioFrame->nb_samples}，srcSize-{srcSize}");
+                int converted;
+                fixed (byte** pin = inPlanes)
+                fixed (byte** pout = outPlanes)
+                {
+                    converted = ffmpeg.swr_convert(_swrContext, pout, frameSize, pin, frameSize);
+                }
 
-                Span<Byte> spanSrc = new Span<byte>(inPointerLocal, srcSize);
-                Span<Byte> spanDst = new Span<byte>(convOutPointerLocal, srcSize);
-                spanSrc.CopyTo(spanDst);
+                if (converted <= 0)
+                {
+                    if (converted < 0) _ignoreAudio = true;
+                    break;
+                }
 
-                //if (Log("SWR_CONVERT", ffmpeg.swr_convert(_swrContext,
-                //    &convOutPointerLocal,
-                //    dstNbSamples,
-                //    &inPointerLocal,
-                //    _audioFrame->nb_samples)))
-                //{
-                //    ffmpeg.av_packet_unref(&packet);
-                //    _ignoreAudio = true;
-                //    _audioBufferSizeCurrent = 0;
-                //    return;
-                //}
+                int produced = converted;
+                if (produced < frameSize)
+                {
+                    // MP3 等编码器要求固定 frame_size，不足一帧的部分补零
+                    int gap = (frameSize - produced) * bytesPerSample;
+                    for (int c = 0; c < outChannels; c++)
+                    {
+                        Array.Clear(_convOut, c * outPlaneSize + produced * bytesPerSample, gap);
+                    }
+                    produced = frameSize;
+                }
 
-                _audioFrame->pts = Math.Max(pts, _lastAudioPts);
-                _lastAudioPts = _audioFrame->pts + 1;
+                ffmpeg.av_frame_unref(_audioFrame);
+                _audioFrame->nb_samples = produced;
+                _audioFrame->format = (int)_audioCodecContext->sample_fmt;
+                _audioFrame->sample_rate = _audioCodecContext->sample_rate;
+                ffmpeg.av_channel_layout_default(&_audioFrame->ch_layout, outChannels);
+                _audioFrame->pts = pts;
 
-                //Console.WriteLine($"pts-{pts},_audioFrame->pts-{_audioFrame->pts}");
-                var dstSamplesSize = ffmpeg.av_samples_get_buffer_size(null, _audioCodecContext->ch_layout.nb_channels,
-                    _audioCodecContext->frame_size,
-                    _audioCodecContext->sample_fmt, 0);
+                // align 使用整帧平面大小，保证平面偏移与 outPlanes 一致
+                int dstSamplesSize = ffmpeg.av_samples_get_buffer_size(null, outChannels, produced,
+                    _audioCodecContext->sample_fmt, outPlaneSize);
 
                 if (Log("FILL_AUDIO",
-                    ffmpeg.avcodec_fill_audio_frame(_audioFrame, _audioCodecContext->ch_layout.nb_channels,
-                        _audioCodecContext->sample_fmt, convOutPointerLocal, dstSamplesSize, 0)))
+                    ffmpeg.avcodec_fill_audio_frame(_audioFrame, outChannels,
+                        _audioCodecContext->sample_fmt, outBase, dstSamplesSize, outPlaneSize)))
                 {
-                    ffmpeg.av_packet_unref(&packet);
                     _ignoreAudio = true;
                     _audioBufferSizeCurrent = 0;
                     return;
                 }
 
-                inPointerLocal += srcSize;
-
-                var ret = ffmpeg.avcodec_send_frame(_audioCodecContext, _audioFrame);
-                while (ret >= 0)
+                if (EncodeAndWriteAudioFrame() == false)
                 {
-                    ret = ffmpeg.avcodec_receive_packet(_audioCodecContext, &packet);
-                    if (ret == 0)
-                    {
-                        long oldpts = packet.pts;
-                        long olddts = packet.pts;
-
-                        if (packet.pts != ffmpeg.AV_NOPTS_VALUE)
-                            packet.pts = ffmpeg.av_rescale_q(packet.pts, _audioCodecContext->time_base,
-                                _audioStream->time_base);
-                        if (packet.dts != ffmpeg.AV_NOPTS_VALUE)
-                            packet.dts = ffmpeg.av_rescale_q(packet.dts, _audioCodecContext->time_base,
-                                _audioStream->time_base);
-
-                        //Console.WriteLine($"pts-{packet.pts},oldpts-{oldpts},dts-{packet.dts},olddts-{olddts}");
-
-                        packet.stream_index = _audioStream->index;
-                        packet.flags |= ffmpeg.AV_PKT_FLAG_KEY;
-                        _lastPacket = DateTime.UtcNow;
-
-                        //_lastAudioPts = packet.pts + (srcSize) / (_audioCodecContext->channels * 4);
-
-                        //_lastAudioPts = _audioFrame->pts + (soundBufferSize) / (_audioCodecContext->channels * 4);
-
-                        if (Log("WRITE_AUDIO_FRAME", ffmpeg.av_interleaved_write_frame(_formatContext, &packet)))
-                        {
-                            ffmpeg.av_packet_unref(&packet);
-                            _ignoreAudio = true;
-                            return;
-                        }
-
-                        cursor += srcSize;
-                        remaining -= srcSize;
-                    }
+                    _ignoreAudio = true;
+                    _audioBufferSizeCurrent = 0;
+                    return;
                 }
-                ffmpeg.av_packet_unref(&packet);
-                pts+= cursor/(_audioCodecContext->ch_layout.nb_channels * 4);
+
+                inPtr += srcSize;
+                cursor += srcSize;
+                remaining -= srcSize;
+
+                pts += produced;
+                _lastAudioPts = pts;
             }
         }
 
-        //Console.WriteLine($" cursor:{cursor},remaining:{remaining}, channels:{ _audioCodecContext->channels }, framesize:{ _audioCodecContext->frame_size }");
-        Buffer.BlockCopy(_audioBuffer, cursor, _audioBuffer, 0, remaining);
+        if (cursor > 0)
+        {
+            Buffer.BlockCopy(_audioBuffer, cursor, _audioBuffer, 0, remaining);
+        }
         _audioBufferSizeCurrent = remaining;
+    }
+
+    /// <summary>
+    /// 把当前音频帧送入编码器，并写出所有产出的数据包。
+    /// </summary>
+    private bool EncodeAndWriteAudioFrame()
+    {
+        var packet = new AVPacket();
+        var ret = ffmpeg.avcodec_send_frame(_audioCodecContext, _audioFrame);
+
+        while (ret >= 0)
+        {
+            ret = ffmpeg.avcodec_receive_packet(_audioCodecContext, &packet);
+            if (ret != 0) break;
+
+            if (packet.pts != ffmpeg.AV_NOPTS_VALUE)
+            {
+                packet.pts = ffmpeg.av_rescale_q(packet.pts,
+                    _audioCodecContext->time_base, _audioStream->time_base);
+            }
+
+            if (packet.dts != ffmpeg.AV_NOPTS_VALUE)
+            {
+                packet.dts = ffmpeg.av_rescale_q(packet.dts,
+                    _audioCodecContext->time_base, _audioStream->time_base);
+            }
+
+            packet.stream_index = _audioStream->index;
+            packet.flags |= ffmpeg.AV_PKT_FLAG_KEY;
+            _lastPacket = DateTime.UtcNow;
+
+            if (Log("WRITE_AUDIO_FRAME", ffmpeg.av_interleaved_write_frame(_formatContext, &packet)))
+            {
+                ffmpeg.av_packet_unref(&packet);
+                return false;
+            }
+        }
+
+        ffmpeg.av_packet_unref(&packet);
+        return true;
+    }
+
+    /// <summary>
+    /// 关闭前把缓冲中不足一帧的剩余样本补零编码，避免音频尾部丢失。
+    /// </summary>
+    private void FlushAudioRemainder()
+    {
+        if (_audioCodecContext == null || _audioBufferSizeCurrent <= 0) return;
+
+        int frameSize = GetAudioFrameSize();
+        int srcSize = frameSize * 2 * sizeof(float);
+
+        var padded = new byte[srcSize];
+        Buffer.BlockCopy(_audioBuffer, 0, padded, 0, Math.Min(_audioBufferSizeCurrent, srcSize));
+        _audioBufferSizeCurrent = 0;
+
+        AddAudioSamples(padded, srcSize, -1);
     }
 
     private unsafe void OpenVideo()
@@ -888,9 +1006,20 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
         _audioFrame = ffmpeg.av_frame_alloc();
     }
 
-    private void AddAudioStream(AVCodecID audioCodec, int sampleRate = 44100)
+    /// <summary>
+    /// 创建音频流。
+    /// 输入统一按「交错立体声 float（FLT）」处理，由 swr 转换为编码器所需格式。
+    /// </summary>
+    /// <param name="audioCodec">音频编码器。</param>
+    /// <param name="sampleRate">采样率（Hz），需为编码器支持的值。</param>
+    /// <param name="channels">声道数，通常为 2。</param>
+    private void AddAudioStream(AVCodecID audioCodec, int sampleRate = 44100, int channels = 2)
     {
         var codec = ffmpeg.avcodec_find_encoder(audioCodec);
+        if (codec == null)
+        {
+            throw new Exception("Cannot find audio codec.");
+        }
 
         _audioStream = ffmpeg.avformat_new_stream(_formatContext, null);
 
@@ -911,7 +1040,12 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
 
         _audioCodecContext->sample_rate = sampleRate;
 
-        ffmpeg.av_channel_layout_default(&_audioCodecContext->ch_layout, 1);
+        AudioSampleRate = sampleRate;
+        AudioChannels = channels;
+
+        // 输出声道布局（立体声）
+        ffmpeg.av_channel_layout_uninit(&_audioCodecContext->ch_layout);
+        ffmpeg.av_channel_layout_default(&_audioCodecContext->ch_layout, channels);
 
         _audioStream->time_base.num = _audioCodecContext->time_base.num = 1;
         _audioStream->time_base.den = _audioCodecContext->time_base.den = sampleRate;
@@ -927,24 +1061,25 @@ public unsafe class MediaWriter : MediaHandler, IDisposable
             _audioCodecContext->strict_std_compliance = -2;
         }
 
-        AVChannelLayout chLayout = default;
-        ffmpeg.av_channel_layout_default(&chLayout, 1);
+        // 输入固定为交错立体声 float；输出为编码器的平面格式（MP3 为 S32P）
+        AVChannelLayout inLayout = default;
+        ffmpeg.av_channel_layout_default(&inLayout, 2);
 
         fixed(SwrContext** pCxt = &_swrContext)
         {
             ffmpeg.swr_alloc_set_opts2(
                 pCxt,
-                &chLayout,
+                &_audioCodecContext->ch_layout,
                 _audioCodecContext->sample_fmt,
-                _audioCodecContext->sample_rate,
-                &chLayout,
-                AVSampleFormat.AV_SAMPLE_FMT_S16,
-                _audioCodecContext->sample_rate,
+                sampleRate,
+                &inLayout,
+                AVSampleFormat.AV_SAMPLE_FMT_FLT,
+                sampleRate,
                 0,
                 null);
         }
 
-        ffmpeg.av_channel_layout_uninit(&chLayout);
+        ffmpeg.av_channel_layout_uninit(&inLayout);
 
         Throw("SWR_INIT", ffmpeg.swr_init(_swrContext));
 

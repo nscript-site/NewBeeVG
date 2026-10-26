@@ -64,7 +64,28 @@ public class ExportVideoView : BaseView
     {
         NBGlobal.CheckOrLoadFFmpeg();
 
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            Message = $"准备导出视频";
+            this.UpdateState();
+        });
+
+        // 32000 / 44100 / 48000
+        var pcm = Work.ExportStereoPcm(stage.FrameRate, 44100);
+        string prevMsg = pcm.IsEmpty ? "未检测到音频" : "检测到音频";
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            Message = prevMsg;
+            this.UpdateState();
+        });
+
         var writer = new MediaWriter(filePath, stage.Width, stage.Height, stage.FrameRate, true);
+
+        if (pcm.IsEmpty == false)
+        {
+            pcm.WriteTo(writer);
+        }
+
         for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
         {
             using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);

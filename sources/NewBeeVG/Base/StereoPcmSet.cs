@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NewBeeMedia;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -90,5 +91,42 @@ internal class StereoPcmDataSet
             Pcm = output,
             Frame = 0
         };
+    }
+
+    /// <summary>
+    /// 把混音结果写入 MediaWriter（交错立体声 float，从采样点 0 开始）。
+    /// 要求 writer 的音频采样率与 <see cref="SampleRate"/> 一致、声道数为 2。
+    /// </summary>
+    /// <param name="writer">目标视频写入器。</param>
+    public void WriteTo(MediaWriter writer)
+    {
+        if (writer == null) throw new ArgumentNullException(nameof(writer));
+
+        if (writer.AudioChannels != 2)
+        {
+            throw new ArgumentException(
+                $"MediaWriter 的音频声道数为 {writer.AudioChannels}，混音数据需要立体声（2）。",
+                nameof(writer));
+        }
+
+        if (writer.AudioSampleRate != SampleRate)
+        {
+            throw new ArgumentException(
+                $"采样率不一致：MediaWriter 为 {writer.AudioSampleRate}Hz，混音数据为 {SampleRate}Hz。",
+                nameof(writer));
+        }
+
+        var mixed = Mixing();
+
+        if (mixed == null) return;
+
+        try
+        {
+            writer.WriteAudio(mixed.Pcm, 0);
+        }
+        catch(Exception ex)
+        {
+            throw new InvalidOperationException($"写入音频失败：{ex.Message}", ex);
+        }
     }
 }

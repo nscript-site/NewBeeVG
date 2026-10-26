@@ -81,7 +81,7 @@ public class NBTrack : IPlayable
         }
     }
 
-    internal StereoPcmDataSet ExportStereoPcm(int frameRate, int sampleRate)
+    internal StereoPcmDataSet ExportStereoPcm(double frameRate, int sampleRate)
     {
         StereoPcmDataSet ds = new StereoPcmDataSet() { SampleRate = sampleRate, FrameRate = frameRate };
         foreach(var clip in Clips)

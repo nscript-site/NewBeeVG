@@ -38,32 +38,6 @@ public class NBWork : IPlayable
         return bitmap;
     }
 
-    //public virtual SKBitmap? Render(NBStage stage, int frame, bool includeStageBackground)
-    //{
-    //    var bitmap = new SKBitmap(stage.Width, stage.Height);
-    //    using var canvas = new SKCanvas(bitmap);
-    //    {
-    //        if (includeStageBackground == true && stage.Background != null)
-    //        {
-    //            var paint = new SKPaint
-    //            {
-    //                Style = SKPaintStyle.Fill,
-    //                Color = stage.Background.Value,
-    //                IsAntialias = true
-    //            };
-    //            canvas.DrawRect(0, 0, stage.Width, stage.Height, paint);
-    //        }
-    //        foreach (var track in Tracks)
-    //        {
-    //            if (track.IsVisible == false) continue;
-    //            var bmp = track.Render(stage, frame, false);
-    //            if (bmp != null)
-    //                canvas.DrawBitmap(bmp, 0, 0);
-    //        }
-    //    }
-    //    return bitmap;
-    //}
-
     public virtual void Render(SKCanvas canvas, NBStage stage, int frame, bool includeStageBackground, bool preview)
     {
         if (includeStageBackground == true)
@@ -76,5 +50,19 @@ public class NBWork : IPlayable
             if (track.IsVisible == false) continue;
             track.Render(canvas, stage, frame, false, false);
         }
+    }
+
+    internal StereoPcmDataSet ExportStereoPcm(double frameRate, int sampleRate)
+    {
+        var set = new StereoPcmDataSet() { FrameRate = frameRate, SampleRate = sampleRate };
+        foreach (var track in Tracks)
+        {
+            var data = track.ExportStereoPcm(frameRate, sampleRate);
+            if (data != null && data.IsEmpty == false)
+            {
+                set.Data.AddRange(data.Data);
+            }
+        }
+        return set;
     }
 }
