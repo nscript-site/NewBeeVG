@@ -40,6 +40,9 @@ const int Frames = 90;
 
     var anim = new MyAnimation(Width, Height, Frames, content);
 
+    // 测试目录同样要守卫；SavePNG 会自动建目录，这里演示统一写法
+    if (debug == true) Directory.CreateDirectory("output/myanimation");
+
     if (debug == true) anim.SavePNG(0, "output/myanimation/frame_000.png");
     if (debug == true) anim.SavePNG(Frames - 1, "output/myanimation/frame_last.png");
 
@@ -93,24 +96,43 @@ const int Frames = 90;
 
     var anim = new MyAnimation(Width, Height, Frames, content);
 
-    if (debug == true)
-    {
-        for (int i = 0; i < anim.Frames; i++)
-        {
-            if (!anim.SavePNG(i, $"output/myanimation/frames/{i:0000}.png"))
-            {
-                Console.WriteLine($"第 {i} 帧渲染失败");
-            }
-        }
+    // 每个写文件的调用各自加守卫，不包住整段逻辑
+    if (debug == true) Directory.CreateDirectory("output/myanimation");
 
-        // SaveMp4 / SaveGif 不会自动创建目录
-        Directory.CreateDirectory("output");
-        anim.SaveMp4(30, "output/myanimation.mp4");
-        anim.SaveGif(25, "output/myanimation.gif");
+    for (int i = 0; i < anim.Frames; i++)
+    {
+        if (debug == true && !anim.SavePNG(i, $"output/myanimation/frames/{i:0000}.png"))
+        {
+            Console.WriteLine($"第 {i} 帧渲染失败");
+        }
     }
+
+    if (debug == true) anim.SaveMp4(30, "output/myanimation.mp4");
+    if (debug == true) anim.SaveGif(25, "output/myanimation.gif");
 
     SkiaAnim(anim)
         .AsClip(anim.Frames, name: "完整动画");
+}
+
+// ------------------------------------------------------------
+// 场景 4：循环生成多组参数
+//  - 只在 SavePNG 等输出调用前加守卫，不包住循环体
+//  - 每次迭代创建的特效都要 SkiaAnim 注册，不能只保存 PNG
+//  - SkiaAnim 用新实例，不能复用已释放的 probe
+// ------------------------------------------------------------
+{
+    if (debug == true) Directory.CreateDirectory("output/myanimation");
+
+    foreach (var (name, to) in new (string, double)[] { ("低", 1200), ("中", 6800), ("高", 12580) })
+    {
+        var content = new MyAnimation.ContentSetting { From = 0, To = to };
+
+        var probe = new MyAnimation(Width, Height, Frames, content);
+        if (debug == true) probe.SavePNG(20, $"output/myanimation/probe_{name}.png");
+
+        SkiaAnim(new MyAnimation(Width, Height, Frames, content))
+            .AsClip(Frames, name: $"数值_{name}");
+    }
 }
 
 // debug = false 时正式出片；debug = true 时只跑上面的测试

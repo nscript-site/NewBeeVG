@@ -204,6 +204,10 @@ const int Frames = 90;
     };
 
     var anim = new MyAnimation(Width, Height, Frames, content);
+
+    // 测试目录同样要守卫；SavePNG 会自动建目录，这里演示统一写法
+    if (debug == true) Directory.CreateDirectory("output/myanimation");
+
     if (debug == true) anim.SavePNG(0, "output/myanimation/frame_000.png");
     if (debug == true) anim.SavePNG(Frames - 1, "output/myanimation/frame_last.png");
 
@@ -248,17 +252,16 @@ const int Frames = 90;
 
     var anim = new MyAnimation(Width, Height, Frames, content);
 
-    if (debug == true)
-    {
-        for (int i = 0; i < anim.Frames; i++)
-        {
-            anim.SavePNG(i, $"output/myanimation/frames/{i:0000}.png");
-        }
+    // 每个写文件的调用各自加守卫，不包住整段逻辑
+    if (debug == true) Directory.CreateDirectory("output/myanimation");
 
-        // SaveMp4 / SaveGif 不会自动创建目录
-        Directory.CreateDirectory("output");
-        anim.SaveMp4(30, "output/myanimation.mp4");
+    for (int i = 0; i < anim.Frames; i++)
+    {
+        if (debug == true) anim.SavePNG(i, $"output/myanimation/frames/{i:0000}.png");
     }
+
+    if (debug == true) anim.SaveMp4(30, "output/myanimation.mp4");
+    if (debug == true) anim.SaveGif(25, "output/myanimation.gif");
 
     SkiaAnim(anim).AsClip(anim.Frames, name: "完整动画");
 }
@@ -272,13 +275,42 @@ if (debug == false)
 
 - `#:include` 后写**实现类源文件**的相对路径；模板中类文件为 `MyAnimation.cs`；
 - 必须 `using static NewBeeVG.Methods;`，否则 `SkiaAnim` / `run` / `clips` 无法解析；
-- `using` 后声明 `bool debug = true;`；**AI 编写/测试期间必须保持 `true`，绝不能改为 `false`**（`false` 只由使用者交付后手动切换）；所有 AI 测试语句加 `if (debug == true)` 前缀；
+- `using` 后声明 `bool debug = true;`；**AI 编写/测试期间必须保持 `true`，绝不能改为 `false`**（`false` 只由使用者交付后手动切换）；只在真正写文件的调用前加 `if (debug == true)`，不要把循环或一大段逻辑整体包进守卫块；
+- 测试目录创建也要加守卫：`if (debug == true) Directory.CreateDirectory("output/numberroll");`，不要在守卫外创建测试目录；`SavePNG` 虽会自动建目录，显式创建同样放守卫内；
 - 结尾固定 `if (debug == false) run(stage(Width, Height), clips());`；
 - `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
 - **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
 - 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
 - `#:package NewBeeVG@1.0.1.15` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
 - `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
+
+### 循环生成测试用例
+
+遍历参数生成多组样例时，**不要把整个 `foreach` 或「构造 + 保存」包进 `if (debug == true)`**：前者会让 `debug = false` 时 `SkiaAnim` 不注册片段，后者会让守卫控制一大段逻辑。正确做法是**只在写文件的调用前加守卫**：
+
+```csharp
+if (debug == true) Directory.CreateDirectory("output/myanimation");
+
+foreach (var (name, to) in new (string, double)[] { ("低", 1200), ("中", 6800), ("高", 12580) })
+{
+    var content = new MyAnimation.ContentSetting { From = 0, To = to };
+
+    using var probe = new MyAnimation(Width, Height, Frames, content);
+    if (debug == true) probe.SavePNG(20, $"output/myanimation/probe_{name}.png");
+
+    SkiaAnim(new MyAnimation(Width, Height, Frames, content))
+        .AsClip(Frames, name: $"数值_{name}");
+}
+```
+
+要点：
+
+- 循环参数（`content`、`theme`、`name`）在守卫外准备，测试与 `SkiaAnim` 共用；
+- 只在 `probe.SavePNG(...)` 这类输出调用前加 `if (debug == true)`，不要包住整个循环体或实例构造；
+- `probe` 用 `using var`，迭代结束时释放；`SkiaAnim` 必须**重新 `new` 一个实例**，不能复用已释放的 `probe`；
+- **循环内创建的每个特效都必须有 `SkiaAnim`**：每次迭代在 `if (debug == true) probe.SavePNG(...)` 之后，必须再写一条 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: $"数值_{name}")`；只保存 PNG 不注册片段，正式出片会缺少这些档位；
+- `AsClip` 的 `name` 带循环键（`$"数值_{name}"`），避免片段重名；
+- 不允许写成 `if (debug == true) SkiaAnim(...)`，否则交付后改 `debug = false` 会没有片段可出。
 
 ## 附：单文件写法（仅临时验证）
 

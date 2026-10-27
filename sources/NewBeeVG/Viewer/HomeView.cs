@@ -13,7 +13,7 @@ public class HomeView : BaseView
         Work = NBWorkspace.Current?.Works.FirstOrDefault() ?? new NBWork();
         Player = new PlayerView();
 
-        HGrid("140,10,*", [
+        HGrid("220,10,*", [
                 new WorkNodeView
                 {
                     WorkNode = Work,

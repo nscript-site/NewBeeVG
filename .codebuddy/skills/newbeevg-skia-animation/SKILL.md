@@ -1,6 +1,6 @@
 ---
 name: newbeevg-skia-animation
-description: This skill should be used when creating, editing, or debugging frame-by-frame animations rendered with SkiaSharp in the NewBeeVG codebase, especially when creating an SKCustomAnimation subclass in .NET file-based apps using the two-file pattern (class file plus a _Test.cs runner with #:include), or when working with ISKAnimation, SKAnimation, skanim(...), SKCanvas frame callbacks, NBVideoTheme/NBVideoThemes color themes, ContentSetting/ContentTheme inner classes, PNG frame export (SavePNG), MP4/GIF export (SaveMp4/SaveGif), frame index to progress conversion, transparency, frame rate, and bitmap disposal.
+description: This skill should be used when creating, editing, or debugging frame-by-frame animations rendered with SkiaSharp in the NewBeeVG codebase, especially when creating an SKCustomAnimation subclass in .NET file-based apps using the two-file pattern (class file plus a _Test.cs runner with #:include), or when working with ISKAnimation, SKAnimation, skanim(...), SKCanvas frame callbacks, NBVideoTheme/NBVideoThemes color themes, ContentSetting/ContentTheme inner classes, PNG frame export (SavePNG), MP4/GIF export (SaveMp4/SaveGif), frame index to progress conversion, transparency, frame rate, bitmap disposal, and the debug-flag guard placement for loop-generated test cases.
 ---
 
 # NewBeeVG SkiaSharp 逐帧动画
@@ -143,7 +143,8 @@ C# 12 / .NET 10 支持主构造函数，但这里仍建议显式写构造函数�
 - `using` 至少包含 `NewBeeVG`、`SkiaSharp`、`using static NewBeeVG.Methods;`（`SkiaAnim` 是 `Methods` 的静态方法）；
 - 在 `using` 之后声明 `bool debug = true;`，并且**AI 不得把它改为 `false`**（`false` 由使用者交付后手动切换）；
 - **每个测试场景用一对大括号 `{ }` 包起来**，隔离 `content` / `anim` / `theme` 等局部变量，避免不同场景重名；
-- **AI 测试语句统一加 `if (debug == true)` 前缀**，例如 `if (debug == true) anim.SavePNG(...)`；这样 `debug = false` 时只走正式出片；
+- **只在真正写本地文件的调用前加 `if (debug == true)`**，例如 `if (debug == true) anim.SavePNG(...)`、`if (debug == true) anim.SaveMp4(...)`；不要把循环、实例构造、多个导出整体包进一个 `if (debug == true) { ... }` 大块；
+- **测试目录创建同样加守卫**：例如 `if (debug == true) Directory.CreateDirectory("output/numberroll");`；测试用的目录（尤其 `SaveMp4` / `SaveGif` 的输出目录）不要在守卫外创建；
 - 每个场景末尾写**真实场景**的 `SkiaAnim(new Xxx(...)).AsClip(frames, name: "...")`，且不要加 `debug` 条件：`debug = true` 时它只完成编译与片段注册（不 `run`），`debug = false` 时由结尾 `run(...)` 出片；
 - 顶层只保留共享常量（`Width` / `Height` / `Frames`）、`debug` 与各场景块，不要在块外声明场景专用变量；
 - **文件结尾固定写**：
@@ -152,6 +153,81 @@ C# 12 / .NET 10 支持主构造函数，但这里仍建议显式写构造函数�
 if (debug == false)
     run(stage(Width, Height), clips());
 ```
+
+#### 循环生成测试用例（必须按此结构）
+
+当测试需要遍历参数生成多组样例时，**不要把整个 `foreach` 包进 `if (debug == true)`**：那样 `debug = false` 时 `SkiaAnim` 也不会注册片段，正式出片会缺内容。正确写法是「每个迭代内，测试代码进守卫块，`SkiaAnim` 留在块外」：
+
+```csharp
+if (debug == true) Directory.CreateDirectory("output/numberroll");
+
+foreach (var (nm, mb) in new (string, float)[] { ("关", 0f), ("中", 0.5f), ("满", 1f) })
+{
+    var s = Base();
+    s.Glint = 0f; s.Turns = 2f; s.MotionBlur = mb;
+
+    using var probe = new NumberRollA(Width, Height, Frames, s, theme);
+    if (debug == true) probe.SavePNG(20, $"output/numberroll/模糊_{nm}.png");
+
+    SkiaAnim(new NumberRollA(Width, Height, Frames, s, theme))
+        .AsClip(Frames, name: $"模糊_{nm}");
+}
+```
+
+要点：
+
+- 循环参数（`s`、`theme`、`nm`）在守卫外准备，测试与 `SkiaAnim` 共用；
+- **只在输出调用前加守卫**：`if (debug == true) probe.SavePNG(...)`；不要把整个循环体或「构造 + 保存」包进 `if (debug == true) { ... }`；
+- `probe` 用 `using var`，在迭代结束时释放；`SkiaAnim` 里必须**重新 `new` 一个实例**，不能复用已释放的 `probe`；
+- **循环内创建的每个特效都必须有 `SkiaAnim`**：除了 `probe.SavePNG(...)`，同一迭代还要写 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: ...)`；只写 probe 会让正式出片缺少这些档位；
+- `AsClip` 的 `name` 带上循环键（如 `$"模糊_{nm}"`），避免片段重名；
+- 禁止写成 `if (debug == true) SkiaAnim(...)`，否则交付后改 `debug = false` 会没有片段可出。
+
+#### 反例：一个 if 包住多条写文件语句（禁止）
+
+不要这样写：
+
+```csharp
+if (debug == true)
+{
+    anim.SaveMp4(Fps, "output/pageflip/flip_book_5s.mp4");
+
+    foreach (int f in Stills)
+        anim.SavePNG(f, $"output/pageflip/书页_{f:000}.png");
+
+    foreach (var (nm, v) in new (string, float)[] { ("关", 0f), ("中", 0.5f), ("满", 1f) })
+    {
+        var s = Base();
+        s.Shadow = v;
+        using var probe = new PageFlipImageA(Width, Height, Frames, s, theme);
+        probe.SavePNG(42, $"output/pageflip/投影_{nm}.png");
+    }
+}
+```
+
+正确写法：每条写文件语句各自带守卫，循环与对象构造留在守卫外：
+
+```csharp
+if (debug == true) anim.SaveMp4(Fps, "output/pageflip/flip_book_5s.mp4");
+
+foreach (int f in Stills)
+{
+    if (debug == true) anim.SavePNG(f, $"output/pageflip/书页_{f:000}.png");
+}
+
+foreach (var (nm, v) in new (string, float)[] { ("关", 0f), ("中", 0.5f), ("满", 1f) })
+{
+    var s = Base();
+    s.Shadow = v;
+    using var probe = new PageFlipImageA(Width, Height, Frames, s, theme);
+    if (debug == true) probe.SavePNG(42, $"output/pageflip/投影_{nm}.png");
+
+    SkiaAnim(new PageFlipImageA(Width, Height, Frames, s, theme))
+        .AsClip(Frames, name: $"投影_{nm}");
+}
+```
+
+判断标准：`if (debug == true)` 的花括号里如果出现两条及以上写文件语句（`SavePNG` / `SaveMp4` / `SaveGif` / `Directory.CreateDirectory`），就是错误写法，必须逐条拆开。
 
 ### 3. 选择主题色
 
@@ -218,6 +294,7 @@ for (int i = 0; i < anim.Frames; i++)
 
 ```csharp
 Directory.CreateDirectory("output"); // SaveMp4 / SaveGif 不自动建目录
+// 在测试文件中必须加守卫：if (debug == true) Directory.CreateDirectory("output");
 
 // MP4：H.264，时长 = Frames / fps
 anim.SaveMp4(30, "output/animation.mp4");
@@ -265,9 +342,13 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 - **测试文件必须引入 Methods**：写 `using static NewBeeVG.Methods;`，否则 `SkiaAnim(...)` / `run(...)` / `clips()` 无法解析。
 - **必须有 `debug` 开关**：`using` 之后声明 `bool debug = true;`；所有 AI 测试语句加 `if (debug == true)` 前缀，`debug = false` 时只执行正式出片。
 - **AI 永远不要把 `debug` 设为 `false`**：编写、测试、编译验证期间一律保持 `true`，不要为了让出片跑起来而改它；`false` 只由使用者在交付后手动切换。
+- **测试目录创建也要守卫**：所有测试用目录创建都写成 `if (debug == true) Directory.CreateDirectory("output/xxx");`，不要无条件创建；`SavePNG` 虽会自动建目录，显式创建同样放在守卫内。
+- **一条守卫只对应一条写文件语句**：`if (debug == true)` 后面只能跟一条 `SavePNG` / `SaveMp4` / `SaveGif` / `Directory.CreateDirectory`；禁止把多条导出或整个 `foreach` 包进同一个守卫块。
 - **结尾必须有 run**：文件末尾固定写 `if (debug == false) run(stage(Width, Height), clips());`。
 - **测试场景用大括号隔离**：每个场景单独 `{ }`，`content` / `theme` / `anim` 都放在块内，避免变量重名与相互污染。
 - **每个场景必须写真实 SkiaAnim 代码**：场景末尾的 `SkiaAnim(new YourAnimation(...)).AsClip(frames, name: "...")` 就是交付后的生产代码，**不要加 `if (debug == true)`**，也不要用假的片段糊弄编译；`debug` 改为 `false` 后由 `run(...)` 直接出片。
+- **循环测试用例的守卫位置**：`foreach` / `for` 外层不要包 `if (debug == true)`；每个迭代内只给实际写文件的调用加守卫（如 `if (debug == true) probe.SavePNG(...)`），随后无条件写 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: $"key_{key}")`；不要用 `if (debug == true) { ... }` 包住整个循环体或一大段逻辑。
+- **循环内创建的特效必须有 SkiaAnim**：每个迭代在 `if (debug == true) probe.SavePNG(...)` 之后，必须再写一条无条件的 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: $"key_{key}")`；只创建 probe 保存 PNG、不写 `SkiaAnim`，会导致正式出片缺少这些档位。
 - **内容参数封装**：继承 `SKCustomAnimation` 时，把标题、字号、数据等输入封装为**内部类** `ContentSetting`，构造签名保持 `(width, height, frames, content, contentTheme = null)`；不要把大量参数平铺在构造函数上。
 - **主题颜色扩展**：`NBVideoTheme` 的 7 个颜色不够用时，不要继续加构造参数，而是定义内部类 `ContentTheme : NBVideoTheme`，把额外颜色作为属性，并整体传入构造函数。
 - **ContentTheme 必须继承 NBVideoTheme**：否则无法直接传给基类，也无法通过 `(ContentTheme)Theme` 取回扩展颜色。
@@ -296,20 +377,22 @@ var bmp = new SKBitmap(info);
 2. 动画类文件是否只有类型声明（无 `#!`、无顶层语句）；
 3. 测试文件是否有 `#!/usr/bin/env dotnet`、`#:include <实现类源文件>`（模板为 `MyAnimation.cs`）与 `using static NewBeeVG.Methods;`；
 4. 是否在 `using` 后声明 `bool debug = true;`，且 AI 未把它改成 `false`；
-5. 所有 AI 测试语句是否都带 `if (debug == true)` 前缀；
+5. 所有写本地文件的调用（`SavePNG` / `SaveMp4` / `SaveGif` / `Directory.CreateDirectory`）是否各自带 `if (debug == true)`，且没有把大段逻辑整体包进守卫块；
 6. 文件结尾是否有 `if (debug == false) run(stage(Width, Height), clips());`；
 7. 每个测试场景是否用 `{ }` 隔离变量，末尾的 `SkiaAnim(...).AsClip(...)` 是否为真实场景代码且未被 `debug` 条件包裹；
-8. 子类是否继承 `SKCustomAnimation`，`DrawFrame` 是否使用 `protected override`；
-9. 构造函数是否为 `(width, height, frames, content, contentTheme = null)`，内容参数是否封装在内部类 `ContentSetting` 中；
-10. 主题颜色不够用时，是否通过内部类 `ContentTheme : NBVideoTheme` 扩展，而不是继续增加构造参数；
-11. `ContentTheme` 是否提供 `From(theme)` / `CreateDefault()`，默认值是否使用复制而非共享静态实例；
-12. 是否通过 `Theme` / `_theme` 取色，而不是散落的硬编码颜色；
-13. `DrawFrame` 是否每帧清空画布；
-14. 是否误改 `OnFrame`，导致 `DrawFrame` 不生效；
-15. 是否处理了 `BuildFrame` / `SavePNG` 的 `null` / `false` 返回；
-16. 透明背景是否按需求用 `SKColors.Transparent`（或 `Theme.Background`）清空画布；
-17. `fps` 是否大于 0；GIF 是否使用了合适的帧率；
-18. `SaveMp4` / `SaveGif` 的输出目录是否已存在。
+8. 循环场景是否只给 `SavePNG` 等输出调用加守卫，没有包住整个循环体；每个迭代创建的特效是否都有对应的 `SkiaAnim(...).AsClip(...)`，且在守卫外、`name` 带循环键；
+9. 测试目录创建是否写成 `if (debug == true) Directory.CreateDirectory(...)`，没有在守卫外创建测试目录；
+10. 子类是否继承 `SKCustomAnimation`，`DrawFrame` 是否使用 `protected override`；
+11. 构造函数是否为 `(width, height, frames, content, contentTheme = null)`，内容参数是否封装在内部类 `ContentSetting` 中；
+12. 主题颜色不够用时，是否通过内部类 `ContentTheme : NBVideoTheme` 扩展，而不是继续增加构造参数；
+13. `ContentTheme` 是否提供 `From(theme)` / `CreateDefault()`，默认值是否使用复制而非共享静态实例；
+14. 是否通过 `Theme` / `_theme` 取色，而不是散落的硬编码颜色；
+15. `DrawFrame` 是否每帧清空画布；
+16. 是否误改 `OnFrame`，导致 `DrawFrame` 不生效；
+17. 是否处理了 `BuildFrame` / `SavePNG` 的 `null` / `false` 返回；
+18. 透明背景是否按需求用 `SKColors.Transparent`（或 `Theme.Background`）清空画布；
+19. `fps` 是否大于 0；GIF 是否使用了合适的帧率；
+20. `SaveMp4` / `SaveGif` 的输出目录是否已存在（且创建语句是否在 `debug` 守卫内）。
 
 ## 资源
 
