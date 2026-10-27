@@ -83,7 +83,206 @@ foreach (var theme in NBVideoThemes.AllThemes())
 - `Preview(width, height)` 返回 `SKBitmap`，由调用方 `Dispose()`；
 - 构造 `SKCustomAnimation` 时传入 `ContentTheme`（继承自 `NBVideoTheme`），子类通过 `Theme` / `_theme` 取色，切换主题无需改动绘制代码。
 
-## 完整示例（file-based app）
+## 推荐结构：动画类文件 + 测试文件
+
+正式创建特效时使用两个文件，放在同一目录：
+
+| 文件 | 职责 | 禁止内容 |
+| --- | --- | --- |
+| `MyAnimation.cs` | 类定义 + 注释（类名 `MyAnimation`） | `#!`、顶层语句、`#:include` |
+| `MyAnimation_Test.cs` | 运行/测试入口 | 第二个动画类定义 |
+
+### `MyAnimation.cs`
+
+```csharp
+using NewBeeVG;
+using SkiaSharp;
+
+/// <summary>
+/// 数字增长动画：在整段动画内把数字从 From 平滑增长到 To。
+/// </summary>
+public class MyAnimation : SKCustomAnimation
+{
+    private readonly ContentSetting _content;
+    private readonly ContentTheme _theme;
+
+    public MyAnimation(
+        int width,
+        int height,
+        int frames,
+        ContentSetting content,
+        ContentTheme? contentTheme = null)
+        : base(width, height, frames, contentTheme ?? ContentTheme.CreateDefault())
+    {
+        _content = content ?? throw new ArgumentNullException(nameof(content));
+        _theme = (ContentTheme)Theme;
+    }
+
+    protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
+    {
+        canvas.Clear(_theme.Background);
+
+        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        double value = _content.From + (_content.To - _content.From) * t;
+        string text = value.ToString(_content.Format);
+
+        using var typeface = SKTypeface.FromFamilyName(_content.FontFamily) ?? SKTypeface.Default;
+        using var font = new SKFont(typeface, _content.FontSize);
+        using var paint = new SKPaint { IsAntialias = true, Color = _theme.Primary };
+
+        canvas.DrawText(text, size.Width / 2f, size.Height / 2f,
+            SKTextAlign.Center, font, paint);
+    }
+
+    /// <summary>动画内容配置。</summary>
+    public class ContentSetting
+    {
+        public double From { get; set; } = 0;
+        public double To { get; set; } = 10000;
+        public string Format { get; set; } = "N0";
+        public string FontFamily { get; set; } = "Microsoft YaHei";
+        public float FontSize { get; set; } = 160f;
+    }
+
+    /// <summary>扩展主题：基础 7 色不够时补充专用颜色。</summary>
+    public class ContentTheme : NBVideoTheme
+    {
+        public SKColor Glow { get; set; } = new SKColor(0x66, 0xE0, 0xFF);
+
+        public static ContentTheme CreateDefault() => From(NBVideoThemes.Nature);
+
+        public static ContentTheme From(NBVideoTheme theme)
+        {
+            ArgumentNullException.ThrowIfNull(theme);
+
+            return new ContentTheme
+            {
+                Name = theme.Name,
+                Primary = theme.Primary,
+                Background = theme.Background,
+                TextPrimary = theme.TextPrimary,
+                TextSecondary = theme.TextSecondary,
+                Divider = theme.Divider,
+                Positive = theme.Positive,
+                Negative = theme.Negative
+            };
+        }
+    }
+}
+```
+
+### `MyAnimation_Test.cs`
+
+```csharp
+#!/usr/bin/env dotnet
+#:package NewBeeVG@1.0.1.15
+// 包含 MyAnimation 所在的源文件路径
+#:include MyAnimation.cs
+
+// 在仓库 apps/files 内运行时，Directory.Build.props 已提供 NewBeeVG 项目引用；
+// 若出现重复引用或版本冲突，删除上面的 #:package 指令即可。
+
+using NewBeeVG;
+using SkiaSharp;
+using static NewBeeVG.Methods;
+
+// true：只跑测试导出；false：跳过测试，执行结尾 run(...) 正式出片
+bool debug = true;
+
+const int Width = 1920;
+const int Height = 1080;
+const int Frames = 90;
+
+// 场景 1：默认主题
+{
+    var content = new MyAnimation.ContentSetting
+    {
+        From = 0,
+        To = 12580,
+        Format = "N0",
+        FontSize = 160f
+    };
+
+    var anim = new MyAnimation(Width, Height, Frames, content);
+    if (debug == true) anim.SavePNG(0, "output/myanimation/frame_000.png");
+    if (debug == true) anim.SavePNG(Frames - 1, "output/myanimation/frame_last.png");
+
+    // 真实场景用法：不随 debug 关闭；debug = false 时由结尾 run 出片
+    SkiaAnim(new MyAnimation(Width, Height, Frames, content))
+        .AsClip(Frames * 5, name: "默认主题");
+}
+
+// 场景 2：扩展主题
+{
+    var content = new MyAnimation.ContentSetting
+    {
+        From = 0,
+        To = 12580,
+        Format = "N0",
+        FontSize = 160f
+    };
+
+    var theme = new MyAnimation.ContentTheme
+    {
+        Name = "夜墨铜金",
+        Primary = new SKColor(0xC2, 0x91, 0x4E),
+        Background = new SKColor(0x0A, 0x14, 0x20),
+        TextPrimary = new SKColor(0xEF, 0xE6, 0xD2),
+        TextSecondary = new SKColor(0x4E, 0x8F, 0xA0),
+        Divider = new SKColor(0x4E, 0x47, 0x3E),
+        Positive = new SKColor(0xCE, 0x4A, 0x32),
+        Negative = new SKColor(0x3F, 0x7D, 0x5C),
+        Glow = new SKColor(0xFF, 0xF0, 0xD6)
+    };
+
+    var anim = new MyAnimation(Width, Height, Frames, content, theme);
+    if (debug == true) anim.SavePNG(Frames - 1, "output/myanimation/frame_last_themed.png");
+
+    SkiaAnim(new MyAnimation(Width, Height, Frames, content, theme))
+        .AsClip(Frames * 5, name: "掠金");
+}
+
+// 场景 3：PNG 序列 + 视频导出
+{
+    var content = new MyAnimation.ContentSetting { From = 0, To = 98500 };
+
+    var anim = new MyAnimation(Width, Height, Frames, content);
+
+    if (debug == true)
+    {
+        for (int i = 0; i < anim.Frames; i++)
+        {
+            anim.SavePNG(i, $"output/myanimation/frames/{i:0000}.png");
+        }
+
+        // SaveMp4 / SaveGif 不会自动创建目录
+        Directory.CreateDirectory("output");
+        anim.SaveMp4(30, "output/myanimation.mp4");
+    }
+
+    SkiaAnim(anim).AsClip(anim.Frames, name: "完整动画");
+}
+
+// debug = false 时正式出片；debug = true 时只跑上面的测试
+if (debug == false)
+    run(stage(Width, Height), clips());
+```
+
+要点：
+
+- `#:include` 后写**实现类源文件**的相对路径；模板中类文件为 `MyAnimation.cs`；
+- 必须 `using static NewBeeVG.Methods;`，否则 `SkiaAnim` / `run` / `clips` 无法解析；
+- `using` 后声明 `bool debug = true;`；**AI 编写/测试期间必须保持 `true`，绝不能改为 `false`**（`false` 只由使用者交付后手动切换）；所有 AI 测试语句加 `if (debug == true)` 前缀；
+- 结尾固定 `if (debug == false) run(stage(Width, Height), clips());`；
+- `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
+- **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
+- 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
+- `#:package NewBeeVG@1.0.1.15` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
+- `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
+
+## 附：单文件写法（仅临时验证）
+
+下面把类与测试写在一个文件里，仅用于快速验证；正式交付请使用上面的两文件结构。
 
 在 `apps/files/` 下新建 `.cs` 文件：顶层语句在前，`SKCustomAnimation` 子类声明放在文件末尾。
 
