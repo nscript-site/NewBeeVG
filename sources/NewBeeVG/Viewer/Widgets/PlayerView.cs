@@ -100,14 +100,18 @@ public class PlayerView : BaseView
 
         CurrentFrame = frame;
 
-        // 播放中跳帧：停止当前音频，下一轮循环会从新位置重新开始播放
+        // 播放中跳帧：结束当前循环，并以新帧为起点重新开始播放
         if (Playing)
         {
-            _audioStartAttempted = false;
+            Playing = false;
             DisposeAudio();
+            _audioStartAttempted = false;
+            Play();
+            this.UpdateStateByUIThread();
+            return;
         }
 
-        if(old != CurrentFrame && Playing == false)
+        if(old != CurrentFrame)
         {
             Task.Run(() => {
                 Dispatcher.UIThread.InvokeAsync(() =>
@@ -203,12 +207,14 @@ public class PlayerView : BaseView
             {
                 _audioStartAttempted = false;
 
-                // 绝对时间基准：目标时间 = 起点 + n × 帧间隔。
+                // 以真实时间为基准推进帧号：渲染跟不上时丢帧，但时间轴与音频保持实时。
                 // 不能每帧 Sleep(帧间隔 - 渲染耗时)，因为 Thread.Sleep 在 Windows 上有 10~15ms 粒度，
                 // 误差会逐帧累积，实际帧率低于设定值，音频持续被“少喂”而出现卡顿。
-                double nextFrameMs = clock.Elapsed.TotalMilliseconds;
+                double startMs = clock.Elapsed.TotalMilliseconds;
+                double nextRenderMs = startMs;
+                int startFrame = CurrentFrame;
 
-                while (Playing)
+                while (Playing && audioSession == _audioSession)
                 {
                     if (Playable == null) break;
 
@@ -220,49 +226,57 @@ public class PlayerView : BaseView
                         StartAudio(audioSession, Playable.MixedAudioData, CurrentFrame);
                     }
 
-                    // 等到该帧的绝对时间点（末尾几毫秒自旋，避免 Sleep 粒度误差）
-                    if (WaitUntil(nextFrameMs, clock) == false) break;
+                    // 按真实时间计算目标帧：渲染慢时直接跳过中间帧，避免越拖越久
+                    double now = clock.Elapsed.TotalMilliseconds;
+                    int targetFrame = startFrame + (int)((now - startMs) / frameIntervalMs);
+                    if (targetFrame > CurrentFrame)
+                    {
+                        CurrentFrame = Math.Min(targetFrame, Frames);
+                    }
+
+                    if (CurrentFrame >= Frames) break;
+
+                    FeedAudioUpTo(CurrentFrame + _audioPrebufferFrames);
+
+                    // 等到允许渲染的时间（末尾几毫秒自旋，避免 Sleep 粒度误差）
+                    if (WaitUntil(nextRenderMs, clock, audioSession) == false) break;
 
                     int renderedFrame = CurrentFrame;
+                    double renderMs = 0;
 
-                    // Perform creation + rendering on UI thread and wait until it's done.
+                    // 用 Background 优先级提交渲染：按钮点击等输入事件优先于渲染执行
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        // Create bitmap and render on UI thread to avoid cross-thread issues.
+                        var renderClock = Stopwatch.StartNew();
+
                         var bitmap = Work!.CreateBitmap();
 
                         if (Playable!.Render(bitmap, Work.Stage, renderedFrame, true))
                         {
-                            var oldBitmap = Bitmap;
+                            // 这个分支下，不用手动释放 bitmap，FrameImage 会管理它的生命周期
                             Bitmap = bitmap;
                             FrameImage.Bitmap = bitmap;
                             FrameImage.InvalidateVisual();
                         }
+                        else
+                        {
+                            bitmap.Dispose();
+                        }
 
                         this.UpdateState();
-                    }).GetAwaiter().GetResult(); // BLOCK until UI work finishes
+
+                        renderMs = renderClock.Elapsed.TotalMilliseconds;
+                    }, DispatcherPriority.Background).GetAwaiter().GetResult();
 
                     CurrentFrame++;
-                    nextFrameMs += frameIntervalMs;
-
-                    // 画面推进后才继续喂音频：渲染卡住时缓冲耗尽，声音随之停住
                     FeedAudioUpTo(CurrentFrame + _audioPrebufferFrames);
 
-                    if (CurrentFrame >= Frames)
-                        break;
+                    if (CurrentFrame >= Frames) break;
 
-                    // 渲染严重落后时丢帧追赶，避免越拖越久（音频保持实时）
-                    double behindMs = clock.Elapsed.TotalMilliseconds - nextFrameMs;
-                    if (behindMs > frameIntervalMs * 1.5)
-                    {
-                        int skip = Math.Min((int)(behindMs / frameIntervalMs), Frames - CurrentFrame);
-                        if (skip > 0)
-                        {
-                            CurrentFrame += skip;
-                            nextFrameMs += skip * frameIntervalMs;
-                            FeedAudioUpTo(CurrentFrame + _audioPrebufferFrames);
-                        }
-                    }
+                    // 渲染很耗时：至少留出与渲染等长的空闲时间（约 50% 占用），
+                    // 否则 UI 线程会被连续渲染占满，暂停/跳转按钮几乎无法响应
+                    double afterRender = clock.Elapsed.TotalMilliseconds;
+                    nextRenderMs = Math.Max(nextRenderMs + frameIntervalMs, afterRender + renderMs);
                 }
 
                 breakByPlayingToogle = !Playing;
@@ -277,13 +291,17 @@ public class PlayerView : BaseView
                 // 暂停、停止或播放结束都要释放音频设备
                 StopAudio(audioSession);
 
-                if(breakByPlayingToogle == false)
+                // 已被新会话（例如播放中跳帧）接管时，不要覆盖新任务的状态
+                if (audioSession == _audioSession)
                 {
-                    Playing = CurrentFrame < Frames;
-                }
+                    if(breakByPlayingToogle == false)
+                    {
+                        Playing = CurrentFrame < Frames;
+                    }
 
-                _isPlaying = false;
-                this.UpdateStateByUIThread();
+                    _isPlaying = false;
+                    this.UpdateStateByUIThread();
+                }
             }
         });
     }
@@ -293,9 +311,9 @@ public class PlayerView : BaseView
     /// 前半段 Sleep，最后几毫秒自旋，抵消 Thread.Sleep 在 Windows 上 10~15ms 的粒度误差。
     /// </summary>
     /// <returns>到达时间点返回 true；播放被停止返回 false。</returns>
-    private bool WaitUntil(double targetMs, Stopwatch clock)
+    private bool WaitUntil(double targetMs, Stopwatch clock, int session)
     {
-        while (Playing)
+        while (Playing && session == _audioSession)
         {
             double remaining = targetMs - clock.Elapsed.TotalMilliseconds;
             if (remaining <= 0) return true;
@@ -341,12 +359,12 @@ public class PlayerView : BaseView
                 _audioSampleRate = sampleRate;
                 _audioFps = fps;
 
-                // 预缓冲约 100ms：既避免启动欠载，又不至于让声音明显领先画面
-                _audioPrebufferFrames = Math.Max(2, (int)Math.Ceiling(fps * 0.1));
+                // 预缓冲约 300ms：渲染很慢时也能覆盖一次长渲染，避免音频欠载
+                _audioPrebufferFrames = Math.Max(3, (int)Math.Ceiling(fps * 0.3));
 
                 _audioBuffer = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
                 {
-                    BufferDuration = TimeSpan.FromMilliseconds(400),
+                    BufferDuration = TimeSpan.FromMilliseconds(1000),
                     DiscardOnBufferOverflow = true,
                     // 缓冲耗尽时输出静音：画面卡住，声音也随之停住
                     ReadFully = true

@@ -10,11 +10,11 @@
 
 //LayerSample.Run();
 
-//VideoThemePreviewSample.Run();
+VideoThemePreviewSample.Run();
 
 //TransparentBgSample.Run();
 
-AudioSample.Run();
+//AudioSample.Run();
 
 //SKAnimationSample.Run();
 

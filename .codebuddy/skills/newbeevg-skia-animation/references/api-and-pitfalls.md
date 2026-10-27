@@ -38,7 +38,7 @@ public interface ISKAnimation
 | `Divider` | 细线、边框、表格线 |
 | `Positive` / `Negative` | 数据可视化的正/负值 |
 
-20 套内置主题位于 `NBVideoThemes` 的静态属性上：
+23 套内置主题位于 `NBVideoThemes` 的静态属性上：
 
 ```csharp
 var theme = NBVideoThemes.Ocean;
@@ -57,6 +57,14 @@ var name = theme.Name;   // "海洋"
 | `Nature` | 自然 | 浅 | `Corporate` | 商务 | 浅 |
 | `Ocean` | 海洋 | 浅 | `AI` | 智能 | 浅 |
 | `Sunset` | 日落 | 暗 | `Podcast` | 播客 | 暗 |
+
+另有 3 套后期新增的主题，同样只有 7 个基础颜色槽位：
+
+| 属性 | 名称 | 明暗 |
+| --- | --- | --- |
+| `NightCopper` | 夜墨铜金 | 暗 |
+| `ParchmentDay` | 羊皮纸日间 | 浅 |
+| `ColdArchive` | 冷青夜航 | 暗 |
 
 遍历与预览：
 

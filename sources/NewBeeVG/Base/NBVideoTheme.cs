@@ -152,7 +152,7 @@ public partial class NBVideoTheme
 public class NBVideoThemes
 {
     /// <summary>
-    /// 返回全部 20 个内置主题模板，顺序与静态属性声明顺序一致。
+    /// 返回全部 23 个内置主题模板，顺序与静态属性声明顺序一致。
     /// </summary>
     /// <returns>
     /// 新建的列表，调用方可自由排序、筛选或增删；
@@ -182,7 +182,10 @@ public class NBVideoThemes
             Forest,
             Corporate,
             AI,
-            Podcast
+            Podcast,
+            NightCopper,
+            ParchmentDay,
+            ColdArchive
         };
     }
 
@@ -498,6 +501,55 @@ public class NBVideoThemes
         Divider = Hex(0x2B231B),
         Positive = Hex(0x58C08A),
         Negative = Hex(0xE06C5A)
+    };
+
+    /// <summary>
+    /// 夜墨铜金（暗色）：夜墨蓝底 + 铜金强调 + 冷青辅助，适合档案感、财经解说、纪录片式内容。
+    /// 由 ContentTheme.NightCopper 映射而来；Sweep / PaperTint / PaperLight / PaperGlow / Shadow
+    /// 属于原主题的扩展色，不在 NBVideoTheme 的 7 个颜色槽位内。
+    /// </summary>
+    public static NBVideoTheme NightCopper { get; } = new NBVideoTheme
+    {
+        Name = "夜墨铜金",
+        Primary = Hex(0xC2914E),
+        Background = Hex(0x0A1420),
+        TextPrimary = Hex(0xEFE6D2),
+        TextSecondary = Hex(0x4E8FA0),
+        Divider = Hex(0x4E473E),
+        Positive = Hex(0xCE4A32),
+        Negative = Hex(0x3F7D5C)
+    };
+
+    /// <summary>
+    /// 羊皮纸日间（浅色）：暖纸底 + 陶红强调，适合档案、文件、引文页；
+    /// 与 <see cref="NBVideoTheme"/> 的默认配色一致。
+    /// </summary>
+    public static NBVideoTheme ParchmentDay { get; } = new NBVideoTheme
+    {
+        Name = "羊皮纸日间",
+        Primary = Hex(0xBF3B2B),
+        Background = Hex(0xF4F1EA),
+        TextPrimary = Hex(0x17160F),
+        TextSecondary = Hex(0x8C877C),
+        Divider = Hex(0xCFC9BB),
+        Positive = Hex(0xBF3B2B),
+        Negative = Hex(0x45624E)
+    };
+
+    /// <summary>
+    /// 冷青夜航（暗色）：深青黑底 + 冷青强调 + 暗金次文，适合机制说明、数据段落、技术叙事。
+    /// 由 ContentTheme.ColdArchive 映射而来；扩展色同样不在 NBVideoTheme 的 7 个颜色槽位内。
+    /// </summary>
+    public static NBVideoTheme ColdArchive { get; } = new NBVideoTheme
+    {
+        Name = "冷青夜航",
+        Primary = Hex(0x4E8FA0),
+        Background = Hex(0x081118),
+        TextPrimary = Hex(0xE4ECF0),
+        TextSecondary = Hex(0xA98A5E),
+        Divider = Hex(0x2B3942),
+        Positive = Hex(0xCE4A32),
+        Negative = Hex(0x3F7D5C)
     };
 
     #endregion

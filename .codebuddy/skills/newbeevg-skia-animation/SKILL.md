@@ -41,7 +41,7 @@ public YourCustomAnimation(
 在以下场景加载本技能：
 
 - 需要在 `apps/files/*.cs` 这类 file-based app 中创建逐帧动画；
-- 需要为动画选择或切换主题配色（科技、环保、金融等 20 套内置主题）；
+- 需要为动画选择或切换主题配色（科技、环保、金融等 23 套内置主题）；
 - `NBVideoTheme` 现有颜色不够用，需要额外的专用颜色；
 - 需要从 `SKCanvas` 渲染结果导出 PNG 或 PNG 序列；
 - 需要直接导出 MP4 / GIF，或排查导出失败、帧率不准、尺寸被压缩等问题；
@@ -224,7 +224,7 @@ public class BouncingBallAnimation : SKCustomAnimation
 
 `Theme` 是 `NBVideoTheme` 类型，包含 `Background`、`TextPrimary`、`TextSecondary`、`Primary`、`Divider`、`Positive`、`Negative`、`Name`。
 
-内置 20 套主题位于 `NBVideoThemes`：
+内置 23 套主题位于 `NBVideoThemes`：
 
 ```csharp
 var baseTheme = NBVideoThemes.AI;                    // 按静态属性取
@@ -233,7 +233,7 @@ var contentTheme = MyAnimation.ContentTheme.From(baseTheme); // 转成可扩展�
 var anim = new MyAnimation(1920, 1080, 120, content, contentTheme);
 ```
 
-属性名包括 `Tech`、`Eco`、`Finance`、`Healthcare`、`Education`、`Media`、`Retail`、`Nature`、`Ocean`、`Sunset`、`Minimal`、`Cyberpunk`、`Luxury`、`Retro`、`Candy`、`Arctic`、`Forest`、`Corporate`、`AI`、`Podcast`。
+属性名包括 `Tech`、`Eco`、`Finance`、`Healthcare`、`Education`、`Media`、`Retail`、`Nature`、`Ocean`、`Sunset`、`Minimal`、`Cyberpunk`、`Luxury`、`Retro`、`Candy`、`Arctic`、`Forest`、`Corporate`、`AI`、`Podcast`，以及后加的 `NightCopper`（夜墨铜金）、`ParchmentDay`（羊皮纸日间）、`ColdArchive`（冷青夜航）。
 
 当这些颜色不够用时，在 `ContentTheme` 中补充属性，例如：
 
