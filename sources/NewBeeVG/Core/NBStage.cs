@@ -10,29 +10,58 @@ public class NBStage
     public SKColor? Background { get; set; }
     public int AudioFrameRate { get; set; } = 44100;
 
+    public SKColor? PreviewBackgroundColor { get; set; }
+
     public void DrawBackground(SKCanvas canvas, bool preview)
     {
-        if (Background != null)
+        if(PreviewBackgroundColor == null)
         {
-            var skColor = Background.Value;
-            using var paint = new SKPaint
+            if (Background != null)
             {
-                Style = SKPaintStyle.Fill,
-                Color = skColor,
-                IsAntialias = true
-            };
-            
-            canvas.DrawRect(new SKRect(0, 0, Width, Height), paint);
-        }
-        else if(preview == true)
-        {
-            using var shader = DrawingHelper.CreateCheckerboardShader(20, SKColors.White, SKColor.Parse("#D2D2D2"));
-            using var paint = new SKPaint
-            {
-                Shader = shader
-            };
+                var skColor = Background.Value;
+                using var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Fill,
+                    Color = skColor,
+                    IsAntialias = true
+                };
 
-            canvas.DrawRect(new SKRect(0, 0, Width, Height), paint);
+                canvas.DrawRect(new SKRect(0, 0, Width, Height), paint);
+            }
+            else if (preview == true)
+            {
+                using var shader = DrawingHelper.CreateCheckerboardShader(20, SKColors.White, SKColor.Parse("#D2D2D2"));
+                using var paint = new SKPaint
+                {
+                    Shader = shader
+                };
+
+                canvas.DrawRect(new SKRect(0, 0, Width, Height), paint);
+            }
+        }
+        else
+        {
+            var c = PreviewBackgroundColor.Value;
+            if (c.Alpha == 0)
+            {
+                using var shader = DrawingHelper.CreateCheckerboardShader(20, SKColors.White, SKColor.Parse("#D2D2D2"));
+                using var paint = new SKPaint
+                {
+                    Shader = shader
+                };
+
+                canvas.DrawRect(new SKRect(0, 0, Width, Height), paint);
+            }
+            else
+            {
+                using var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Fill,
+                    Color = PreviewBackgroundColor.Value,
+                    IsAntialias = true
+                };
+                canvas.DrawRect(new SKRect(0, 0, Width, Height), paint);
+            }
         }
     }
 }

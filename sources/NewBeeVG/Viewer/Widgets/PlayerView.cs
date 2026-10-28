@@ -24,17 +24,33 @@ public class PlayerView : BaseView
         if (Work != null)
         {
             VGrid("30,*,5,40,5", [
-                HGrid("*,Auto,Auto", [
+                HGrid("300,*,300", [
                 HStack([
                     TextBlock(()=>Playable?.FullName??String.Empty),
                     TextBlock(()=>$"{Math.Min(Frames,CurrentFrame + 1)}/{Frames}"),
                 ]),
-                IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:16)
-                    .Align(1,1)
-                    .OnClick(_ => { Export(true); }),
-                IconButton( AnimationPlayOutlineIcon.Instance,"导出动画", scale: 1, iconSize:16)
-                    .Align(1,1)
+                HGrid("Auto,10,Auto",[
+                        ColorBox(Work?.Stage.Background??SKColors.Transparent),
+                    VLine(),
+                    HStack([
+                        ColorBox(SKColors.Transparent),
+                        ColorBox(SKColors.White),
+                        ColorBox(SKColors.Black),
+                        ColorBox(SKColors.Red),
+                        ColorBox(SKColors.Blue),
+                        ColorBox(SKColors.Yellow),
+                        ColorBox(SKColors.Orange),
+                        ColorBox(SKColors.Violet),
+                        ]).Spacing(5)
+                    ]).Align(0,0),
+                HStack([
+                    IconButton(VideoCheckOutlineIcon.Instance,"导出视频", scale: 1, iconSize:16)
+                        .Align(1,1)
+                        .OnClick(_ => { Export(true); }),
+                    IconButton( AnimationPlayOutlineIcon.Instance,"导出动画", scale: 1, iconSize:16)
+                        .Align(1,1)
                     .OnClick(_ => { Export(false); }),
+                ]).Align(1,1),
             ]),
             Border(FrameImage)
                 .Background(Brushes.Gray)
@@ -75,6 +91,20 @@ public class PlayerView : BaseView
             .BorderBrush(Brushes.LightGray).BorderThickness(1)
             .Return(out content);
         }
+    }
+
+    private ColorBox ColorBox(SKColor bgColor)
+    {
+        var box = new ColorBox(){ BackgroundColor = bgColor }.Size(20);
+        box.ToolTip("更改预览模式下 stage 的背景颜色");
+        box.Cursor(new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand));
+        box.OnTapped(_ => { 
+            var color = box.BackgroundColor;
+            Work?.Stage.PreviewBackgroundColor = color;
+            Reset();
+            Play();
+        });
+        return box;
     }
 
     protected bool _isPlaying = false;

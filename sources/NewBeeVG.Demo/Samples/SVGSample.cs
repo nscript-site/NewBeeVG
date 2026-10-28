@@ -17,12 +17,13 @@ internal class SVGSample
                     """;
 
         VGrid($"*", [
-                SVG(svg).Align(0,0)
+             SVG(svg).Align(0,0)
         ])
         .Background(SKColors.DeepSkyBlue)
-        .AsClip(out var clip4, 30);
+        .AsClip(30);
 
-        run(stage(bg: SKColors.Orange), [clip4]);
-        //save("out.mp4", stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
+        Panel().Size(200, 200).Align(0, 0).Background(SKColors.Gold).AsClip(30,name:"transparent");
+
+        run(stage(), clips());
     }
 }
