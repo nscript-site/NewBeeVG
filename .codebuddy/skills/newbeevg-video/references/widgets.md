@@ -89,7 +89,8 @@ Image("./assets/photo.jpg")
 ```
 
 - `.Size(w, h)` / `.Stretch(...)` 控制尺寸与拉伸方式；
-- 路径相对当前工作目录；file-based app 建议使用相对脚本的路径。
+- 路径相对当前工作目录；图片通常放在 `assets/images/`；
+- assets 查找顺序与 README 约定见 `assets.md`。
 
 ### SVG
 
@@ -106,6 +107,10 @@ SVG("""
 </svg>
 """).Size(200, 200).Align(0, 0);
 ```
+
+- 文件形式通常放在 `assets/svgs/`；
+- SMIL / CSS 动画的支持取决于 Svg.Skia，使用前先渲染验证；不支持时改用 `SkiaAnim`；
+- 素材生成与查找约定见 `assets.md`。
 
 ### Audio
 

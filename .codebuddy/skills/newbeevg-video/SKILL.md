@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers assets discovery (README + audios/images/videos/svgs), SVG asset generation for missing material, AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -9,7 +9,7 @@ description: This skill should be used when building, editing, or debugging a Ne
 
 用 NewBeeVG 的 markup + clip 时间线构建视频：用布局组件描述每一帧画面，用 `AsClip` 把画面变成有起止帧的片段，最后用 `run(...)` 预览或导出。
 
-推荐组合：**SkiaAnim（程序化绘制）+ 布局组件（排版/叠加文字）**。
+推荐组合：**布局组件（排版）+ SkiaAnim（动态图形）+ assets 素材（背景/图标/图片/SVG）**。
 
 不适用：深入 3D、Typst、TTS 等专项能力时，再查对应专项文档；本技能不覆盖已废弃的 `NBLayer`。
 
@@ -40,6 +40,91 @@ clip 的时间规则：
 - 仓库外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.21`；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
 - **首字母大写的方法**是界面/布局/样式方法（`TextBlock`、`HStack`、`Align`、`Background`…）；
 - **首字母小写的方法**是行为方法（`stage`、`run`、`font`、`clips`、`skanim`…）。
+
+## 资源目录
+
+`assets` 是资源根目录，按类型组织：
+
+```text
+assets/
+├── audios/
+├── images/
+├── videos/
+├── svgs/
+└── README.md
+```
+
+查找顺序：
+
+1. 先看视频脚本当前目录下的 `./assets`；
+2. 不存在则依次向父目录查找；
+3. 一直找到项目根目录下的 `assets`；
+4. 使用最近的一个存在的 `assets` 目录。
+
+**优先读取 `assets/README.md`**：该文件通常记录资源清单、用途、尺寸、时长、来源等。先按 README 索引找素材，不要盲目遍历整个目录。
+
+引用规则：
+
+- 代码中的路径相对于运行时目录（通常是脚本所在目录）；
+- 引用上层 assets 时写相对路径，如 `../assets/images/bg.png`；
+- 新生成的素材优先放到**视频脚本当前目录**的 `assets` 下，目录不存在时创建；
+- 命名建议小写、短横线或下划线，并体现用途，如 `svgs/arrow-flow.svg`、`images/bg-night.png`。
+
+## 素材分析与生成
+
+制作视频前先做素材盘点：
+
+1. **分析稿件/脚本**：拆分镜头，列出每个 clip 需要的背景、图片、图标、图表、SVG、音频、视频素材；
+2. **读取 assets 与 README**：标记已有素材，列出缺失素材；
+3. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；
+4. **保存素材**：
+   - SVG → `assets/svgs/`
+   - 图片 → `assets/images/`
+   - 音频 → `assets/audios/`
+   - 视频 → `assets/videos/`
+   - 目录不存在时先创建；
+5. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长，方便后续复用。
+
+生成 SVG 时：
+
+- 画布尺寸与使用位置匹配，避免运行时大幅缩放；
+- 图标/插画使用清晰的分层与语义化命名；
+- 需要动效时优先用 SMIL（`animate` / `animateTransform`）或内联 CSS 动画；
+- 颜色尽量与视频主题色一致；
+- 避免外部字体、外链图片和脚本，保证 SVG 自包含。
+
+## 组合原则
+
+制作每个 clip 时，尽量**组合布局组件、SkiaAnim 和素材**，不要用单一的全屏 SkiaAnim 构成整个 clip：
+
+```csharp
+// 推荐：背景素材 + 布局分栏 + SkiaAnim + 文字
+Panel([
+    Image("./assets/images/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
+
+    HGrid("480,*", [
+        SVG("./assets/svgs/icon-chart.svg").Size(320, 320).Align(0, 0),
+
+        HStack([
+            SkiaAnim(new ChartAnimation(600, 800, 90, content)),
+            VStack([
+                TextBlock("季度增长").Font(72, SKColors.White),
+                TextBlock("+128%").Font(160, SKColors.Orange),
+            ]).Spacing(20),
+        ]).Spacing(40),
+    ]).Margin(120),
+
+    TextBlock("数据来源：内部统计").Font(32, SKColors.LightGray)
+        .Align(-1, 1).Margin(80),
+])
+.AsClip(90, name: "chart");
+```
+
+- **布局组件**负责分栏、留白、对齐与信息层级；
+- **SkiaAnim** 负责数据驱动的图形、数字滚动、图表、程序化动效；
+- **assets** 提供背景、照片、图标、插画、音视频；
+- 一个 clip 内通常至少包含两类元素（例如 SkiaAnim + 文字，或素材 + 布局 + SkiaAnim）；
+- 片头/片尾可用纯文字布局；正文与数据镜头应避免“整个画面只有一个 SkiaAnim”。
 
 ## 最小视频骨架
 
@@ -332,10 +417,14 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 7. 是否避免使用已废弃的 `NBLayer`；
 8. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
 9. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
-10. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称。
+10. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称；
+11. 是否按 `./assets` → 父目录 → 项目根目录的顺序找到 assets，并优先阅读 `README.md`；
+12. 缺失素材是否优先用 SVG 生成并保存到脚本目录的 `assets/svgs`（图片/音频/视频放对应子目录），目录是否已创建；
+13. 每个 clip 是否组合了布局组件、SkiaAnim 与素材，而不是只用一个全屏 SkiaAnim。
 
 ## 资源
 
+- `references/assets.md`：assets 查找顺序、README 约定、素材盘点与 SVG 生成流程、资源引用代码。
 - `references/concepts-and-run.md`：概念、clip 时间规则、`AsClip`、音频 `LinkTo`、`clips()`、`run` 参数与返回值细节。
 - `references/layout.md`：六种布局容器、Grid 尺寸语法、`Align` 全取值与排版示例。
 - `references/texts-and-style.md`：`NBText` / `NBRichText` / `TextRun`、`Styles`、逐帧动画与缓动。
