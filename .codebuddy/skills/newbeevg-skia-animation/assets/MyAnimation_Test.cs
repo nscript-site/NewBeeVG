@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.15
+#:package NewBeeVG@1.0.1.17
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
