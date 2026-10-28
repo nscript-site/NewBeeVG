@@ -3,7 +3,7 @@
 // 需要先准备一个 SKCustomAnimation 子类，放在 modules/MyAnimation.cs
 // 仓库 apps/files 下由 Directory.Build.props 提供 NewBeeVG 引用；
 // 仓库外运行时取消下一行注释并改成当前包版本：
-// #:package NewBeeVG@1.0.1.20
+// #:package NewBeeVG@1.0.1.21
 #:include modules/MyAnimation.cs
 
 // ------------------------------------------------------------

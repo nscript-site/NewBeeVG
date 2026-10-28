@@ -268,6 +268,22 @@ public class SKCustomAnimation : SKAnimation
     public NBVideoTheme Theme { get; private set; }
 
     /// <summary>
+    /// 获取默认字体名：优先使用 <see cref="Methods.font"/> 设置的全局字体；
+    /// 未设置时按平台返回 Microsoft YaHei（Windows）、Helvetica（macOS）、
+    /// DejaVu Sans（Linux），其他平台回退到 Arial。
+    /// </summary>
+    /// <returns>字体族名称，可直接传给 <see cref="SKFont"/> 或 <c>SKTypeface.FromFamilyName</c>。</returns>
+    /// <remarks>
+    /// 仅返回字体名称，不保证系统已安装；若字体不存在，Skia 会回退到其默认字体。
+    /// 通过 <c>font("字体名")</c> 设置的全局字体会一直生效，之后不再重新检测平台默认值。
+    /// </remarks>
+    public static string GetDefaultFontName()
+    {
+        // 统一走 Methods 的全局字体解析：font(...) 的覆盖优先于平台默认值
+        return Methods.GetDefaultFontFamily();
+    }
+
+    /// <summary>
     /// 创建自定义动画实例。
     /// </summary>
     /// <param name="width">单帧画面宽度（像素），应大于 0。</param>

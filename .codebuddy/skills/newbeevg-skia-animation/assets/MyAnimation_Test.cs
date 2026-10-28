@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.20
+#:package NewBeeVG@1.0.1.21
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -12,8 +12,8 @@ using static NewBeeVG.Methods;
 
 // debug = true  ：只跑 AI 测试语句（PNG / MP4 / GIF 导出）
 // debug = false ：跳过测试，执行结尾 run(...)，用下面 SkiaAnim 注册的真实片段出片
-// AI 编写/测试期间必须保持 true，禁止改为 false；false 仅由使用者交付后手动切换
 bool debug = true;
+if (args.Length > 0) debug = args[0] == "debug";   // 不带参数 = 出测试图；传 "debug" 以外的值 = 正式出片
 
 // ============================================================
 //  测试入口模板（保存为 MyAnimation_Test.cs）

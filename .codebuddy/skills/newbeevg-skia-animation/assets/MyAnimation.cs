@@ -51,7 +51,12 @@ public class MyAnimation : SKCustomAnimation
         double value = _content.From + (_content.To - _content.From) * t;
         string text = value.ToString(_content.Format);
 
-        using var typeface = SKTypeface.FromFamilyName(_content.FontFamily) ?? SKTypeface.Default;
+        // 未指定字体时使用官方默认字体，避免跨平台硬编码字体名
+        var fontName = string.IsNullOrWhiteSpace(_content.FontFamily)
+            ? GetDefaultFontName()
+            : _content.FontFamily;
+
+        using var typeface = SKTypeface.FromFamilyName(fontName) ?? SKTypeface.Default;
         using var font = new SKFont(typeface, _content.FontSize);
 
         // 基础主题色
@@ -85,8 +90,8 @@ public class MyAnimation : SKCustomAnimation
         /// <summary>数字格式，例如 "N0"（千分位）、"F2"（两位小数）。</summary>
         public string Format { get; set; } = "N0";
 
-        /// <summary>字体名。</summary>
-        public string FontFamily { get; set; } = "Microsoft YaHei";
+        /// <summary>字体名；为空时使用 SKCustomAnimation.GetDefaultFontName()。</summary>
+        public string FontFamily { get; set; } = "";
 
         /// <summary>字号（像素）。</summary>
         public float FontSize { get; set; } = 160f;

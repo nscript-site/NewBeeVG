@@ -24,6 +24,18 @@ public interface ISKAnimation
 
 `SKCustomAnimation` 还提供主题色：构造时可传入 `NBVideoTheme`，颜色不够用时传入继承自它的 `ContentTheme`；为空则使用 `NBVideoThemes.Nature`。子类通过 `Theme` 属性取用 `Background` / `TextPrimary` / `Primary` 等颜色。
 
+`SKCustomAnimation.GetDefaultFontName()` 返回默认字体名：优先使用 `font("...")` 设置的全局字体；未设置时按平台返回 `Microsoft YaHei`（Windows）、`Helvetica`（macOS）、`DejaVu Sans`（Linux），其他平台回退到 `Arial`。
+
+```csharp
+var fontName = SKCustomAnimation.GetDefaultFontName();
+using var typeface = SKTypeface.FromFamilyName(fontName) ?? SKTypeface.Default;
+using var font = new SKFont(typeface, 96);
+```
+
+- 不要跨平台硬编码 `"Microsoft YaHei"`；
+- 名称不保证系统已安装，Skia 可能回退到替代字体，建议 `?? SKTypeface.Default` 兜底；
+- `font("...")` 设置后全局生效，之后 `GetDefaultFontName()` 返回新值。
+
 ## 主题色（NBVideoTheme / NBVideoThemes）
 
 `NBVideoTheme` 描述一套配色，包含以下成员：
@@ -126,7 +138,11 @@ public class MyAnimation : SKCustomAnimation
         double value = _content.From + (_content.To - _content.From) * t;
         string text = value.ToString(_content.Format);
 
-        using var typeface = SKTypeface.FromFamilyName(_content.FontFamily) ?? SKTypeface.Default;
+        var fontName = string.IsNullOrWhiteSpace(_content.FontFamily)
+            ? GetDefaultFontName()
+            : _content.FontFamily;
+
+        using var typeface = SKTypeface.FromFamilyName(fontName) ?? SKTypeface.Default;
         using var font = new SKFont(typeface, _content.FontSize);
         using var paint = new SKPaint { IsAntialias = true, Color = _theme.Primary };
 
@@ -140,7 +156,8 @@ public class MyAnimation : SKCustomAnimation
         public double From { get; set; } = 0;
         public double To { get; set; } = 10000;
         public string Format { get; set; } = "N0";
-        public string FontFamily { get; set; } = "Microsoft YaHei";
+        /// <summary>字体名；为空时使用 GetDefaultFontName()。</summary>
+        public string FontFamily { get; set; } = "";
         public float FontSize { get; set; } = 160f;
     }
 
@@ -175,7 +192,7 @@ public class MyAnimation : SKCustomAnimation
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.20
+#:package NewBeeVG@1.0.1.21
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -186,8 +203,10 @@ using NewBeeVG;
 using SkiaSharp;
 using static NewBeeVG.Methods;
 
-// true：只跑测试导出；false：跳过测试，执行结尾 run(...) 正式出片
+// debug = true  ：只跑 AI 测试语句（PNG / MP4 / GIF 导出）
+// debug = false ：跳过测试，执行结尾 run(...)，用下面 SkiaAnim 注册的真实片段出片
 bool debug = true;
+if (args.Length > 0) debug = args[0] == "debug";   // 不带参数 = 出测试图；传 "debug" 以外的值 = 正式出片
 
 const int Width = 1920;
 const int Height = 1080;
@@ -275,13 +294,15 @@ if (debug == false)
 
 - `#:include` 后写**实现类源文件**的相对路径；模板中类文件为 `MyAnimation.cs`；
 - 必须 `using static NewBeeVG.Methods;`，否则 `SkiaAnim` / `run` / `clips` 无法解析；
-- `using` 后声明 `bool debug = true;`；**AI 编写/测试期间必须保持 `true`，绝不能改为 `false`**（`false` 只由使用者交付后手动切换）；只在真正写文件的调用前加 `if (debug == true)`，不要把循环或一大段逻辑整体包进守卫块；
+- `using` 后声明 `bool debug = true;`，并保留 `if (args.Length > 0) debug = args[0] == "debug";`：不带参数或传 `"debug"` 时保持 `true`（只出测试图），传其他值（如 `out.mp4`）时 `false`（跳过测试执行 `run`）；
+- **AI 编写/测试期间必须让 `debug` 保持 `true`**：不要把默认值硬编码为 `false`，也不要传入会让它为 `false` 的参数；
+- 只在真正写文件的调用前加 `if (debug == true)`，不要把循环或一大段逻辑整体包进守卫块；
 - 测试目录创建也要加守卫：`if (debug == true) Directory.CreateDirectory("output/numberroll");`，不要在守卫外创建测试目录；`SavePNG` 虽会自动建目录，显式创建同样放守卫内；
 - 结尾固定 `if (debug == false) run(stage(Width, Height), clips());`；
 - `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
 - **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
 - 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
-- `#:package NewBeeVG@1.0.1.20` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.21` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
 - `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
 
 ### 循环生成测试用例
@@ -417,7 +438,7 @@ public class ClockAnimation : SKCustomAnimation
 
         if (_content.ShowFrameLabel)
         {
-            using var typeface = SKTypeface.FromFamilyName("Microsoft YaHei") ?? SKTypeface.Default;
+            using var typeface = SKTypeface.FromFamilyName(GetDefaultFontName()) ?? SKTypeface.Default;
             using var font = new SKFont(typeface, _content.LabelSize);
             using var textPaint = new SKPaint { IsAntialias = true, Color = _theme.TextPrimary };
 
@@ -527,6 +548,9 @@ public class ReportAnimation : SKCustomAnimation
         /// <summary>副标题。</summary>
         public string Subtitle { get; set; } = "";
 
+        /// <summary>字体名；为空时使用 SKCustomAnimation.GetDefaultFontName()。</summary>
+        public string FontFamily { get; set; } = "";
+
         /// <summary>数据项。</summary>
         public IReadOnlyList<float> Values { get; set; } = Array.Empty<float>();
     }
@@ -539,6 +563,7 @@ public class ReportAnimation : SKCustomAnimation
 - `ContentSetting` 声明为**子类的嵌套类**，访问方式为 `ReportAnimation.ContentSetting`；
 - 内容类只存放数据（POCO），不要持有 `SKBitmap`、`SKPaint`、`SKCanvas` 等原生对象；确需持有时应在文档中写明释放责任；
 - 给字段提供合理默认值，调用方只覆盖需要变化的项；
+- 需要绘制文字时，在 `ContentSetting` 中加 `public string FontFamily { get; set; } = "";`（注释说明：为空时使用 `SKCustomAnimation.GetDefaultFontName()`）；`DrawFrame` 中为空则回退默认字体；
 - 在构造函数中校验 `content != null`，让错误尽早暴露。
 
 ### 主题扩展（ContentTheme）

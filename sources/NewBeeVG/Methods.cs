@@ -667,7 +667,8 @@ public static class Methods
     #region Widgets
 
     private static string? _globalFontFaminy = null;
-    private static string GetDefaultFontFamily()
+
+    public static string GetDefaultFontFamily()
     {
         if (String.IsNullOrEmpty(_globalFontFaminy) == false) return _globalFontFaminy;
 

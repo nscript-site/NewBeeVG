@@ -24,7 +24,7 @@ description: This skill should be used when creating, editing, or debugging fram
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.20
+#:package NewBeeVG@1.0.1.21
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -35,7 +35,10 @@ using NewBeeVG;
 using SkiaSharp;
 using static NewBeeVG.Methods;
 
+// debug = true  ：只跑 AI 测试语句（PNG / MP4 / GIF 导出）
+// debug = false ：跳过测试，执行结尾 run(...)，用下面 SkiaAnim 注册的真实片段出片
 bool debug = true;
+if (args.Length > 0) debug = args[0] == "debug";   // 不带参数 = 出测试图；传 "debug" 以外的值 = 正式出片
 ```
 
 `debug` 用于切换「AI 测试」与「真实出片」：
@@ -43,7 +46,14 @@ bool debug = true;
 - `debug == true`：只执行 AI 测试语句（`SavePNG` / `SaveMp4` / `SaveGif` 等），不调用 `run`，不合成视频；
 - `debug == false`：跳过这些测试语句，执行结尾 `run(stage(Width, Height), clips())`，按真实场景出片。
 
-**AI 在编写、运行测试和验证编译期间，必须始终保留 `bool debug = true;`，绝对不要把 `debug` 改成 `false`。** `false` 只由使用者在交付后手动切换；AI 若改成 `false`，会跳过全部测试并触发真实渲染/出片，属于禁止操作。
+命令行行为：
+
+- 不带参数：`debug` 保持 `true`，只出测试图；
+- 第一个参数是 `"debug"`：`debug` 保持 `true`，同样只出测试图；
+- 第一个参数是其他值（如 `out.mp4`、`42 out.png`）：`debug = false`，跳过测试并执行结尾 `run(...)`；
+- 若希望这些参数继续传给 `run` 直接导出，把结尾改成 `run(stage(Width, Height), clips(), args: args);`。
+
+**AI 在编写、运行测试和验证编译期间，`bool debug` 默认必须是 `true`，并且要保留 `if (args.Length > 0) debug = args[0] == "debug";` 这一行；不要把 `debug` 硬编码成 `false`。** AI 跑测试时不要传入会让 `debug` 变为 `false` 的参数；`false` 只由使用者在正式出片时通过命令行或手动切换触发。
 
 因此测试文件里的 `SkiaAnim(...).AsClip(...)` **必须是真实场景代码**：不要为了测试写假片段，也不要给它加 `if (debug == true)`。这样 AI 生成的文件交付后，只需把 `debug` 改成 `false`，`run(...)` 就会直接用这些片段出片。
 
@@ -138,10 +148,10 @@ C# 12 / .NET 10 支持主构造函数，但这里仍建议显式写构造函数�
 规则：
 
 - 必须以 `#!/usr/bin/env dotnet` 开头；
-- `#:package NewBeeVG@1.0.1.20` 用于脱离仓库时引入 NewBeeVG；在仓库的 `apps/files/` 内，`Directory.Build.props` 已提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.21` 用于脱离仓库时引入 NewBeeVG；在仓库的 `apps/files/` 内，`Directory.Build.props` 已提供项目引用，出现重复引用时删除该指令；
 - `#:include` 后写**所实现动画类的源文件路径**（模板为 `MyAnimation.cs`），路径相对于测试文件；
 - `using` 至少包含 `NewBeeVG`、`SkiaSharp`、`using static NewBeeVG.Methods;`（`SkiaAnim` 是 `Methods` 的静态方法）；
-- 在 `using` 之后声明 `bool debug = true;`，并且**AI 不得把它改为 `false`**（`false` 由使用者交付后手动切换）；
+- 在 `using` 之后声明 `bool debug = true;`，并保留 `if (args.Length > 0) debug = args[0] == "debug";`；**AI 不得把默认值改成 `false`**，测试时也不要传会让它变为 `false` 的参数；
 - **每个测试场景用一对大括号 `{ }` 包起来**，隔离 `content` / `anim` / `theme` 等局部变量，避免不同场景重名；
 - **只在真正写本地文件的调用前加 `if (debug == true)`**，例如 `if (debug == true) anim.SavePNG(...)`、`if (debug == true) anim.SaveMp4(...)`；不要把循环、实例构造、多个导出整体包进一个 `if (debug == true) { ... }` 大块；
 - **测试目录创建同样加守卫**：例如 `if (debug == true) Directory.CreateDirectory("output/numberroll");`；测试用的目录（尤其 `SaveMp4` / `SaveGif` 的输出目录）不要在守卫外创建；
@@ -256,6 +266,31 @@ public class ContentTheme : NBVideoTheme
 }
 ```
 
+#### 字体
+
+如果动画需要绘制文字，在 `ContentSetting` 中添加字体字段，默认留空：
+
+```csharp
+/// <summary>字体名；为空时使用 SKCustomAnimation.GetDefaultFontName()。</summary>
+public string FontFamily { get; set; } = "";
+```
+
+在 `DrawFrame` 中解析：
+
+```csharp
+// 调用方指定了字体就用指定值，否则回退到官方默认字体
+var fontName = string.IsNullOrWhiteSpace(_content.FontFamily)
+    ? GetDefaultFontName()
+    : _content.FontFamily;
+
+using var typeface = SKTypeface.FromFamilyName(fontName) ?? SKTypeface.Default;
+using var font = new SKFont(typeface, _content.FontSize);
+```
+
+- `GetDefaultFontName()` 优先使用 `font("...")` 的全局设置，否则按平台返回 Microsoft YaHei / Helvetica / DejaVu Sans / Arial；
+- 不要给 `FontFamily` 设置 `"Microsoft YaHei"` 之类的平台字体默认值；调用方需要时只覆盖该字段；
+- 返回值只是字体名，不保证系统已安装；`SKTypeface.FromFamilyName` 可能返回替代字体，建议用 `?? SKTypeface.Default` 兜底。
+
 ### 4. 帧号换算进度
 
 `frame` 范围是 `0 ~ Frames-1`。按用途选择分母：
@@ -323,6 +358,7 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 | `YourCustomAnimation(int width, int height, int frames, ContentSetting content, ContentTheme? contentTheme = null)` | 推荐子类签名；`ContentSetting` 承载内容，`ContentTheme` 扩展颜色 |
 | `ContentTheme : NBVideoTheme` | 主题颜色不够用时继承并补充属性；`From(theme)` 复制内置主题，`CreateDefault()` 复制自然主题 |
 | `Theme` | 当前主题（`NBVideoTheme`），传入 `ContentTheme` 时实际类型即为 `ContentTheme` |
+| `GetDefaultFontName()` | 默认字体名：优先 `font(...)` 的全局设置，否则按平台返回 Microsoft YaHei / Helvetica / DejaVu Sans / Arial |
 | `SKAnimation(int width, int height, int frames, Action<...>? onFrame)` | 回调式实现；`onFrame` 可为 `null` |
 | `skanim(SKSize size, int frames, Action<...> onFrame)` | 工厂方法；`size` 的浮点宽高被截断为整数 |
 | `SkiaAnim(ISKAnimation)` / `SkiaAnim(SKSize, int, Action<...>)` | 包装为 `NBSkiaAnimation` 可视节点；实际视频管线用法，测试中用于编译冒烟 |
@@ -338,10 +374,10 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 
 - **两文件结构**：动画类单独放在 `MyAnimation.cs`（或 `<类名>.cs`），测试入口放在 `MyAnimation_Test.cs`；不要把所有代码塞进一个文件，也不要让测试文件里出现第二个动画类。
 - **类文件必须是纯类型文件**：不含 `#!/usr/bin/env dotnet`、不含 `#:include`、不含顶层语句；否则与测试文件 `#:include` 后会编译失败（顶层语句只能出现在入口文件）。
-- **测试文件必须有入口指令**：`#!/usr/bin/env dotnet` + `#:include <实现类源文件>`；`#:package NewBeeVG@1.0.1.20` 按运行环境决定是否保留。
+- **测试文件必须有入口指令**：`#!/usr/bin/env dotnet` + `#:include <实现类源文件>`；`#:package NewBeeVG@1.0.1.21` 按运行环境决定是否保留。
 - **测试文件必须引入 Methods**：写 `using static NewBeeVG.Methods;`，否则 `SkiaAnim(...)` / `run(...)` / `clips()` 无法解析。
 - **必须有 `debug` 开关**：`using` 之后声明 `bool debug = true;`；所有 AI 测试语句加 `if (debug == true)` 前缀，`debug = false` 时只执行正式出片。
-- **AI 永远不要把 `debug` 设为 `false`**：编写、测试、编译验证期间一律保持 `true`，不要为了让出片跑起来而改它；`false` 只由使用者在交付后手动切换。
+- **AI 不要把 `debug` 硬编码为 `false`**：默认必须是 `true`，并保留 `args` 覆盖行；编写、测试、编译验证期间通过不传参数或传 `"debug"` 保持 `true`，不要为了让出片跑起来改默认值。
 - **测试目录创建也要守卫**：所有测试用目录创建都写成 `if (debug == true) Directory.CreateDirectory("output/xxx");`，不要无条件创建；`SavePNG` 虽会自动建目录，显式创建同样放在守卫内。
 - **一条守卫只对应一条写文件语句**：`if (debug == true)` 后面只能跟一条 `SavePNG` / `SaveMp4` / `SaveGif` / `Directory.CreateDirectory`；禁止把多条导出或整个 `foreach` 包进同一个守卫块。
 - **结尾必须有 run**：文件末尾固定写 `if (debug == false) run(stage(Width, Height), clips());`。
@@ -349,7 +385,7 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 - **每个场景必须写真实 SkiaAnim 代码**：场景末尾的 `SkiaAnim(new YourAnimation(...)).AsClip(frames, name: "...")` 就是交付后的生产代码，**不要加 `if (debug == true)`**，也不要用假的片段糊弄编译；`debug` 改为 `false` 后由 `run(...)` 直接出片。
 - **循环测试用例的守卫位置**：`foreach` / `for` 外层不要包 `if (debug == true)`；每个迭代内只给实际写文件的调用加守卫（如 `if (debug == true) probe.SavePNG(...)`），随后无条件写 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: $"key_{key}")`；不要用 `if (debug == true) { ... }` 包住整个循环体或一大段逻辑。
 - **循环内创建的特效必须有 SkiaAnim**：每个迭代在 `if (debug == true) probe.SavePNG(...)` 之后，必须再写一条无条件的 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: $"key_{key}")`；只创建 probe 保存 PNG、不写 `SkiaAnim`，会导致正式出片缺少这些档位。
-- **内容参数封装**：继承 `SKCustomAnimation` 时，把标题、字号、数据等输入封装为**内部类** `ContentSetting`，构造签名保持 `(width, height, frames, content, contentTheme = null)`；不要把大量参数平铺在构造函数上。
+- **内容参数封装**：继承 `SKCustomAnimation` 时，把标题、字号、数据等输入封装为**内部类** `ContentSetting`，构造签名保持 `(width, height, frames, content, contentTheme = null)`；不要把大量参数平铺在构造函数上。需要绘制文字时，在 `ContentSetting` 增加 `FontFamily`（默认空字符串），绘制时为空则使用 `GetDefaultFontName()`。
 - **主题颜色扩展**：`NBVideoTheme` 的 7 个颜色不够用时，不要继续加构造参数，而是定义内部类 `ContentTheme : NBVideoTheme`，把额外颜色作为属性，并整体传入构造函数。
 - **ContentTheme 必须继承 NBVideoTheme**：否则无法直接传给基类，也无法通过 `(ContentTheme)Theme` 取回扩展颜色。
 - **默认主题要复制**：`contentTheme` 为 `null` 时用 `ContentTheme.CreateDefault()`（复制 `NBVideoThemes.Nature`），不要直接返回共享静态实例，避免被修改后污染全局。
@@ -370,13 +406,14 @@ var bmp = new SKBitmap(info);
 - **帧率精度**：MP4 支持任意正的 `fps`；GIF 延迟单位为 1/100 秒，非整除帧率（如 30）会被取整，实际速度有偏差。
 - **GIF 限制**：`MaxWidth` / `MaxHeight` 为 1200，超出按比例缩小；仅支持二值透明（Alpha 阈值 128）；颜色量化为 256 色。
 - **绘制对象**：`SKPaint`、`SKFont`、`SKPath`、`SKShader` 等使用 `using`，避免每帧泄漏原生对象。
+- **字体**：跨平台默认字体用 `SKCustomAnimation.GetDefaultFontName()`，不要硬编码 `"Microsoft YaHei"`；`font("...")` 设置的全局字体优先。
 
 ## 完成前检查
 
 1. 是否创建了两个文件：动画类源文件（模板为 `MyAnimation.cs`）与测试文件 `MyAnimation_Test.cs`；
 2. 动画类文件是否只有类型声明（无 `#!`、无顶层语句）；
 3. 测试文件是否有 `#!/usr/bin/env dotnet`、`#:include <实现类源文件>`（模板为 `MyAnimation.cs`）与 `using static NewBeeVG.Methods;`；
-4. 是否在 `using` 后声明 `bool debug = true;`，且 AI 未把它改成 `false`；
+4. 是否在 `using` 后声明 `bool debug = true;`，并保留 `if (args.Length > 0) debug = args[0] == "debug";`，且默认值未被改成 `false`；
 5. 所有写本地文件的调用（`SavePNG` / `SaveMp4` / `SaveGif` / `Directory.CreateDirectory`）是否各自带 `if (debug == true)`，且没有把大段逻辑整体包进守卫块；
 6. 文件结尾是否有 `if (debug == false) run(stage(Width, Height), clips());`；
 7. 每个测试场景是否用 `{ }` 隔离变量，末尾的 `SkiaAnim(...).AsClip(...)` 是否为真实场景代码且未被 `debug` 条件包裹；
@@ -392,10 +429,11 @@ var bmp = new SKBitmap(info);
 17. 是否处理了 `BuildFrame` / `SavePNG` 的 `null` / `false` 返回；
 18. 透明背景是否按需求用 `SKColors.Transparent`（或 `Theme.Background`）清空画布；
 19. `fps` 是否大于 0；GIF 是否使用了合适的帧率；
-20. `SaveMp4` / `SaveGif` 的输出目录是否已存在（且创建语句是否在 `debug` 守卫内）。
+20. `SaveMp4` / `SaveGif` 的输出目录是否已存在（且创建语句是否在 `debug` 守卫内）；
+21. 字体是否使用 `SKCustomAnimation.GetDefaultFontName()` 或 `font(...)`，没有跨平台硬编码字体名。
 
 ## 资源
 
 - `references/api-and-pitfalls.md`：两个文件的完整示例、主题与 `ContentTheme` 扩展、逐帧技巧、三种导出方式、常见问题。
 - `assets/MyAnimation.cs`：动画类文件模板（类名 `MyAnimation`，只含类定义，可直接复制改名）。
-- `assets/MyAnimation_Test.cs`：测试入口模板（`#!`、`#:package NewBeeVG@1.0.1.20`、`#:include MyAnimation.cs`、`using static NewBeeVG.Methods;`、`bool debug = true;`、分场景大括号、`debug` 条件测试、结尾 `run(...)`）。
+- `assets/MyAnimation_Test.cs`：测试入口模板（`#!`、`#:package NewBeeVG@1.0.1.21`、`#:include MyAnimation.cs`、`using static NewBeeVG.Methods;`、`bool debug = true;` + `args` 覆盖、分场景大括号、`debug` 条件测试、结尾 `run(...)`）。
