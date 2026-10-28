@@ -3,9 +3,16 @@ using SkiaSharp;
 
 namespace NewBeeVG;
 
-public class NBSkiaAnimation : NBBaseImage
+public class NBSkiaAnimation : NBBaseLoopAnimation
 {
-    public ISKAnimation? Animation { get; set; }
+    public ISKAnimation? Animation {
+        get; 
+        set
+        {
+            field = value; 
+            TotalFrames = value?.Frames ?? 0;
+        } 
+    }
 
     private SKSize? AnimSize
     {
@@ -15,10 +22,6 @@ public class NBSkiaAnimation : NBBaseImage
             return new SKSize(Animation.Width, Animation.Height);
         }
     }
-
-    public int TotalFrames => Animation?.Frames ?? 0;
-
-    public NBAnimateLoopMode LoopMode { get; set; } = NBAnimateLoopMode.Loop;
 
     protected override SKSize? GetImageSize()
     {
@@ -39,22 +42,7 @@ public class NBSkiaAnimation : NBBaseImage
         int height = (int)size.Height;
         if (width <= 0 || height <= 0) return;
 
-        var frame = NBDrawContext.Current?.frame ?? 0;
-        frame = (int)(frame);
-
-        if (LoopMode == NBAnimateLoopMode.Loop)
-        {
-            frame = frame % TotalFrames;
-        }
-        else if (LoopMode == NBAnimateLoopMode.AutoReverse)
-        {
-            var cycleFrames = TotalFrames * 2;
-            frame = frame % cycleFrames;
-            if (frame >= TotalFrames)
-            {
-                frame = cycleFrames - frame - 1;
-            }
-        }
+        var frame = NextFrame(TotalFrames, LoopMode, Speed);
 
         src = new SKRect(0, 0, width, height);
         SKMatrix? m = src == dest ? null : NBLayoutHelper.CreateRectTransform(src, dest);
