@@ -14,6 +14,39 @@ public class DrawingHelper
         bitmap.Render(content);
     }
 
+    /// <summary>
+    /// 将 SKBitmap 保存为 PNG 文件，保留 Alpha 通道。
+    /// </summary>
+    /// <param name="bmp">要保存的位图，不能为空或已释放。</param>
+    /// <param name="pngFilePath">输出 PNG 路径；所在目录不存在时会自动创建。</param>
+    /// <remarks>
+    /// PNG 为无损格式，编码质量参数固定为 100；若路径扩展名不是 .png，文件内容仍是 PNG。
+    /// 本方法不会释放传入的 <paramref name="bmp"/>。
+    /// </remarks>
+    public static void Save(SKBitmap bmp, string pngFilePath)
+    {
+        ArgumentNullException.ThrowIfNull(bmp);
+        if (bmp.IsEmpty)
+            throw new ArgumentException("位图为空，无法保存", nameof(bmp));
+        if (string.IsNullOrWhiteSpace(pngFilePath))
+            throw new ArgumentException("输出路径不能为空", nameof(pngFilePath));
+
+        // 自动创建目标目录（相对路径的当前目录无需创建）
+        var dir = Path.GetDirectoryName(Path.GetFullPath(pngFilePath));
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+
+        // SKImage 引用 bmp 的像素，必须在 bmp 释放前完成编码
+        using var image = SKImage.FromBitmap(bmp);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        if (data == null || data.Size == 0)
+            throw new InvalidOperationException($"PNG 编码失败: {pngFilePath}");
+
+        // FileMode.Create 会覆盖同名文件
+        using var fs = new FileStream(pngFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+        data.SaveTo(fs);
+    }
+
     public static unsafe WriteableBitmap? ToWriteableBitmap(SKBitmap? bitmap)
     {
         if (bitmap == null || bitmap.IsEmpty) return null;

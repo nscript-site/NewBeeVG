@@ -149,14 +149,11 @@ public class PlayerView : BaseView
 
     public void Stop()
     {
+        // 只设置停止标志并立即释放音频，不在 UI 线程等待播放循环退出。
+        // 播放线程会在 WaitUntil/while 条件处自行结束；忙等会与
+        // PlaySimple 中等待 UI 线程的调用互相卡死。
         Playing = false;
-        while(true)
-        {
-            if (_isPlaying == false)
-                break;
-
-            Thread.Sleep(100);
-        }
+        DisposeAudio();
         this.UpdateStateByUIThread();
     }
 
@@ -184,15 +181,15 @@ public class PlayerView : BaseView
     private void Play()
     {
         if (Playable == null || Work == null) return;
-        PlaySimple();
+        _ = PlaySimple();
     }
 
-    private void PlaySimple()
+    private async Task PlaySimple()
     {
         if (Work == null) return;
 
         // Run the playback loop on a background thread.
-        Task.Run(() =>
+        await Task.Run(async () =>
         {
             double fps = Work.Fps > 0 ? Work.Fps : 25.0;
             double frameIntervalMs = 1000.0 / fps;
@@ -244,8 +241,10 @@ public class PlayerView : BaseView
                     int renderedFrame = CurrentFrame;
                     double renderMs = 0;
 
-                    // 用 Background 优先级提交渲染：按钮点击等输入事件优先于渲染执行
-                    Dispatcher.UIThread.InvokeAsync(() =>
+                    // 用 Background 优先级提交渲染：按钮点击等输入事件优先于渲染执行。
+                    // 必须 await，不能 GetAwaiter().GetResult()：后者会让播放线程
+                    // 同步等待 UI 线程，与 UI 线程上的 Stop/Load 形成互等死锁。
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         var renderClock = Stopwatch.StartNew();
 
@@ -266,7 +265,7 @@ public class PlayerView : BaseView
                         this.UpdateState();
 
                         renderMs = renderClock.Elapsed.TotalMilliseconds;
-                    }, DispatcherPriority.Background).GetAwaiter().GetResult();
+                    }, DispatcherPriority.Background);
 
                     CurrentFrame++;
                     FeedAudioUpTo(CurrentFrame + _audioPrebufferFrames);
