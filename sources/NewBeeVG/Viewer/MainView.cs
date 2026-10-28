@@ -4,6 +4,8 @@ public class MainView : BaseView, IWindowView
 {
     TextBlock? SubtitleTextBlock;
 
+    public static string ProgramSubName { get; set; } = "";
+
     #region IWindowView
 
     public WindowInfo WindowInfo { get; }
@@ -14,7 +16,7 @@ public class MainView : BaseView, IWindowView
     {
         return new NWindowInfo()
         {
-            WindowTitle = "NewBee VG",
+            WindowTitle = $"NewBee VG{ProgramSubName}",
             CanResize = true,
             CanMinimize = true,
             CanClose = true,

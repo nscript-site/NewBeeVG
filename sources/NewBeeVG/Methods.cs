@@ -251,9 +251,9 @@ public static class Methods
 
     #endregion
 
-    internal static void start(string[]? args = null)
+    internal static void start(string programSubName, string[]? args = null)
     {
-        App.Start(args);
+        App.Start(programSubName, args);
     }
 
     public static void run()
@@ -326,7 +326,7 @@ public static class Methods
     /// <item><description>片段 Prepare 失败只打印错误、不中断整个流程。</description></item>
     /// </list>
     /// </remarks>
-    public static int run(NBStage stage, IList<NBClip> clips, IList<NBClip>[]? clipLists = null, string[]? args = null)
+    public static int run(NBStage stage, IList<NBClip> clips, IList<NBClip>[]? clipLists = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
     {
         // 先准备主片段：计算时长、初始化资源等；失败只打印错误，不中断流程
         PrepareClips(clips, stage);
@@ -350,7 +350,12 @@ public static class Methods
         // 无参数：启动预览窗口（阻塞到窗口关闭），返回 -1
         if(args == null || args.Length == 0)
         {
-            start();
+            string subName = String.Empty;
+            if (string.IsNullOrEmpty(callerFilePath) == false)
+            {
+                subName = new FileInfo(callerFilePath).Name;
+            }
+            start(subName);
             return -1;
         }
 

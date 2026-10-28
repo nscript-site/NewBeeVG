@@ -27,8 +27,13 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    public static void Start(string[]? args = null)
+    public static void Start(string programSubName, string[]? args = null)
     {
+        if (string.IsNullOrEmpty(programSubName) == false)
+            MainView.ProgramSubName = $" [{programSubName}]";
+        else
+            MainView.ProgramSubName = String.Empty;
+
         var builder = AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont();
