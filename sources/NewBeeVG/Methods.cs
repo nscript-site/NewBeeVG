@@ -1025,9 +1025,16 @@ public static class Methods
         return TypstCode(content, pageWidth, "cs", true, fontSize, pageMargin);
     }
 
-    public static NBLottie LottieFile(string path, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
+    public static NBLottieAnimation LottieAnim(string path)
     {
-        var file = new NBLottie();
+        var file = new NBLottieAnimation();
+        file.LottieFile = path;
+        return file;
+    }
+
+    public static NBLottieAnimation LottieFile(string path, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
+    {
+        var file = new NBLottieAnimation();
         file.LottieFile = path;
         if (width.HasValue) file.Width = width.Value;
         if (height.HasValue) file.Height = height.Value;
@@ -1036,9 +1043,9 @@ public static class Methods
         return file;
     }
 
-    public static NBLottie LottieFile(string basePath, string fileName, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
+    public static NBLottieAnimation LottieFile(string basePath, string fileName, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
     {
-        var file = new NBLottie();
+        var file = new NBLottieAnimation();
         file.LoadFromFile(basePath, fileName);
         if (width.HasValue) file.Width = width.Value;
         if (height.HasValue) file.Height = height.Value;

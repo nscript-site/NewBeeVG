@@ -15,14 +15,14 @@ public class NBBaseLoopAnimation : NBBaseImage
 {
     public int TotalFrames { get; protected set; }
 
-    public NBAnimateLoopMode LoopMode { get; set; } = NBAnimateLoopMode.Stop;
+    public NBAnimateLoopMode LoopMode { get; internal set; } = NBAnimateLoopMode.Stop;
 
     /// <summary>
     /// 播放速度
     /// </summary>
-    public double Speed { get; set; } = 1.0;
+    public double Speed { get; internal set; } = 1.0;
 
-    protected int NextFrame(int totleFrames, NBAnimateLoopMode loopMode, double speed = 1.0)
+    protected static int NextFrame(int totleFrames, NBAnimateLoopMode loopMode, double speed = 1.0)
     {
         var frame = NBDrawContext.Current?.frame ?? 0;
         frame = (int)(frame * speed);

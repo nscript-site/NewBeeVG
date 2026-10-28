@@ -7,7 +7,7 @@ namespace NewBeeVG;
 /// <summary>
 /// 使用 Lottie 动画的控件。这样，可以通过 OmniLottie 来生成 Lottie 动画，并将其集成到 NewBeeVG 的渲染管线中。
 /// </summary>
-public class NBLottie : NBBaseLoopAnimation
+public class NBLottieAnimation : NBBaseLoopAnimation
 {
     public Stream? LottieStream { get; set; }
 
