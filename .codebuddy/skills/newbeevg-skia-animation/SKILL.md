@@ -24,7 +24,7 @@ description: This skill should be used when creating, editing, or debugging fram
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.15
+#:package NewBeeVG@1.0.1.20
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -138,7 +138,7 @@ C# 12 / .NET 10 支持主构造函数，但这里仍建议显式写构造函数�
 规则：
 
 - 必须以 `#!/usr/bin/env dotnet` 开头；
-- `#:package NewBeeVG@1.0.1.15` 用于脱离仓库时引入 NewBeeVG；在仓库的 `apps/files/` 内，`Directory.Build.props` 已提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.20` 用于脱离仓库时引入 NewBeeVG；在仓库的 `apps/files/` 内，`Directory.Build.props` 已提供项目引用，出现重复引用时删除该指令；
 - `#:include` 后写**所实现动画类的源文件路径**（模板为 `MyAnimation.cs`），路径相对于测试文件；
 - `using` 至少包含 `NewBeeVG`、`SkiaSharp`、`using static NewBeeVG.Methods;`（`SkiaAnim` 是 `Methods` 的静态方法）；
 - 在 `using` 之后声明 `bool debug = true;`，并且**AI 不得把它改为 `false`**（`false` 由使用者交付后手动切换）；
@@ -338,7 +338,7 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 
 - **两文件结构**：动画类单独放在 `MyAnimation.cs`（或 `<类名>.cs`），测试入口放在 `MyAnimation_Test.cs`；不要把所有代码塞进一个文件，也不要让测试文件里出现第二个动画类。
 - **类文件必须是纯类型文件**：不含 `#!/usr/bin/env dotnet`、不含 `#:include`、不含顶层语句；否则与测试文件 `#:include` 后会编译失败（顶层语句只能出现在入口文件）。
-- **测试文件必须有入口指令**：`#!/usr/bin/env dotnet` + `#:include <实现类源文件>`；`#:package NewBeeVG@1.0.1.15` 按运行环境决定是否保留。
+- **测试文件必须有入口指令**：`#!/usr/bin/env dotnet` + `#:include <实现类源文件>`；`#:package NewBeeVG@1.0.1.20` 按运行环境决定是否保留。
 - **测试文件必须引入 Methods**：写 `using static NewBeeVG.Methods;`，否则 `SkiaAnim(...)` / `run(...)` / `clips()` 无法解析。
 - **必须有 `debug` 开关**：`using` 之后声明 `bool debug = true;`；所有 AI 测试语句加 `if (debug == true)` 前缀，`debug = false` 时只执行正式出片。
 - **AI 永远不要把 `debug` 设为 `false`**：编写、测试、编译验证期间一律保持 `true`，不要为了让出片跑起来而改它；`false` 只由使用者在交付后手动切换。
@@ -398,4 +398,4 @@ var bmp = new SKBitmap(info);
 
 - `references/api-and-pitfalls.md`：两个文件的完整示例、主题与 `ContentTheme` 扩展、逐帧技巧、三种导出方式、常见问题。
 - `assets/MyAnimation.cs`：动画类文件模板（类名 `MyAnimation`，只含类定义，可直接复制改名）。
-- `assets/MyAnimation_Test.cs`：测试入口模板（`#!`、`#:package NewBeeVG@1.0.1.15`、`#:include MyAnimation.cs`、`using static NewBeeVG.Methods;`、`bool debug = true;`、分场景大括号、`debug` 条件测试、结尾 `run(...)`）。
+- `assets/MyAnimation_Test.cs`：测试入口模板（`#!`、`#:package NewBeeVG@1.0.1.20`、`#:include MyAnimation.cs`、`using static NewBeeVG.Methods;`、`bool debug = true;`、分场景大括号、`debug` 条件测试、结尾 `run(...)`）。

@@ -107,6 +107,28 @@ SVG("""
 """).Size(200, 200).Align(0, 0);
 ```
 
+### Audio
+
+```csharp
+public static NBAudioClip AudioFile(string path);
+```
+
+```csharp
+// 链接到 clip1 的第 0 帧
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1");
+
+// 链接到 clip1 的第 10 帧
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1", 10);
+```
+
+- 音频片段不绘制画面，只提供音轨；
+- `.AsClip("audio")` 负责登记名称；
+- `.LinkTo("clip1", offset)` 让音频起点跟随 `clip1` 的起点并加上偏移；
+- 目标 clip 必须已创建并登记名称；
+- 时长在 `Prepare` 时按音频文件自动计算。
+
 ### Lottie
 
 ```csharp

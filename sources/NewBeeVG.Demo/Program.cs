@@ -10,7 +10,7 @@
 
 //LayerSample.Run();
 
-VideoThemePreviewSample.Run();
+//VideoThemePreviewSample.Run();
 
 //TransparentBgSample.Run();
 
@@ -18,7 +18,7 @@ VideoThemePreviewSample.Run();
 
 //SKAnimationSample.Run();
 
-//SVGSample.Run();
+SVGSample.Run();
 
 //Canvas3DSample.Run();
 

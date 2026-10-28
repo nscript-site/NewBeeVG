@@ -3,7 +3,7 @@
 // 需要先准备一个 SKCustomAnimation 子类，放在 modules/MyAnimation.cs
 // 仓库 apps/files 下由 Directory.Build.props 提供 NewBeeVG 引用；
 // 仓库外运行时取消下一行注释并改成当前包版本：
-// #:package NewBeeVG@1.0.1.17
+// #:package NewBeeVG@1.0.1.20
 #:include modules/MyAnimation.cs
 
 // ------------------------------------------------------------
@@ -45,6 +45,16 @@
         SkiaAnim(anim2),
     ]).AsClip(frames, name: "clip1");
 }
+
+// ------------------------------------------------------------
+// 音频（可选）：需要 ./Assets/audio01.mp3 存在
+// 音频起点 = clip1 的起始帧 + offset（默认 0）
+// ------------------------------------------------------------
+// AudioFile("./Assets/audio01.mp3")
+//     .AsClip("audio").LinkTo("clip1");
+//
+// AudioFile("./Assets/audio01.mp3")
+//     .AsClip("audio").LinkTo("clip1", 10);
 
 // ------------------------------------------------------------
 // 片尾

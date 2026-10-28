@@ -220,3 +220,70 @@ Clip[名称 prepare fail: 原因]
 ```
 
 不会中断其他片段。导出前若发现画面缺失，先检查对应 clip 的 `Prepare` 是否抛异常。
+
+## 9. 音频片段
+
+`AudioFile(path)` 创建 `NBAudioClip`：只包含音频，不参与画面绘制。
+
+```csharp
+public static NBAudioClip AudioFile(string path);
+```
+
+音频 clip 用 `AsClip("audio")` 登记名称，再用 `LinkTo` 对齐到目标画面 clip：
+
+```csharp
+// 音频链接到 clip1 的第 0 帧
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1");
+
+// 音频链接到 clip1 的第 10 帧（相对 clip1 的起点）
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1", 10);
+```
+
+`LinkTo` 有两个重载：
+
+```csharp
+public static T LinkTo<T>(this T widget, string clipName, int startFrame = 0) where T : NBClip;
+public static T LinkTo<T>(this T widget, T referenceClip, int startFrame = 0) where T : NBClip;
+```
+
+行为：
+
+- `AsClip("audio")` 使用 `NBClip` 的 `AsClip` 重载：设置 `Name`，并加入 `clips()` 与名称字典；
+- `LinkTo("clip1", 10)` 设置 `ReferenceClip = clip1`、`ReferenceClipStartFrame = 10`；
+- 音频自身的 `StartFrame` 仍为 `null`，track 计算时间线时解析为 `clip1.StartFrame + 10`；
+- 目标 clip 必须**先创建并登记名称**，否则 `Methods.clip("clip1")` 返回 `null`，链接不会生效；
+- `Prepare` 时按音频文件真实时长更新 `DurationFrames`：`ceil(秒数 × stage.FrameRate)`，至少 1 帧；
+- 音频 PCM 会混入 `NBTrack.MixedAudioData`，MP4 导出时写入音轨；
+- 文件不存在时打印 `音频文件不存在`，保留默认 1 帧，不中断其他片段。
+
+完整示例：
+
+```csharp
+VStack([
+    TextBlock("Clip1").Font(80, SKColors.Orange).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 40, name: "clip1");
+
+VStack([
+    TextBlock("Clip2").Font(80, SKColors.Orange).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 40, name: "clip2");
+
+// 音频链接到 clip1 的第 0 帧
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1");
+
+// 音频链接到 clip1 的第 10 帧
+// AudioFile("./Assets/audio01.mp3")
+//     .AsClip("audio").LinkTo("clip1", 10);
+
+run(stage(1920, 1080, bg: SKColors.White), clips());
+```
+
+注意：
+
+- 音频 clip 本身不需要 `frames` / `start`；
+- 必须在画面 clip 之后创建，确保目标名称已登记；
+- 路径相对于运行时目录；
+- 多个音频可分别创建并 `LinkTo` 到不同目标。
+

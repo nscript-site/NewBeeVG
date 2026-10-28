@@ -175,7 +175,7 @@ public class MyAnimation : SKCustomAnimation
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.15
+#:package NewBeeVG@1.0.1.20
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -281,7 +281,7 @@ if (debug == false)
 - `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
 - **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
 - 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
-- `#:package NewBeeVG@1.0.1.15` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.20` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
 - `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
 
 ### 循环生成测试用例

@@ -3,6 +3,7 @@ using NewBeeVG.Internal;
 using Python.Runtime;
 using SkiaSharp;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 
 namespace NewBeeVG;
 
@@ -365,12 +366,8 @@ public static class Methods
         // 1 个参数：导出 MP4 到 args[0]；save 内部会拒绝覆盖已存在文件
         if (args.Length == 1)
         {
-            var savedClips = work.Tracks.FirstOrDefault()?.Clips;
-            if (savedClips != null)
-            {
-                var outMp4Path = args[0].Trim();
-                save(outMp4Path, work.Stage, savedClips);
-            }
+            var outMp4Path = args[0].Trim();
+            save(outMp4Path, work.Stage, work);
         }
         // 2 个及以上参数：args[0] = 帧号，args[1] = PNG 输出路径
         else if (args.Length > 1)
@@ -433,18 +430,34 @@ public static class Methods
             return;
         }
 
+        save(path, stage, work.Works[0]);
+    }
+
+    public static void save(string path, NBStage stage, NBWork work)
+    {
+        var fileInfo = new FileInfo(path);
+        if (fileInfo.Exists == true)
+        {
+            Console.WriteLine($"文件已存在:{path}, 保存失败!");
+            return;
+        }
+
         NBGlobal.CheckOrLoadFFmpeg();
 
-        var frames = work.Works[0].Measure();
+        var frames = work.Measure();
 
         var fileName = fileInfo.FullName;
 
-        IPlayable Playable = work.Works[0];
-
-        var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true);
+        IPlayable Playable = work;
+        var pcm = Playable.MixedAudioData;
 
         try
         {
+            var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true);
+            if (pcm != null)
+            {
+                pcm.WriteTo(writer, stage.AudioFrameRate);
+            }
             for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
             {
                 using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);
@@ -455,7 +468,7 @@ public static class Methods
                 if (CurrentFrame % 10 == 0)
                 {
                     var msg = $"正在导出视频... {CurrentFrame}/{frames}";
-                    Console.WriteLine (msg);
+                    Console.WriteLine(msg);
                 }
             }
 

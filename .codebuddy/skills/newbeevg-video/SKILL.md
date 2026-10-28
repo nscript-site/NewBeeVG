@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -37,7 +37,7 @@ clip 的时间规则：
 - 使用 **dotnet file-based app**：文件以 `#!/usr/bin/env dotnet` 开头，`dotnet xxx.cs` 直接运行。
 - 需要引用其他源文件时用 `#:include 相对路径.cs`；类声明放在顶层语句之后。
 - 仓库 `apps/files/` 下已有 `Directory.Build.props`，全局导入 `NewBeeVG`、`SkiaSharp`、静态 `NewBeeVG.Methods`，不用重复 `using`。
-- 仓库外运行需在文件顶部加 `#:package NewBeeVG@<版本>`（版本与当前包一致）；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
+- 仓库外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.20`；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
 - **首字母大写的方法**是界面/布局/样式方法（`TextBlock`、`HStack`、`Align`、`Background`…）；
 - **首字母小写的方法**是行为方法（`stage`、`run`、`font`、`clips`、`skanim`…）。
 
@@ -107,6 +107,50 @@ HStack([...]).AsClip(90, 30, name: "body");
 - 不传 `start` 时自动紧接前一个 clip；
 - `AsClip(out var clip, ...)` 的 `out` 可用于后续 `Bind`、手动改 `IsVisible` 等；
 - `name` 建议唯一，便于调试与按名称查找。
+
+## 音频片段
+
+音频是独立的 `NBAudioClip`，不绘制画面；用 `LinkTo` 把它的起始时间对齐到某个画面 clip：
+
+```csharp
+// 音频链接到 name 为 clip1 的 第 0 帧（初始帧）
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1");
+
+// 音频链接到 clip1 的第 10 帧（offset 为相对 clip1 起点的帧数）
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1", 10);
+```
+
+- `AudioFile(path)` 创建音频 clip；
+- `.AsClip("audio")` 登记音频并命名（音频 clip 不需要 `frames`）；
+- `.LinkTo("clip1", offset)`：音频起点 = 目标 clip 的 `StartFrame + offset`，`offset` 默认 `0`；
+- 目标 clip 必须**先创建并登记名称**，否则 `LinkTo` 找不到目标，链接会静默失败；
+- 音频时长在 `Prepare` 阶段按文件自动计算，`DurationFrames` 会被更新；
+- 音频与画面进入同一 track 混音，预览和 MP4 导出都会带音频；
+- 路径相对于运行目录。
+
+完整示例：
+
+```csharp
+VStack([
+    TextBlock("Clip1").Font(80, SKColors.Orange).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 40, name: "clip1");
+
+VStack([
+    TextBlock("Clip2").Font(80, SKColors.Orange).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 40, name: "clip2");
+
+// 音频链接到 clip1 的第 0 帧
+AudioFile("./Assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1");
+
+// 音频链接到 clip1 的第 10 帧
+// AudioFile("./Assets/audio01.mp3")
+//     .AsClip("audio").LinkTo("clip1", 10);
+
+run(stage(1920, 1080, bg: SKColors.White), clips());
+```
 
 ## 布局
 
@@ -287,11 +331,12 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 6. SkiaAnim 实例尺寸与布局区域是否匹配，是否需要透明背景；
 7. 是否避免使用已废弃的 `NBLayer`；
 8. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
-9. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后。
+9. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
+10. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称。
 
 ## 资源
 
-- `references/concepts-and-run.md`：概念、clip 时间规则、`AsClip`、`clips()`、`run` 参数与返回值细节。
+- `references/concepts-and-run.md`：概念、clip 时间规则、`AsClip`、音频 `LinkTo`、`clips()`、`run` 参数与返回值细节。
 - `references/layout.md`：六种布局容器、Grid 尺寸语法、`Align` 全取值与排版示例。
 - `references/texts-and-style.md`：`NBText` / `NBRichText` / `TextRun`、`Styles`、逐帧动画与缓动。
 - `references/effects.md`：渲染流程、Shaders、BitmapFilters、FrameMask、Filters、ColorFilters、Opacity/RenderTransform。

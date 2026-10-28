@@ -411,6 +411,17 @@ public static partial class NBExtentions
         return widget;
     }
 
+    public static T LinkTo<T>(this T widget, string clipName, int startFrame = 0) where T : NBClip
+    {
+        var clip = Methods.clip(clipName);
+        if(clip != null)
+        {
+            widget.ReferenceClip = clip;
+            widget.ReferenceClipStartFrame = startFrame;
+        }
+        return widget;
+    }
+
     public static NBDrawingClip AsClip<T>(this T widget, out NBDrawingClip value, int frames, int? start = null, string name = "clip") where T : NBVisual
     {
         value = Methods.clip(widget, name: name, frames: frames, start: start);
