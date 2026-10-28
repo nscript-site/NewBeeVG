@@ -18,7 +18,9 @@
 
 //SKAnimationSample.Run();
 
-SVGSample.Run();
+PngAnimationSample.Run();
+
+//SVGSample.Run();
 
 //Canvas3DSample.Run();
 

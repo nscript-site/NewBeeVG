@@ -101,6 +101,7 @@ public class NBClip : IPlayable
             width = stage.Width,
             height = stage.Height, 
             durationFrames = DurationFrames,
+            fps = stage.FrameRate,
             progress = CalculateProgress(frame, DurationFrames)
         };
         NBDrawContext.Current = cxt;

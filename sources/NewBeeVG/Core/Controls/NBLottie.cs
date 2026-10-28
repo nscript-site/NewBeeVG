@@ -4,16 +4,10 @@ using System.IO.Compression;
 
 namespace NewBeeVG;
 
-public enum NBAnimateLoopMode
-{
-    Loop,
-    AutoReverse
-}
-
 /// <summary>
 /// 使用 Lottie 动画的控件。这样，可以通过 OmniLottie 来生成 Lottie 动画，并将其集成到 NewBeeVG 的渲染管线中。
 /// </summary>
-public class NBLottie : NBBaseImage
+public class NBLottie : NBBaseLoopAnimation
 {
     public Stream? LottieStream { get; set; }
 
@@ -95,15 +89,6 @@ public class NBLottie : NBBaseImage
 
     public double Duration { get; protected set; } = 0;
 
-    public int TotalFrames { get; protected set; }
-
-    public NBAnimateLoopMode LoopMode { get; set; } = NBAnimateLoopMode.Loop;
-
-    /// <summary>
-    /// 播放速度
-    /// </summary>
-    public double Speed { get; set; } = 1.0;
-
     protected override SKSize? GetImageSize()
     {
         TryLoadLottie();
@@ -153,24 +138,8 @@ public class NBLottie : NBBaseImage
         var size = LottieSize.Value;
         int width = (int)size.Width;
         int height = (int)size.Height;
-        if(width <= 0 || height <= 0) return;
-
-        var frame = NBDrawContext.Current?.frame ?? 0;
-        frame = (int)(frame * Speed);
-
-        if(LoopMode == NBAnimateLoopMode.Loop)
-        {
-            frame = frame % TotalFrames;
-        }
-        else if (LoopMode == NBAnimateLoopMode.AutoReverse)
-        {
-            var cycleFrames = TotalFrames * 2;
-            frame = frame % cycleFrames;
-            if (frame >= TotalFrames)
-            {
-                frame = cycleFrames - frame - 1;
-            }
-        }
+        if (width <= 0 || height <= 0) return;
+        int frame = NextFrame(TotalFrames, LoopMode, Speed);
 
         Animator.SeekFrame(frame);
 
@@ -183,20 +152,5 @@ public class NBLottie : NBBaseImage
 
         animator.SeekFrame(frameIndex);
         animator.Render(canvas, dest);
-    }
-}
-
-public static partial class NBExtentions
-{
-    public static T LoopMode<T>(this T self, NBAnimateLoopMode loopMode) where T : NBLottie
-    {
-        self.LoopMode = loopMode;
-        return self;
-    }
-
-    public static T Speed<T>(this T self, double speed) where T : NBLottie
-    {
-        self.Speed = speed;
-        return self;
     }
 }

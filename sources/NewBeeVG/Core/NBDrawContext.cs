@@ -9,6 +9,7 @@ public struct NBDrawContext
     public int frame;
     public int width;
     public int height;
+    public double fps;
     public double progress;
     public int durationFrames;
     public NBLayoutable? content;

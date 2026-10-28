@@ -735,6 +735,11 @@ public static class Methods
         return new NBSkiaAnimation { Animation = skanim };
     }
 
+    public static NBPngAnimation PngAnim(string filePath)
+    {
+        return new NBPngAnimation(filePath);
+    }
+
     public static NBText Text(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)
     {
         return TextBlock(text, fontSize, color, fontFamily, wrap, textAlign);

@@ -9,9 +9,13 @@ public class NBSvg : NBBaseImage
 
     public SKPicture? Source { get; protected set; }
 
+    public List<SKPicture>? SvgFrames { get; protected set; }
+
     protected SKSvg? Svg { get; set; }
 
     protected bool IsSvgLoaded;
+
+    public NBAnimateLoopMode LoopMode { get; set; } = NBAnimateLoopMode.Loop;
 
     protected override SKSize? GetImageSize()
     {
@@ -34,6 +38,12 @@ public class NBSvg : NBBaseImage
             {
                 Svg = new SKSvg();
                 Source = Svg.Load(SvgStream);
+                if(Source != null && Svg.HasAnimations)
+                {
+                    SvgFrames = new List<SKPicture>();
+                    SvgFrames.Add(Source);
+                    
+                }
                 IsSvgLoaded = true;
             }
             catch(Exception ex)
