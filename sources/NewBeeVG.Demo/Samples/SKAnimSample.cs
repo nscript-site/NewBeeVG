@@ -6,7 +6,7 @@ using System.Text;
 
 namespace NewBeeVG.Demo.Samples;
 
-internal class SKAnimationSample
+internal class SKAnimSample
 {
     public static void Run()
     {

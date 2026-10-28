@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NewBeeVG.Demo.Samples;
 
-internal class PngAnimationSample
+internal class PngAnimSample
 {
     public static void Run()
     {

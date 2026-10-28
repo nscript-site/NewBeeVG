@@ -1032,6 +1032,13 @@ public static class Methods
         return file;
     }
 
+    public static NBTypstAnimation TypstAnim(string path)
+    {
+        var file = new NBTypstAnimation();
+        file.TypstFile = path;
+        return file;
+    }
+
     public static NBLottieAnimation LottieFile(string path, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
     {
         var file = new NBLottieAnimation();

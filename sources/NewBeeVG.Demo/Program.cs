@@ -16,7 +16,9 @@
 
 //AudioSample.Run();
 
-SKAnimationSample.Run();
+TypstAnimSample.Run();
+
+//SKAnimSample.Run();
 
 //PngAnimationSample.Run();
 
