@@ -1,6 +1,6 @@
 ---
 name: newbeevg-skia-animation
-description: This skill should be used when creating, editing, or debugging frame-by-frame animations rendered with SkiaSharp in the NewBeeVG codebase, especially when creating an SKCustomAnimation subclass in .NET file-based apps using the two-file pattern (class file plus a _Test.cs runner with #:include), or when working with ISKAnimation, SKAnimation, skanim(...), SKCanvas frame callbacks, NBVideoTheme/NBVideoThemes color themes, ContentSetting/ContentTheme inner classes, SKAnimSetting-based content margins, PNG frame export (SavePNG), MP4/GIF export (SaveMp4/SaveGif), frame index to progress conversion, transparency, frame rate, bitmap disposal, and the debug-flag guard placement for loop-generated test cases.
+description: This skill should be used when creating, editing, or debugging frame-by-frame animations rendered with SkiaSharp in the NewBeeVG codebase, especially when creating an SKCustomAnimation subclass in .NET file-based apps using the two-file pattern (class file plus a _Test.cs runner with #:include), or when working with ISKAnimation, SKAnimation, SKCanvas frame callbacks, NBVideoTheme/NBVideoThemes color themes, ContentSetting/ContentTheme inner classes, SKAnimSetting-based content margins and AnimRatio timing, exact core class/method signatures, PNG frame export (SavePNG), MP4/GIF export (SaveMp4/SaveGif), frame index to progress conversion, transparency, frame rate, bitmap disposal, and the debug-flag guard placement for loop-generated test cases.
 ---
 
 # NewBeeVG SkiaSharp 逐帧动画
@@ -24,7 +24,7 @@ description: This skill should be used when creating, editing, or debugging fram
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.24
+#:package NewBeeVG@1.0.1.25
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -119,6 +119,29 @@ h = Height - top  - bottom
 
 而不是直接使用整张 `(Width, Height)`。
 
+### AnimRatio
+
+`SKAnimSetting.AnimRatio` 控制动效在整段 clip 内完成的比例，默认 `0.80f`：
+
+- 前 `AnimRatio` 的时间完成动画；
+- 剩余时间保持最终状态；
+- 取值 `0..1`；`<= 0` 表示不动画（直接最终状态），`>= 1` 表示全程动画。
+
+`DrawFrame` 中必须把原始进度映射为动画进度，不要直接用 `frame / (Frames - 1)`：
+
+```csharp
+// 原始进度 0..1
+float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+
+// 按 AnimRatio 压缩：前段完成动效，后段静止在最终状态
+float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
+```
+
+- `t` 用于所有动效计算；
+- `raw > AnimRatio` 后 `t` 保持 `1`，画面不再变化；
+- 不要在 `AnimRatio` 之后继续推进、回退或循环动画。
+
 推荐构造签名：
 
 ```csharp
@@ -153,11 +176,16 @@ protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
     canvas.ClipRect(new SKRect(left, top, left + w, top + h));
     canvas.Translate(left, top);
 
-    // 后续按内容区域 (0, 0, w, h) 绘制，特效会填满带 Margin 的矩形
+    // 原始进度 → 按 AnimRatio 压缩后的动画进度
+    float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+    float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+    float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
+
+    // 后续按内容区域 (0, 0, w, h) 绘制，用 t 驱动动效
     float cx = w / 2f;
     float cy = h / 2f;
 
-    // ... 在这里绘制具体内容 ...
+    // ... 用 t 绘制具体内容 ...
 
     canvas.Restore();
 }
@@ -170,6 +198,7 @@ protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
 - 背景通常铺满整张画布，内容只在 Margin 内绘制；
 - 先 `ClipRect` 再 `Translate`，可以保证内容不会画出边距；
 - 所有尺寸计算使用 `w` / `h`，不要再用 `size.Width` / `size.Height`；
+- 动效必须使用按 `AnimRatio` 压缩后的 `t`，不要直接用原始帧进度；
 - Margin 过大导致内容区域小于等于 0 时直接返回。
 
 该动画体系与基于 Avalonia 布局的 `NBVisual` / `NBClip` 动画相互独立：它只操作原始 `SKCanvas`，不参与布局计算。
@@ -219,7 +248,7 @@ C# 12 / .NET 10 支持主构造函数，但这里仍建议显式写构造函数�
 规则：
 
 - 必须以 `#!/usr/bin/env dotnet` 开头；
-- `#:package NewBeeVG@1.0.1.24` 用于脱离仓库时引入 NewBeeVG；在仓库的 `apps/files/` 内，`Directory.Build.props` 已提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.25` 用于脱离仓库时引入 NewBeeVG；在仓库的 `apps/files/` 内，`Directory.Build.props` 已提供项目引用，出现重复引用时删除该指令；
 - `#:include` 后写**所实现动画类的源文件路径**（模板为 `MyAnimation.cs`），路径相对于测试文件；
 - `using` 至少包含 `NewBeeVG`、`SkiaSharp`、`using static NewBeeVG.Methods;`（`SkiaAnim` 是 `Methods` 的静态方法）；
 - 在 `using` 之后声明 `bool debug = true;`，并保留 `if (args.Length > 0) debug = args[0] == "debug";`；**AI 不得把默认值改成 `false`**，测试时也不要传会让它变为 `false` 的参数；
@@ -364,15 +393,21 @@ using var font = new SKFont(typeface, _content.FontSize);
 
 ### 4. 帧号换算进度
 
-`frame` 范围是 `0 ~ Frames-1`。按用途选择分母：
+`frame` 范围是 `0 ~ Frames-1`。先算原始进度，再按 `AnimRatio` 压缩：
 
 ```csharp
 // 一次性动画：最后一帧恰好为 1.0
-float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
 
 // 循环动画：避免首尾帧重复
-float t = frame / (float)Frames;
+// float raw = frame / (float)Frames;
+
+// 动效进度：前 AnimRatio 段完成动画，后段保持最终状态
+float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
 ```
+
+不要直接用 `raw` 驱动动效；`raw > AnimRatio` 后 `t` 必须保持 `1`。
 
 ### 5. 先验证单帧
 
@@ -421,6 +456,208 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
        output/animation.mp4
 ```
 
+## 关键类与签名（与源码保持一致）
+
+以下签名可直接用于编写代码，不需要反编译程序集。
+
+### `ISKAnimation`
+
+```csharp
+public interface ISKAnimation
+{
+    int Frames { get; }
+    int Width { get; }
+    int Height { get; }
+
+    SKBitmap? BuildFrame(int frame);
+    bool Draw(SKCanvas canvas, int frame);
+    bool SavePNG(int frame, string filePath);
+    void SaveMp4(double fps, string filePath);
+    void SaveGif(double fps, string filePath);
+}
+```
+
+### `SKAnimation`
+
+```csharp
+public class SKAnimation : ISKAnimation
+{
+    public int Frames { get; init; }
+    public int Width { get; init; }
+    public int Height { get; init; }
+
+    // 逐帧回调：画布、画面尺寸、帧号；为 null 时无法生成任何帧
+    public Action<SKCanvas, SKSize, int>? OnFrame { get; init; }
+
+    public SKAnimation(int width, int height, int frames,
+        Action<SKCanvas, SKSize, int>? onFrame = null);
+
+    public SKBitmap? BuildFrame(int frame);
+    public bool Draw(SKCanvas canvas, int frame);
+    public bool SavePNG(int frame, string filePath);
+    public void SaveMp4(double fps, string filePath);
+    public void SaveGif(double fps, string filePath);
+}
+```
+
+### `SKCustomAnimation`
+
+```csharp
+public class SKCustomAnimation : SKAnimation
+{
+    // 当前主题；构造函数注入，构造后不可更改
+    public NBVideoTheme Theme { get; private set; }
+
+    // 优先 font(...) 的全局字体，否则按平台返回默认字体
+    public static string GetDefaultFontName();
+
+    // theme 为 null 时使用 NBVideoThemes.Nature
+    // 构造函数内部会把 OnFrame 指向 DrawFrame
+    public SKCustomAnimation(int width, int height, int frames,
+        NBVideoTheme? theme = null);
+
+    // 子类重写此方法；默认实现为空
+    protected virtual void DrawFrame(SKCanvas canvas, SKSize size, int frame);
+}
+```
+
+### `SKAnimSetting`
+
+```csharp
+public class SKAnimSetting
+{
+    // 动效完成比例，默认 0.80；前 80% 完成动画，后 20% 保持最终状态
+    public float AnimRatio = 0.80f;
+
+    // 支持 0 / 1 / 2 / 4 个元素：四边 0、四边相同、水平+垂直、左+上+右+下
+    public int[] Margin { get; set; } = new int[] { };
+
+    // 归一化为 [left, top, right, bottom]
+    public int[] GetMargin();
+}
+```
+
+### `NBVideoTheme` / `NBVideoThemes`
+
+```csharp
+public partial class NBVideoTheme
+{
+    public SKColor Primary { get; set; }
+    public SKColor Background { get; set; }
+    public SKColor TextPrimary { get; set; }
+    public SKColor TextSecondary { get; set; }
+    public SKColor Divider { get; set; }
+    public SKColor Positive { get; set; }
+    public SKColor Negative { get; set; }
+    public string Name { get; set; }
+
+    public SKBitmap Preview(int width = 1920, int height = 1080);
+}
+
+public class NBVideoThemes
+{
+    // 均为 static get 属性
+    // Tech, Eco, Finance, Healthcare, Education, Media, Retail, Nature,
+    // Ocean, Sunset, Minimal, Cyberpunk, Luxury, Retro, Candy, Arctic,
+    // Forest, Corporate, AI, Podcast, NightCopper, ParchmentDay, ColdArchive
+}
+```
+
+### `NBSkiaAnimation`
+
+```csharp
+public class NBSkiaAnimation : NBBaseImage
+{
+    public ISKAnimation? Animation { get; set; }
+    public int TotalFrames { get; }
+    public NBAnimateLoopMode LoopMode { get; set; } // 默认 Loop
+}
+```
+
+### `NBStage`
+
+```csharp
+public class NBStage
+{
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public double FrameRate { get; set; } = 25;
+    public SKColor? Background { get; set; }
+    public int AudioFrameRate { get; set; } = 44100;
+}
+```
+
+### `NBClip`
+
+```csharp
+public class NBClip : IPlayable
+{
+    // null 表示自动接在前一个 clip 之后
+    public int? StartFrame { get; internal set; }
+
+    // <= 0 表示持续到最后一帧
+    public int DurationFrames { get; set; }
+
+    public string Name { get; internal set; }
+    public bool IsVisible { get; set; }
+}
+```
+
+### `Methods` 常用静态方法
+
+```csharp
+public static NBStage stage(
+    int width = 1080, int height = 1920,
+    SKColor? bg = null, double fps = 25.0);
+
+public static int run(
+    NBStage stage, IList<NBClip> clips,
+    IList<NBClip>[]? clipLists = null,
+    string[]? args = null,
+    [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "");
+    // 最后一个参数由编译器自动注入，调用方不要手动传
+
+public static List<NBClip> clips(bool reset = false);
+public static NBClip? clip(string key);
+
+public static NBSkiaAnimation SkiaAnim(ISKAnimation animation);
+public static NBSkiaAnimation SkiaAnim(SKSize size, int frames,
+    Action<SKCanvas, SKSize, int> onFrame);
+
+public static NBAudioClip AudioFile(string path);
+public static void font(string name);
+public static string GetDefaultFontFamily();
+```
+
+### 常用扩展方法
+
+```csharp
+public static NBDrawingClip AsClip<T>(
+    this T widget, int frames, int? start = null, string name = "clip")
+    where T : NBVisual;
+
+public static NBDrawingClip AsClip<T>(
+    this T widget, out NBDrawingClip value,
+    int frames, int? start = null, string name = "clip")
+    where T : NBVisual;
+
+public static NBClip AsClip<T>(
+    this T widget, string name = "clip")
+    where T : NBClip; // 音频等非可视 clip
+
+public static T LinkTo<T>(
+    this T widget, string clipName, int startFrame = 0)
+    where T : NBClip;
+
+public static T LinkTo<T>(
+    this T widget, T referenceClip, int startFrame = 0)
+    where T : NBClip;
+
+public static T Styles<T>(
+    this T t, params Action<NBVisual>?[] styles)
+    where T : NBVisual;
+```
+
 ## API 摘要
 
 | 成员 | 说明 |
@@ -430,9 +667,9 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 | `ContentTheme : NBVideoTheme` | 主题颜色不够用时继承并补充属性；`From(theme)` 复制内置主题，`CreateDefault()` 复制自然主题 |
 | `Theme` | 当前主题（`NBVideoTheme`），传入 `ContentTheme` 时实际类型即为 `ContentTheme` |
 | `GetDefaultFontName()` | 默认字体名：优先 `font(...)` 的全局设置，否则按平台返回 Microsoft YaHei / Helvetica / DejaVu Sans / Arial |
-| `SKAnimSetting` / `GetMargin()` | 动画通用设置；`Margin` 控制留白，`GetMargin()` 归一化为 [左, 上, 右, 下] |
+| `SKAnimSetting.AnimRatio` | 动效完成比例，默认 0.80；前 80% 完成动画，后 20% 保持最终状态 |
+| `SKAnimSetting.Margin` / `GetMargin()` | 动画通用设置；`Margin` 控制留白，`GetMargin()` 归一化为 [左, 上, 右, 下] |
 | `SKAnimation(int width, int height, int frames, Action<...>? onFrame)` | 回调式实现；`onFrame` 可为 `null` |
-| `skanim(SKSize size, int frames, Action<...> onFrame)` | 工厂方法；`size` 的浮点宽高被截断为整数 |
 | `SkiaAnim(ISKAnimation)` / `SkiaAnim(SKSize, int, Action<...>)` | 包装为 `NBSkiaAnimation` 可视节点；实际视频管线用法，测试中用于编译冒烟 |
 | `AsClip(int frames, int? start = null, string name = "clip")` | 把可视节点登记为片段并注册到 `clips()`；`debug = false` 时由 `run(stage(...), clips())` 正式出片 |
 | `Frames` / `Width` / `Height` | 总帧数、单帧像素尺寸 |
@@ -446,7 +683,7 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 
 - **两文件结构**：动画类单独放在 `MyAnimation.cs`（或 `<类名>.cs`），测试入口放在 `MyAnimation_Test.cs`；不要把所有代码塞进一个文件，也不要让测试文件里出现第二个动画类。
 - **类文件必须是纯类型文件**：不含 `#!/usr/bin/env dotnet`、不含 `#:include`、不含顶层语句；否则与测试文件 `#:include` 后会编译失败（顶层语句只能出现在入口文件）。
-- **测试文件必须有入口指令**：`#!/usr/bin/env dotnet` + `#:include <实现类源文件>`；`#:package NewBeeVG@1.0.1.24` 按运行环境决定是否保留。
+- **测试文件必须有入口指令**：`#!/usr/bin/env dotnet` + `#:include <实现类源文件>`；`#:package NewBeeVG@1.0.1.25` 按运行环境决定是否保留。
 - **测试文件必须引入 Methods**：写 `using static NewBeeVG.Methods;`，否则 `SkiaAnim(...)` / `run(...)` / `clips()` 无法解析。
 - **必须有 `debug` 开关**：`using` 之后声明 `bool debug = true;`；所有 AI 测试语句加 `if (debug == true)` 前缀，`debug = false` 时只执行正式出片。
 - **AI 不要把 `debug` 硬编码为 `false`**：默认必须是 `true`，并保留 `args` 覆盖行；编写、测试、编译验证期间通过不传参数或传 `"debug"` 保持 `true`，不要为了让出片跑起来改默认值。
@@ -459,6 +696,7 @@ ffmpeg -framerate 30 -i output/frames/%04d.png \
 - **循环内创建的特效必须有 SkiaAnim**：每个迭代在 `if (debug == true) probe.SavePNG(...)` 之后，必须再写一条无条件的 `SkiaAnim(new Xxx(...)).AsClip(Frames, name: $"key_{key}")`；只创建 probe 保存 PNG、不写 `SkiaAnim`，会导致正式出片缺少这些档位。
 - **内容参数封装**：继承 `SKCustomAnimation` 时，把标题、字号、数据等输入封装为**内部类** `ContentSetting`，构造签名保持 `(width, height, frames, content, contentTheme = null)`；不要把大量参数平铺在构造函数上。`ContentSetting` **必须继承 `SKAnimSetting`**；需要绘制文字时，在 `ContentSetting` 增加 `FontFamily`（默认空字符串），绘制时为空则使用 `GetDefaultFontName()`。
 - **Margin 生效**：`DrawFrame` 必须用 `_content.GetMargin()` 计算内容矩形 `(left, top, width-left-right, height-top-bottom)`，并先 `ClipRect` / `Translate` 再绘制；特效默认填满该矩形，不能忽略 Margin 直接用整张画布。
+- **AnimRatio 生效**：所有动效必须用 `ratio <= 0 ? 1 : Math.Clamp(raw / ratio, 0, 1)` 压缩进度（`ratio` 为 `AnimRatio`）；`AnimRatio` 之后保持最终状态，不能直接用原始帧进度驱动动画。
 - **主题颜色扩展**：`NBVideoTheme` 的 7 个颜色不够用时，不要继续加构造参数，而是定义内部类 `ContentTheme : NBVideoTheme`，把额外颜色作为属性，并整体传入构造函数。
 - **ContentTheme 必须继承 NBVideoTheme**：否则无法直接传给基类，也无法通过 `(ContentTheme)Theme` 取回扩展颜色。
 - **默认主题要复制**：`contentTheme` 为 `null` 时用 `ContentTheme.CreateDefault()`（复制 `NBVideoThemes.Nature`），不要直接返回共享静态实例，避免被修改后污染全局。
@@ -491,23 +729,23 @@ var bmp = new SKBitmap(info);
 6. 文件结尾是否有 `if (debug == false) run(stage(Width, Height), clips());`；
 7. 每个测试场景是否用 `{ }` 隔离变量，末尾的 `SkiaAnim(...).AsClip(...)` 是否为真实场景代码且未被 `debug` 条件包裹；
 8. 循环场景是否只给 `SavePNG` 等输出调用加守卫，没有包住整个循环体；每个迭代创建的特效是否都有对应的 `SkiaAnim(...).AsClip(...)`，且在守卫外、`name` 带循环键；
-9. 测试目录创建是否写成 `if (debug == true) Directory.CreateDirectory(...)`，没有在守卫外创建测试目录；
-10. 子类是否继承 `SKCustomAnimation`，`DrawFrame` 是否使用 `protected override`；
-11. 构造函数是否为 `(width, height, frames, content, contentTheme = null)`，内容参数是否封装在内部类 `ContentSetting` 中；
-12. 主题颜色不够用时，是否通过内部类 `ContentTheme : NBVideoTheme` 扩展，而不是继续增加构造参数；
-13. `ContentTheme` 是否提供 `From(theme)` / `CreateDefault()`，默认值是否使用复制而非共享静态实例；
-14. 是否通过 `Theme` / `_theme` 取色，而不是散落的硬编码颜色；
-15. `DrawFrame` 是否按 `Theme.Background.Alpha` 决定是否清空画布；
-16. 是否误改 `OnFrame`，导致 `DrawFrame` 不生效；
-17. 是否处理了 `BuildFrame` / `SavePNG` 的 `null` / `false` 返回；
-18. `Theme.Background` 为透明色时是否**没有**调用 `canvas.Clear(...)`；只有非透明时才清空画布；
-19. `fps` 是否大于 0；GIF 是否使用了合适的帧率；
-20. `SaveMp4` / `SaveGif` 的输出目录是否已存在（且创建语句是否在 `debug` 守卫内）；
-21. 字体是否使用 `SKCustomAnimation.GetDefaultFontName()` 或 `font(...)`，没有跨平台硬编码字体名；
-22. `ContentSetting` 是否继承 `SKAnimSetting`，`DrawFrame` 是否按 `GetMargin()` 计算并裁剪内容矩形。
+9. 子类是否继承 `SKCustomAnimation`，`DrawFrame` 是否使用 `protected override`；
+10. 构造函数是否为 `(width, height, frames, content, contentTheme = null)`，内容参数是否封装在内部类 `ContentSetting` 中；
+11. 主题颜色不够用时，是否通过内部类 `ContentTheme : NBVideoTheme` 扩展，而不是继续增加构造参数；
+12. `ContentTheme` 是否提供 `From(theme)` / `CreateDefault()`，默认值是否使用复制而非共享静态实例；
+13. 是否通过 `Theme` / `_theme` 取色，而不是散落的硬编码颜色；
+14. `DrawFrame` 是否按 `Theme.Background.Alpha` 决定是否清空画布；
+15. 是否误改 `OnFrame`，导致 `DrawFrame` 不生效；
+16. 是否处理了 `BuildFrame` / `SavePNG` 的 `null` / `false` 返回；
+17. `Theme.Background` 为透明色时是否**没有**调用 `canvas.Clear(...)`；只有非透明时才清空画布；
+18. `fps` 是否大于 0；GIF 是否使用了合适的帧率；
+19. `SaveMp4` / `SaveGif` 的输出目录是否已存在（且创建语句是否在 `debug` 守卫内）；
+20. 字体是否使用 `SKCustomAnimation.GetDefaultFontName()` 或 `font(...)`，没有跨平台硬编码字体名；
+21. `ContentSetting` 是否继承 `SKAnimSetting`，`DrawFrame` 是否按 `GetMargin()` 计算并裁剪内容矩形；
+22. 动效是否按 `AnimRatio` 压缩进度，`AnimRatio` 之后是否保持最终状态。
 
 ## 资源
 
 - `references/api-and-pitfalls.md`：两个文件的完整示例、主题与 `ContentTheme` 扩展、逐帧技巧、三种导出方式、常见问题。
 - `assets/MyAnimation.cs`：动画类文件模板（类名 `MyAnimation`，只含类定义，可直接复制改名）。
-- `assets/MyAnimation_Test.cs`：测试入口模板（`#!`、`#:package NewBeeVG@1.0.1.24`、`#:include MyAnimation.cs`、`using static NewBeeVG.Methods;`、`bool debug = true;` + `args` 覆盖、分场景大括号、`debug` 条件测试、结尾 `run(...)`）。
+- `assets/MyAnimation_Test.cs`：测试入口模板（`#!`、`#:package NewBeeVG@1.0.1.25`、`#:include MyAnimation.cs`、`using static NewBeeVG.Methods;`、`bool debug = true;` + `args` 覆盖、分场景大括号、`debug` 条件测试、结尾 `run(...)`）。

@@ -37,9 +37,9 @@ clip 的时间规则：
 - 使用 **dotnet file-based app**：文件以 `#!/usr/bin/env dotnet` 开头，`dotnet xxx.cs` 直接运行。
 - 需要引用其他源文件时用 `#:include 相对路径.cs`；类声明放在顶层语句之后。
 - 仓库 `apps/files/` 下已有 `Directory.Build.props`，全局导入 `NewBeeVG`、`SkiaSharp`、静态 `NewBeeVG.Methods`，不用重复 `using`。
-- 仓库外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.24`；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
+- 仓库外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.25`；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
 - **首字母大写的方法**是界面/布局/样式方法（`TextBlock`、`HStack`、`Align`、`Background`…）；
-- **首字母小写的方法**是行为方法（`stage`、`run`、`font`、`clips`、`skanim`…）。
+- **首字母小写的方法**是行为方法（`stage`、`run`、`font`、`clips`…）。
 
 ## 资源目录
 

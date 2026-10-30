@@ -58,8 +58,10 @@ public class MyAnimation : SKCustomAnimation
         canvas.ClipRect(new SKRect(left, top, left + w, top + h));
         canvas.Translate(left, top);
 
-        // 帧号 -> 0..1 进度
-        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        // 原始进度 → 按 AnimRatio 压缩后的动画进度
+        float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+        float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
 
         double value = _content.From + (_content.To - _content.From) * t;
         string text = value.ToString(_content.Format);

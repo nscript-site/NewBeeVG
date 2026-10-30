@@ -36,7 +36,7 @@ using var font = new SKFont(typeface, 96);
 - 名称不保证系统已安装，Skia 可能回退到替代字体，建议 `?? SKTypeface.Default` 兜底；
 - `font("...")` 设置后全局生效，之后 `GetDefaultFontName()` 返回新值。
 
-### SKAnimSetting 与 Margin
+### SKAnimSetting、Margin 与 AnimRatio
 
 `ContentSetting` **必须继承 `SKAnimSetting`**：
 
@@ -57,6 +57,19 @@ public class ContentSetting : SKAnimSetting
 | `[10, 20, 30, 40]` | 左 10、上 20、右 30、下 40 |
 
 `GetMargin()` 统一返回 `[left, top, right, bottom]`。`DrawFrame` 应在 `(left, top, Width-left-right, Height-top-bottom)` 内绘制并裁剪，特效默认填满该矩形；背景可继续铺满整张画布。
+
+`AnimRatio` 控制动效在整段 clip 内完成的比例，默认 `0.80f`：前 80% 完成动画，后 20% 保持最终状态。`DrawFrame` 必须按它压缩进度：
+
+```csharp
+float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+
+float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
+```
+
+- `ratio <= 0`：不动画，直接使用最终状态；
+- `ratio >= 1`：整段都在动画；
+- `raw > ratio` 后 `t` 保持 `1`，不要继续变化。
 
 ## 主题色（NBVideoTheme / NBVideoThemes）
 
@@ -169,7 +182,10 @@ public class MyAnimation : SKCustomAnimation
         canvas.ClipRect(new SKRect(left, top, left + w, top + h));
         canvas.Translate(left, top);
 
-        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        // 原始进度 → 按 AnimRatio 压缩后的动画进度
+        float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+        float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
         double value = _content.From + (_content.To - _content.From) * t;
         string text = value.ToString(_content.Format);
 
@@ -228,7 +244,7 @@ public class MyAnimation : SKCustomAnimation
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.24
+#:package NewBeeVG@1.0.1.25
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -254,6 +270,8 @@ const int Frames = 90;
     {
         // 左、上、右、下留白；特效填满中间内容矩形
         Margin = new[] { 60, 40, 60, 40 },
+        // 前 70% 完成动效，后 30% 保持最终状态
+        AnimRatio = 0.7f,
         From = 0,
         To = 12580,
         Format = "N0",
@@ -340,7 +358,7 @@ if (debug == false)
 - `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
 - **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
 - 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
-- `#:package NewBeeVG@1.0.1.24` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.25` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
 - `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
 
 ### 循环生成测试用例
@@ -450,7 +468,10 @@ public class ClockAnimation : SKCustomAnimation
         canvas.ClipRect(new SKRect(left, top, left + w, top + h));
         canvas.Translate(left, top);
 
-        float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        // 原始进度 → 按 AnimRatio 压缩后的动画进度
+        float raw = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
+        float ratio = Math.Clamp(_content.AnimRatio, 0f, 1f);
+        float t = ratio <= 0f ? 1f : Math.Clamp(raw / ratio, 0f, 1f);
 
         float cx = w / 2f;
         float cy = h / 2f;

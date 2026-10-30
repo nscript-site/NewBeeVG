@@ -260,6 +260,9 @@ public class SKAnimation : ISKAnimation
 /// </summary>
 public class SKAnimSetting
 {
+    /// <summary>动效在前段完成的比例，后段静止。</summary>
+    public float AnimRatio = 0.80f;
+
     /// <summary>
     /// 边距数组，支持 0、1、2、4 个元素：
     /// 空数组表示四边为 0；1 个元素表示四边相同；
