@@ -6,12 +6,19 @@
 // #:package NewBeeVG@1.0.1.25
 #:include modules/MyAnimation.cs
 
+// ============================================================
+// 全片主题与字体：只在这里修改
+// ============================================================
+var theme = NBVideoThemes.Nature;
+var fontName = "阿里巴巴普惠体 2.0";
+font(fontName);
+
 // ------------------------------------------------------------
 // 片头
 // ------------------------------------------------------------
 {
     VStack([
-        TextBlock("视频演示").FontSize(200).Foreground(SKColors.White)
+        TextBlock("视频演示").FontSize(200).Foreground(theme.TextPrimary)
     ]).Align(0, 0)
       .AsClip(30, name: "start");
 }
@@ -36,9 +43,10 @@
     };
 
     int frames = 90;
+    var animTheme = MyAnimation.ContentTheme.From(theme);
 
-    var anim1 = new MyAnimation(600, 400, frames, content);
-    var anim2 = new MyAnimation(600, 400, frames, content2);
+    var anim1 = new MyAnimation(600, 400, frames, content, animTheme);
+    var anim2 = new MyAnimation(600, 400, frames, content2, animTheme);
 
     HGrid("*,*", [
         SkiaAnim(anim1),
@@ -47,21 +55,22 @@
 }
 
 // ------------------------------------------------------------
-// 音频（可选）：需要 ./Assets/audio01.mp3 存在
+// 音频（可选）：需要 ./assets/audios/shot01.mp3 存在
 // 音频起点 = clip1 的起始帧 + offset（默认 0）
+// 分镜语音的入点/出点记录在 ./assets/audios/audio_timeline.md
 // ------------------------------------------------------------
-// AudioFile("./Assets/audio01.mp3")
-//     .AsClip("audio").LinkTo("clip1");
+// AudioFile("./assets/audios/shot01.mp3")
+//     .AsClip("audio_01").LinkTo("clip1");
 //
-// AudioFile("./Assets/audio01.mp3")
-//     .AsClip("audio").LinkTo("clip1", 10);
+// AudioFile("./assets/audios/shot01.mp3")
+//     .AsClip("audio_01").LinkTo("clip1", 10);
 
 // ------------------------------------------------------------
 // 片尾
 // ------------------------------------------------------------
 {
     VStack([
-        TextBlock("视频结束").FontSize(200).Foreground(SKColors.White)
+        TextBlock("视频结束").FontSize(200).Foreground(theme.TextPrimary)
     ]).Align(0, 0)
       .AsClip(30, name: "end");
 }
@@ -83,4 +92,4 @@
 //   dotnet video-template.cs out.mp4     → 导出 MP4
 //   dotnet video-template.cs 42 out.png  → 导出第 42 帧
 // ------------------------------------------------------------
-run(stage(1920, 1080, bg: SKColors.Orange), clips(), args: args);
+run(stage(1920, 1080, bg: theme.Background), clips(), args: args);

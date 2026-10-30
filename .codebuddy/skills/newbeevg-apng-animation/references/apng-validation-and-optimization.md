@@ -27,28 +27,28 @@ APNG 是 PNG 的超集，关键块：
 
 ```powershell
 # PowerShell
-Move-Item .\assets\images\demo.apng .\assets\images\demo.png -Force
+Move-Item .\assets\apngs\demo.apng .\assets\apngs\demo.png -Force
 ```
 
 ```bash
 # bash / zsh
-mv ./assets/images/demo.apng ./assets/images/demo.png
+mv ./assets/apngs/demo.apng ./assets/apngs/demo.png
 ```
 
 - APNG 内容与 `.png` 后缀并不冲突；NewBeeVG 的 `PngAnim` 按文件内容解码；
-- 最终 `assets/images/` 下不要保留 `.apng` 文件；
+- 最终 `assets/apngs/` 下不要保留 `.apng` 文件；
 - 重命名后用 `inspect_apng.py --require-png` 检查。
 
 ## 3. 用脚本校验
 
 ```bash
-python scripts/inspect_apng.py .\assets\images\demo.png --require-png
+python scripts/inspect_apng.py .\assets\apngs\demo.png --require-png
 ```
 
 输出示例：
 
 ```text
-File:     .\assets\images\demo.png
+File:     .\assets\apngs\demo.png
 Ext:      .png
 APNG:     yes
 Canvas:   512 x 512
@@ -62,7 +62,7 @@ Size:     184.2 KB
 机器可读：
 
 ```bash
-python scripts/inspect_apng.py .\assets\images\demo.png --json --require-png
+python scripts/inspect_apng.py .\assets\apngs\demo.png --json --require-png
 ```
 
 退出码：
@@ -79,7 +79,7 @@ python scripts/inspect_apng.py .\assets\images\demo.png --json --require-png
 ```bash
 ffprobe -v error -select_streams v:0 \
   -show_entries stream=width,height,nb_frames,duration \
-  -of default=noprint_wrappers=1 .\assets\images\demo.png
+  -of default=noprint_wrappers=1 .\assets\apngs\demo.png
 ```
 
 ffprobe 对 APNG 的 `nb_frames` 支持因版本而异；以 `inspect_apng.py` 的 `acTL`/`fcTL` 结果为准。
@@ -96,7 +96,8 @@ ffprobe 对 APNG 的 `nb_frames` 支持因版本而异；以 `inspect_apng.py` �
 保留帧序列：
 
 ```bash
-npx --yes svg-animation-convert --input .\assets\svgs\demo.svg --output .\assets\images\demo.apng --duration 3s --fps 24 --keep-frames --frames .\tmp\demo-frames
+npx --yes svg-animation-convert --input .\assets\svgs\demo.svg --output .\assets\apngs\demo.apng --duration 3s --fps 24 --keep-frames --frames .\tmp\demo-frames
+Move-Item .\assets\apngs\demo.apng .\assets\apngs\demo.png -Force
 ```
 
 ## 6. 体积控制
@@ -122,7 +123,7 @@ npx --yes svg-animation-convert --input .\assets\svgs\demo.svg --output .\assets
 ## 7. NewBeeVG 集成检查
 
 ```csharp
-PngAnim("./assets/images/demo.png")
+PngAnim("./assets/apngs/demo.png")
     .Size(320, 320)
     .LoopMode(NBAnimateLoopMode.Loop)
     .Speed(1.0);
@@ -132,7 +133,7 @@ PngAnim("./assets/images/demo.png")
 - 要循环必须显式 `.LoopMode(NBAnimateLoopMode.Loop)`；
 - 要往复用 `.LoopMode(NBAnimateLoopMode.AutoReverse)`；
 - `Speed` 是播放倍速，不是帧率；
-- 路径相对于运行目录；素材放在视频脚本目录的 `assets/images/`；
+- 路径相对于运行目录；素材放在视频脚本目录的 `assets/apngs/`；
 - 解码失败记录在 `DecodeException`，节点不绘制内容；先检查路径，再用 `inspect_apng.py` 检查文件。
 
 ## 8. 故障排查

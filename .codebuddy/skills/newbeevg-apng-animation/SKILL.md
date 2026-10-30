@@ -1,13 +1,13 @@
 ---
 name: newbeevg-apng-animation
-description: This skill should be used when generating, converting, validating, or embedding APNG (animated PNG) assets, especially for NewBeeVG PngAnim in dotnet file-based video projects. It covers authoring self-contained animated SVGs with SMIL/CSS keyframes, converting them with svg-animation-convert (duration, fps, loop, transparency, viewBox), renaming the final APNG-content file to a .png extension for preview compatibility, checking APNG frame count/size/duration/alpha, saving under the video script's assets/images, and wiring PngAnim with LoopMode/Speed into layouts.
+description: This skill should be used when generating, converting, validating, or embedding APNG (animated PNG) assets, especially for NewBeeVG PngAnim in dotnet file-based video projects. It covers authoring self-contained animated SVGs with SMIL/CSS keyframes, converting them with svg-animation-convert (duration, fps, loop, transparency, viewBox), renaming the final APNG-content file to a .png extension for preview compatibility, checking APNG frame count/size/duration/alpha, saving under the video script's assets/apngs, and wiring PngAnim with LoopMode/Speed into layouts.
 ---
 
 # APNG 动画生成（最终后缀必须为 `.png`）
 
 ## 用途
 
-把矢量动画做成透明、可循环的 APNG，作为 NewBeeVG 视频中的轻量动画素材，用 `PngAnim(path)` 嵌入布局。
+把矢量动画做成透明、可循环的 APNG，作为 NewBeeVG 视频中的轻量动画素材，保存到视频脚本目录的 `assets/apngs/`，用 `PngAnim(path)` 嵌入布局。
 
 **最终交付文件必须使用 `.png` 后缀。** 很多图片查看器/预览器不能预览 `.apng` 后缀；APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码。`.apng` 只作为 `svg-animation-convert` 的中间输出，转换完成后立即重命名为 `.png`。
 
@@ -35,8 +35,8 @@ npx --yes svg-animation-convert --help
 
 ```bash
 npm i -D svg-animation-convert
-npx svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/images/demo.apng
-mv ./assets/images/demo.apng ./assets/images/demo.png
+npx svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/apngs/demo.apng
+mv ./assets/apngs/demo.apng ./assets/apngs/demo.png
 ```
 
 ## 工作流
@@ -91,21 +91,21 @@ CSS 旋转需要修正变换原点：
 Windows PowerShell：
 
 ```powershell
-npx --yes svg-animation-convert --input .\assets\svgs\pulse.svg --output .\assets\images\pulse.apng --fps 24 --loop 0 --duration 3s
-Move-Item .\assets\images\pulse.apng .\assets\images\pulse.png -Force
+npx --yes svg-animation-convert --input .\assets\svgs\pulse.svg --output .\assets\apngs\pulse.apng --fps 24 --loop 0 --duration 3s
+Move-Item .\assets\apngs\pulse.apng .\assets\apngs\pulse.png -Force
 ```
 
 bash / zsh 把反斜杠换成 `/`：
 
 ```bash
-npx --yes svg-animation-convert --input ./assets/svgs/pulse.svg --output ./assets/images/pulse.apng --fps 24 --loop 0 --duration 3s
-mv ./assets/images/pulse.apng ./assets/images/pulse.png
+npx --yes svg-animation-convert --input ./assets/svgs/pulse.svg --output ./assets/apngs/pulse.apng --fps 24 --loop 0 --duration 3s
+mv ./assets/apngs/pulse.apng ./assets/apngs/pulse.png
 ```
 
-转换器只接受 `.apng` / `.gif` / `.mov` / `.webm` 作为 `--output`，所以先输出 `.apng`；**转换完成后必须重命名为 `.png`**。最终 `assets/images/` 下不应残留 `.apng` 文件：
+转换器只接受 `.apng` / `.gif` / `.mov` / `.webm` 作为 `--output`，所以先输出 `.apng`；**转换完成后必须重命名为 `.png`**。最终 `assets/apngs/` 下不应残留 `.apng` 文件：
 
 ```powershell
-Get-ChildItem .\assets\images\*.apng
+Get-ChildItem .\assets\apngs\*.apng
 # 应无输出
 ```
 
@@ -134,7 +134,7 @@ Get-ChildItem .\assets\images\*.apng
 先做结构校验：
 
 ```bash
-python scripts/inspect_apng.py .\assets\images\pulse.png --require-png
+python scripts/inspect_apng.py .\assets\apngs\pulse.png --require-png
 ```
 
 在技能根目录执行；在其他目录运行时改用脚本的绝对路径。输出包含帧数、画布尺寸、Alpha、总时长、循环次数。`--require-png` 会检查最终后缀必须是 `.png`，否则返回退出码 `3`。需要机器可读结果时加 `--json`。
@@ -158,16 +158,16 @@ python scripts/inspect_apng.py .\assets\images\pulse.png --require-png
 需要快速看元数据时也可用：
 
 ```bash
-ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames,duration -of default=noprint_wrappers=1 .\assets\images\pulse.png
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames,duration -of default=noprint_wrappers=1 .\assets\apngs\pulse.png
 ```
 
 ### 5. 接入 NewBeeVG
 
-把 APNG 放到视频脚本目录的 `assets/images/`，用 `PngAnim` 引入：
+把 APNG 放到视频脚本目录的 `assets/apngs/`，用 `PngAnim` 引入：
 
 ```csharp
 HStack([
-    PngAnim("./assets/images/pulse.png")
+    PngAnim("./assets/apngs/pulse.png")
         .Size(320, 320)
         .LoopMode(NBAnimateLoopMode.Loop)
         .Speed(1.0)
@@ -200,7 +200,8 @@ HStack([
 <视频脚本目录>/
 └── assets/
     ├── svgs/      # 动画 SVG 源文件
-    ├── images/    # APNG 内容，但文件名后缀必须是 .png
+    ├── apngs/      # APNG 内容，文件名后缀必须为 .png
+    ├── images/    # 普通静态图片
     └── README.md
 ```
 

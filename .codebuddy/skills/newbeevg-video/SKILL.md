@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers assets discovery (README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers the full pipeline from a Markdown script to `*_storyboard.md`, per-shot TTS + `assets/audios/audio_timeline.md`, global theme/font header variables, assets discovery (README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -11,7 +11,142 @@ description: This skill should be used when building, editing, or debugging a Ne
 
 推荐组合：**布局组件（排版）+ 动画（SkiaAnim / PngAnim / LottieAnim / TypstAnim）+ assets 素材（背景/图标/图片/SVG）**。
 
-不适用：深入 3D、TTS 等专项能力时，再查对应专项文档；本技能不覆盖已废弃的 `NBLayer`。
+不适用：深入 3D 或特定 TTS 引擎参数时，再查对应专项文档；本技能不覆盖已废弃的 `NBLayer`。
+
+## 完整视频制作流程
+
+生成视频时按以下四步执行，不要跳步。稿件、分镜和 C# 脚本放在同一目录；语音及时间表放在该目录的 `assets/audios/`。
+
+### 1. 读取 Markdown 稿件
+
+稿件是唯一输入源，文件名形如 `xxxx.md`。先完整读取并提取：
+
+- **视频内容**：口播/旁白、标题、字幕、要点、数据、引用；
+- **视频要求**：画幅、时长、帧率、主题、字体、语气、节奏、目标平台；
+- **已有素材**：图片、视频、音频、SVG、`modules/` 中的 Skia 模板及其引用路径。
+
+要求缺失时采用默认值，并在分镜中标注：`1920×1080`、`25fps`、`NBVideoThemes.Nature`、可用中文字体。不要自行改写口播事实或数据。
+
+### 2. 拆分分镜并保存 `xxxx_storyboard.md`
+
+在同目录创建 `xxxx_storyboard.md`（`xxxx` 与稿件同名），先写总表，再写每个镜头的详情：
+
+```markdown
+# 《视频标题》分镜
+
+- 源稿件：xxxx.md
+- 画幅：1920×1080
+- 帧率：25 fps
+- 主题：NBVideoThemes.Nature
+- 字体：阿里巴巴普惠体 2.0
+- 总时长：约 60 秒
+
+| 镜头 | 口播摘要 | 画面 | 素材/动画 | 时长 | 音频 |
+| --- | --- | --- | --- | --- | --- |
+| shot01 | ... | ... | ... | 3.4s | shot01.mp3 |
+
+## 镜头 01 · shot01
+
+- 口播：...
+- 画面：...
+- 构图/布局：...
+- 素材/动画：...
+- 字幕：...
+- 时长：3.4 秒（85 帧）
+- 转场：...
+- 音频：./assets/audios/shot01.mp3
+```
+
+分镜要求：
+
+- 每个镜头使用唯一 `shotNN`，与音频文件名、C# clip 名一一对应；
+- 口播按语义断句，一个镜头只表达一个完整意思；
+- 画面写清主体、构图、文字层级、动效、素材路径与背景；
+- 时长先按语速估算，TTS 后按实际音频时长校正；
+- 所有镜头时长之和与稿件总时长一致，误差控制在 1 秒内；
+- 主题、字体、画幅、帧率在总表固定，后续不要逐镜头变化。
+
+### 3. 合成语音并记录入点/出点
+
+按分镜逐条合成语音，保存到 `./assets/audios/`：
+
+```text
+assets/audios/
+├── shot01.mp3
+├── shot02.mp3
+├── ...
+└── audio_timeline.md
+```
+
+- 音频文件名与分镜 `shotNN` 一致，优先 mp3/wav；
+- 音色、语速、语言从稿件要求读取；缺失时全片统一默认，不逐镜头变化；
+- 生成后用 `ffprobe` 读取实际时长，按分镜顺序累加时间轴；
+- 在 `assets/audios/audio_timeline.md` 记录每条语音的入点/出点：
+
+```markdown
+| 分镜 | 音频 | 入点(s) | 出点(s) | 时长(s) | 画面 clip |
+| --- | --- | --- | --- | --- | --- |
+| shot01 | shot01.mp3 | 0.00 | 3.40 | 3.40 | shot01 |
+| shot02 | shot02.mp3 | 3.40 | 7.20 | 3.80 | shot02 |
+```
+
+- 入点 = 该镜头在成片时间轴上的开始时间；出点 = 入点 + 实际语音时长；
+- 片头、片尾、镜头间停顿都要计入时间轴；
+- 需要停顿时直接调整入点，不要用静音文件拼接；
+- 记录总时长，供 C# 脚本换算帧数。
+
+读取单个音频时长：
+
+```bash
+ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 ./assets/audios/shot01.mp3
+```
+
+### 4. 生成 C# 单文件视频脚本
+
+在稿件同目录生成 `xxxx.cs`（与稿件同名），使用 dotnet file-based app。以分镜和 `audio_timeline.md` 为准：
+
+1. **文件头部**声明全局主题与字体：
+   ```csharp
+   var theme = NBVideoThemes.Nature;
+   var fontName = "阿里巴巴普惠体 2.0";
+   font(fontName);
+   ```
+2. **先画面、后音频**：每个镜头先创建画面 clip 并登记 `name`，再创建对应音频并 `LinkTo`；
+3. **帧数换算**：`frames = (int)Math.Ceiling((出点 - 入点) * fps)`，建议额外加 2–4 帧尾部留白，避免语音被硬切；
+4. **音频对齐**：顺序镜头直接用 `AudioFile("./assets/audios/shotNN.mp3").AsClip("audio_NN").LinkTo("shotNN")`；非顺序或需要偏移时，按时间表计算 `offset = 入点帧 - clip.StartFrame`；
+5. **素材复用**：先查 `assets/` 和 `modules/README.md`，能用则复用；缺失素材按 SVG → APNG / Typst → 新建 SkiaAnim 的优先级补齐，避免每个镜头各用一套风格；
+6. **设计一致性**：统一栅格、安全边距、字号层级（标题/副标题/正文/注释）、主色与装饰色；每镜头只保留一个视觉中心，转场克制，字幕不遮挡主体；
+7. **收尾**：`run(stage(...), clips(), args: args)`，确保预览、MP4、单帧 PNG 三种模式都能运行。
+
+```csharp
+#!/usr/bin/env dotnet
+
+// ===== 全片主题与字体：只在这里修改 =====
+var theme = NBVideoThemes.Nature;
+var fontName = "阿里巴巴普惠体 2.0";
+font(fontName);
+
+const int FPS = 25;
+
+// shot01：先创建画面 clip
+{
+    var frames = (int)Math.Ceiling(3.40 * FPS) + 2;
+
+    HStack([
+        TextBlock("第一句口播").Font(96, theme.TextPrimary).Align(0, 0),
+    ]).Align(0, 0)
+      .AsClip(frames, start: 0, name: "shot01");
+}
+
+// 再创建音频并链接到已登记的 shot01
+AudioFile("./assets/audios/shot01.mp3")
+    .AsClip("audio_01").LinkTo("shot01");
+
+// shot02 同理，start 可省略以自动接续
+// ...
+
+run(stage(1920, 1080, bg: theme.Background), clips(), args: args);
+```
 
 ## 核心模型
 
@@ -40,6 +175,37 @@ clip 的时间规则：
 - 仓库外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.25`；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
 - **首字母大写的方法**是界面/布局/样式方法（`TextBlock`、`HStack`、`Align`、`Background`…）；
 - **首字母小写的方法**是行为方法（`stage`、`run`、`font`、`clips`…）。
+- **全局主题与字体必须写在文件头部**：用 `var theme = NBVideoThemes.XXX;`、`var fontName = "字体名";` 和 `font(fontName);` 各声明一次，后续 clip 只引用 `theme.*` 与全局字体。
+
+## 全局主题与字体（必须）
+
+每个视频脚本都要在文件头部集中设置全片主题和字体，只声明一次，后续所有 clip 复用：
+
+```csharp
+#!/usr/bin/env dotnet
+
+// ===== 全片主题与字体：只在这里修改 =====
+var theme = NBVideoThemes.Nature;
+var fontName = "阿里巴巴普惠体 2.0";
+font(fontName);
+
+// 可选：提取语义色变量，避免片段内重复 theme.XXX
+var bg = theme.Background;
+var primary = theme.Primary;
+var textPrimary = theme.TextPrimary;
+var textSecondary = theme.TextSecondary;
+```
+
+规则：
+
+- `font(fontName)` 必须在创建任何 `TextBlock` / `Text` / `RichText` 之前调用，位置固定在文件头部；
+- 主题使用 `NBVideoThemes` 的内置主题（如 `Tech`、`Nature`、`Finance`），不要在片段内另建零散配色；需要微调时先复制成新的 `NBVideoTheme` 再改，不要直接修改共享的静态主题实例；
+- 片段内通过 `theme.Primary`、`theme.Background`、`theme.TextPrimary`、`theme.TextSecondary`、`theme.Divider`、`theme.Positive`、`theme.Negative` 取色；
+- `stage` 背景直接用 `bg: theme.Background`；
+- `SkiaAnim` 模块需要主题时，把全局 `theme` 传给主题参数（如 `ContentTheme.From(theme)`），不要另传硬编码颜色；
+- 不要在多个 clip 里重复调用 `font(...)`，也不要在片段内写死本应由主题决定的颜色；确需装饰色时从 `theme` 派生或集中定义。
+
+> 后文与参考文档中的短片段为突出 API 结构可能直接写颜色字面量；生成完整视频脚本时必须改成文件头部的 `theme.*` 变量。
 
 ## 资源目录
 
@@ -47,12 +213,13 @@ clip 的时间规则：
 
 ```text
 assets/
-├── audios/
-├── images/      # 含 PngAnim 使用的 APNG 内容，后缀统一为 .png
+├── audios/       # 分镜语音 + audio_timeline.md
+├── apngs/        # PngAnim 使用的 APNG 内容，后缀统一为 .png
+├── images/      # 普通静态图片
 ├── videos/
 ├── svgs/
 ├── lottie/      # LottieAnim 的 JSON
-├── typst/       # TypstAnim 的 .typ 及依赖
+├── typsts/      # TypstAnim 的 .typ 及依赖
 └── README.md
 ```
 
@@ -90,10 +257,11 @@ modules/
 4. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；简单动画再转成 APNG；
 5. **保存素材**：
    - SVG → `assets/svgs/`
-   - 图片 / APNG → `assets/images/`
+   - 普通图片 → `assets/images/`
+   - APNG → `assets/apngs/`
    - Lottie → `assets/lottie/`
-   - Typst → `assets/typst/`
-   - 音频 → `assets/audios/`
+   - Typst → `assets/typsts/`
+   - 分镜语音 → `assets/audios/`，同时维护 `audio_timeline.md`
    - 视频 → `assets/videos/`
    - 目录不存在时先创建；
 6. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长，方便后续复用。
@@ -149,25 +317,25 @@ modules/
 npx --yes svg-animation-convert --input .\your.svg --output your.apng
 ```
 
-3. **立即把输出重命名为 `.png`**，再放到 `assets/images/`：
+3. **立即把输出重命名为 `.png`**，再放到 `assets/apngs/`：
 
 ```powershell
-Move-Item .\your.apng .\assets\images\your.png -Force
+Move-Item .\your.apng .\assets\apngs\your.png -Force
 ```
 
 ```bash
-mv ./your.apng ./assets/images/your.png
+mv ./your.apng ./assets/apngs/your.png
 ```
 
-4. 脚本中用 `PngAnim("./assets/images/your.png")` 引入。
+4. 脚本中用 `PngAnim("./assets/apngs/your.png")` 引入。
 
-**最终文件后缀必须是 `.png`，不能是 `.apng`**：APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码，但 `.apng` 在很多图片查看器/预览器中无法打开。交付前检查 `assets/images/` 下没有残留 `.apng`。
+**最终文件后缀必须是 `.png`，不能是 `.apng`**：APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码，但 `.apng` 在很多图片查看器/预览器中无法打开。交付前检查 `assets/apngs/` 下没有残留 `.apng`。
 
 无限循环的 SVG 动画必须显式指定转换时长，否则转换可能无法结束或帧数不确定：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
-mv ./your.apng ./assets/images/your.png
+mv ./your.apng ./assets/apngs/your.png
 ```
 
 - `--duration` 按秒计，取值覆盖一个完整循环或镜头所需时长；
@@ -188,7 +356,7 @@ LottieAnim("./assets/lottie/loading.json");
 适合公式推导、科学示意图、复杂表格、矢量图表等 Typst 擅长的内容。用 Typst 编写多页文档，配合 CeTZ 等包绘制矢量图，每个页面会成为一帧：
 
 ```csharp
-TypstAnim("./assets/typst/derivation.typ");
+TypstAnim("./assets/typsts/derivation.typ");
 ```
 
 - 页面尺寸、边距应与目标布局区域匹配；
@@ -202,15 +370,17 @@ TypstAnim("./assets/typst/derivation.typ");
 ```text
 <视频脚本目录>/
 ├── assets/
-│   ├── images/      # PngAnim 的 APNG 内容，后缀统一为 .png
+│   ├── apngs/        # PngAnim 的 APNG 内容，后缀统一为 .png
+│   ├── audios/      # 分镜语音 + audio_timeline.md
+│   ├── images/      # 普通静态图片
 │   ├── lottie/      # LottieAnim 的 JSON
-│   ├── typst/       # TypstAnim 的 .typ 及其依赖
+│   ├── typsts/      # TypstAnim 的 .typ 及其依赖
 │   ├── svgs/        # SVG 源文件
 │   └── README.md
 └── modules/         # 自创 SkiaAnim 的 .cs 与 README.md
 ```
 
-- `PngAnim`、`LottieAnim`、`TypstAnim` 的动画素材放在**视频脚本文件所在目录**的 `assets/` 下，目录不存在时创建；
+- `PngAnim` 的 APNG 放 `assets/apngs/`，`LottieAnim` 放 `assets/lottie/`，`TypstAnim` 放 `assets/typsts/`；目录不存在时创建；
 - 自创的 `SkiaAnim` 放在**视频脚本文件所在目录**的 `modules/` 下，目录不存在时创建；
 - 新增素材或模块后，同步更新对应的 `README.md`，方便后续复用。
 
@@ -220,23 +390,24 @@ TypstAnim("./assets/typst/derivation.typ");
 
 ```csharp
 // 推荐：背景素材 + 布局分栏 + 多个动画 + 文字
+// 假设文件头部已声明 theme 与 font
 Panel([
     Image("./assets/images/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
 
     HGrid("480,*", [
-        PngAnim("./assets/images/icon-chart.png").Size(320, 320).Align(0, 0),
+        PngAnim("./assets/apngs/icon-chart.png").Size(320, 320).Align(0, 0),
 
         HStack([
             SkiaAnim(new ChartAnimation(600, 800, 90, content)),
             VStack([
-                TypstAnim("./assets/typst/formula.typ"),
-                TextBlock("季度增长").Font(72, SKColors.White),
-                TextBlock("+128%").Font(160, SKColors.Orange),
+                TypstAnim("./assets/typsts/formula.typ"),
+                TextBlock("季度增长").Font(72, theme.TextPrimary),
+                TextBlock("+128%").Font(160, theme.Primary),
             ]).Spacing(20),
         ]).Spacing(40),
     ]).Margin(120),
 
-    TextBlock("数据来源：内部统计").Font(32, SKColors.LightGray)
+    TextBlock("数据来源：内部统计").Font(32, theme.TextSecondary)
         .Align(-1, 1).Margin(80),
 ])
 .AsClip(90, name: "chart");
@@ -257,10 +428,15 @@ Panel([
 
 #:include modules/MyAnimation.cs
 
+// ===== 全片主题与字体：只在这里修改 =====
+var theme = NBVideoThemes.Nature;
+var fontName = "阿里巴巴普惠体 2.0";
+font(fontName);
+
 // 1) 片头
 {
     VStack([
-        TextBlock("视频演示").FontSize(200).Foreground(SKColors.White)
+        TextBlock("视频演示").FontSize(200).Foreground(theme.TextPrimary)
     ]).Align(0, 0)
       .AsClip(30, name: "start");
 }
@@ -269,17 +445,18 @@ Panel([
 {
     var content = new MyAnimation.ContentSetting { From = 0, To = 12580, Format = "N0" };
     int frames = 90;
+    var animTheme = MyAnimation.ContentTheme.From(theme);
 
     HGrid("*,*", [
-        SkiaAnim(new MyAnimation(600, 400, frames, content)),
-        SkiaAnim(new MyAnimation(600, 400, frames, content)),
+        SkiaAnim(new MyAnimation(600, 400, frames, content, animTheme)),
+        SkiaAnim(new MyAnimation(600, 400, frames, content, animTheme)),
     ]).AsClip(frames, name: "clip1");
 }
 
 // 3) 片尾
 {
     VStack([
-        TextBlock("视频结束").FontSize(200).Foreground(SKColors.White)
+        TextBlock("视频结束").FontSize(200).Foreground(theme.TextPrimary)
     ]).Align(0, 0)
       .AsClip(30, name: "end");
 }
@@ -294,10 +471,10 @@ Panel([
 }
 
 // 预览；传 args 时支持导出
-run(stage(1920, 1080, bg: SKColors.Orange), clips(), args: args);
+run(stage(1920, 1080, bg: theme.Background), clips(), args: args);
 ```
 
-注意：片段用 `{ }` 隔离局部变量，避免 `content` / `frames` 等重名。
+注意：片段用 `{ }` 隔离局部变量，避免 `content` / `frames` 等重名；主题和字体只在文件头部声明一次。
 
 ## 创建 clip
 
@@ -319,22 +496,24 @@ HStack([...]).AsClip(90, 30, name: "body");
 
 ## 音频片段
 
-音频是独立的 `NBAudioClip`，不绘制画面；用 `LinkTo` 把它的起始时间对齐到某个画面 clip：
+每个分镜的语音是独立的 `NBAudioClip`，不绘制画面；文件名、clip 名与分镜 `shotNN` 对应：
 
 ```csharp
-// 音频链接到 name 为 clip1 的 第 0 帧（初始帧）
-AudioFile("./Assets/audio01.mp3")
-    .AsClip("audio").LinkTo("clip1");
+// 语音从 shot01 的起始帧开始
+AudioFile("./assets/audios/shot01.mp3")
+    .AsClip("audio_01").LinkTo("shot01");
 
-// 音频链接到 clip1 的第 10 帧（offset 为相对 clip1 起点的帧数）
-AudioFile("./Assets/audio01.mp3")
-    .AsClip("audio").LinkTo("clip1", 10);
+// 需要延后 10 帧时，offset 为相对 shot01 起点的帧数
+AudioFile("./assets/audios/shot02.mp3")
+    .AsClip("audio_02").LinkTo("shot02", 10);
 ```
 
-- `AudioFile(path)` 创建音频 clip；
-- `.AsClip("audio")` 登记音频并命名（音频 clip 不需要 `frames`）；
-- `.LinkTo("clip1", offset)`：音频起点 = 目标 clip 的 `StartFrame + offset`，`offset` 默认 `0`；
-- 目标 clip 必须**先创建并登记名称**，否则 `LinkTo` 找不到目标，链接会静默失败；
+- `AudioFile(path)` 创建音频 clip，分镜语音统一放在 `./assets/audios/`；
+- `.AsClip("audio_NN")` 登记音频并命名（音频 clip 不需要 `frames`）；
+- `.LinkTo("shotNN", offset)`：音频起点 = 目标 clip 的 `StartFrame + offset`，`offset` 默认 `0`；
+- 目标画面 clip 必须**先创建并登记名称**，否则 `LinkTo` 找不到目标，链接会静默失败；
+- 每个镜头的入点/出点记录在 `assets/audios/audio_timeline.md`，`LinkTo` 的偏移要与其一致；
+- 画面 clip 的 `frames` 应覆盖实际语音时长；通常按 `ceil(音频秒数 * fps) + 2~4 帧` 设置；
 - 音频时长在 `Prepare` 阶段按文件自动计算，`DurationFrames` 会被更新；
 - 音频与画面进入同一 track 混音，预览和 MP4 导出都会带音频；
 - 路径相对于运行目录。
@@ -343,22 +522,20 @@ AudioFile("./Assets/audio01.mp3")
 
 ```csharp
 VStack([
-    TextBlock("Clip1").Font(80, SKColors.Orange).Align(0, 0)
-]).Align(0, 0).AsClip(frames: 40, name: "clip1");
+    TextBlock("第一句口播").Font(80, theme.Primary).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 87, name: "shot01");
 
 VStack([
-    TextBlock("Clip2").Font(80, SKColors.Orange).Align(0, 0)
-]).Align(0, 0).AsClip(frames: 40, name: "clip2");
+    TextBlock("第二句口播").Font(80, theme.Primary).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 97, name: "shot02");
 
-// 音频链接到 clip1 的第 0 帧
-AudioFile("./Assets/audio01.mp3")
-    .AsClip("audio").LinkTo("clip1");
+AudioFile("./assets/audios/shot01.mp3")
+    .AsClip("audio_01").LinkTo("shot01");
 
-// 音频链接到 clip1 的第 10 帧
-// AudioFile("./Assets/audio01.mp3")
-//     .AsClip("audio").LinkTo("clip1", 10);
+AudioFile("./assets/audios/shot02.mp3")
+    .AsClip("audio_02").LinkTo("shot02");
 
-run(stage(1920, 1080, bg: SKColors.White), clips());
+run(stage(1920, 1080, bg: theme.Background), clips());
 ```
 
 ## 布局
@@ -392,21 +569,21 @@ Grid 尺寸字符串：`"*,200,0.5*,2*,Auto"`
 ## 文本与样式
 
 ```csharp
-TextBlock("标题", 120, SKColors.White)     // text, fontSize, color
-    .Font(120, SKColors.White)             // 链式写法
+TextBlock("标题", 120, theme.TextPrimary)     // text, fontSize, color
+    .Font(120, theme.TextPrimary)             // 链式写法
     .LetterSpacing(8)
     .Align(0, 0);
 
 Text("等价于 TextBlock");
 
 RichText([
-    TextRun("普通", 80, SKColors.Black),
-    TextRun("强调", 100, SKColors.Orange),
+    TextRun("普通", 80, theme.TextPrimary),
+    TextRun("强调", 100, theme.Primary),
 ]);
 ```
 
 - `textAlign`：`-1` 左、`0` 中、`1` 右；
-- 全局字体可用 `font("字体名")`；
+- 全局字体在文件头部用 `font(fontName)` 设置一次，不要在每段文字里重复指定；
 - `Styles(params Action<NBVisual>[])` 复用样式；
 - 在 style 里用 `v.As<NBText>()` 取具体类型；
 - 文字描边：`.AddStroke(color, width)` 可叠加多层。
@@ -414,7 +591,7 @@ RichText([
 ```csharp
 var titleStyle = (NBVisual v) =>
 {
-    v.As<NBText>()?.FontSize(120).Foreground(SKColors.White).Align(0, 0);
+    v.As<NBText>()?.FontSize(120).Foreground(theme.TextPrimary).Align(0, 0);
 };
 
 TextBlock("标题").Styles(titleStyle);
@@ -469,17 +646,17 @@ Rect(400, 200)
 | 工厂 | 示例 |
 | --- | --- |
 | `SkiaAnim` | `SkiaAnim(new MyAnimation(600, 400, 90, content))` |
-| `PngAnim` | `PngAnim("./assets/images/icon-flow.png")` |
+| `PngAnim` | `PngAnim("./assets/apngs/icon-flow.png")` |
 | `LottieAnim` | `LottieAnim("./assets/lottie/loading.json")` |
-| `TypstAnim` | `TypstAnim("./assets/typst/formula.typ")` |
+| `TypstAnim` | `TypstAnim("./assets/typsts/formula.typ")` |
 
 ```csharp
 // 组合多个动画：主图 + 公式 + 图标
 HGrid("*,*", [
     SkiaAnim(new MyAnimation(600, 400, 90, content)),
     VStack([
-        TypstAnim("./assets/typst/formula.typ"),
-        PngAnim("./assets/images/icon-flow.png").Size(240, 240),
+        TypstAnim("./assets/typsts/formula.typ"),
+        PngAnim("./assets/apngs/icon-flow.png").Size(240, 240),
     ]).Spacing(20),
 ]).AsClip(90, name: "clip1");
 ```
@@ -514,7 +691,7 @@ public static int run(
 
 ```csharp
 // file-based app 顶层：透传命令行参数
-run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
+run(stage(1920, 1080, bg: theme.Background), clips(), args: args);
 
 // dotnet run                      → 预览
 // dotnet run -- out.mp4           → 导出 MP4
@@ -545,18 +722,21 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 1. `stage` 的宽高、帧率、背景色是否符合目标；
 2. 每个 clip 的 `frames` / `start` 是否正确，装饰层是否用 `-1`；
 3. 布局容器与 `Align` 是否达到预期（居中 / 拉伸 / 靠边）；
-4. 文字字号、颜色、对齐、字体是否适配画幅；
+4. 文件头部是否用全局变量设置主题与字体（`var theme = NBVideoThemes.XXX;`、`var fontName = "..."; font(fontName);`），片段内是否复用 `theme.*` 而未硬编码主题色；文字字号、颜色、对齐、字体是否适配画幅；
 5. 动效是否使用 `e.p` / `e.pf` / `Easing`，是否误用绝对帧号；
 6. 生成动画素材时，是否优先使用 APNG、Typst 或现有 Skia 模板；只有它们都无法实现或效果不好时，才新建 `SkiaAnim`；
 7. 动画实例尺寸与布局区域是否匹配，是否需要透明背景（仅 `SkiaAnim`）；
-8. 自创 `SkiaAnim` 是否保存到脚本目录的 `modules/` 并更新 `modules/README.md`；APNG / Lottie / Typst 素材是否保存到脚本目录的 `assets/` 下；APNG 最终文件后缀是否为 `.png`，`assets/images/` 下是否残留 `.apng`；
+8. 自创 `SkiaAnim` 是否保存到脚本目录的 `modules/` 并更新 `modules/README.md`；APNG / Lottie / Typst 素材是否保存到脚本目录的 `assets/` 下；APNG 是否放在 `assets/apngs/` 且最终后缀为 `.png`，目录下是否残留 `.apng`；
 9. 是否避免使用已废弃的 `NBLayer`；
 10. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
 11. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
 12. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称；
 13. 是否按 `./assets` → 父目录 → 项目根目录的顺序找到 assets，并优先阅读 `README.md`；
 14. 缺失素材是否优先用 SVG / APNG / Typst 生成；复杂 Skia 特效是否先查 `modules/`，最后才新建；素材是否保存到脚本目录的 `assets/` 对应子目录，目录是否已创建；
-15. 每个 clip 是否组合了布局组件、多个动画与素材，而不是只用一个全屏动画。
+15. 每个 clip 是否组合了布局组件、多个动画与素材，而不是只用一个全屏动画；
+16. 是否先产出 `xxxx_storyboard.md`，每个镜头都记录了口播、画面、素材、时长和对应 `shotNN`；
+17. 是否逐镜头生成语音到 `assets/audios/`，并在 `audio_timeline.md` 记录入点、出点与总时长；
+18. C# 脚本是否按分镜和音频时间表生成，clip 名与 `shotNN` 对齐，先创建画面 clip 再 `LinkTo` 音频。
 
 ## 资源
 

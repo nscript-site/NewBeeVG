@@ -138,8 +138,8 @@ CSS 必须加：
 多个元素周期不同时，整体循环时长取它们的最小公倍数。例如 2s 和 6s 的动画，整体录 6s：
 
 ```bash
-npx --yes svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/images/demo.apng --duration 6s --fps 24 --loop 0
-mv ./assets/images/demo.apng ./assets/images/demo.png
+npx --yes svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/apngs/demo.apng --duration 6s --fps 24 --loop 0
+mv ./assets/apngs/demo.apng ./assets/apngs/demo.png
 ```
 
 若不想算公倍数，用一个总时长组包裹所有动画，或把所有 `dur` 改成同一个值。
@@ -171,8 +171,8 @@ mv ./assets/images/demo.apng ./assets/images/demo.png
 保留中间帧：
 
 ```bash
-npx --yes svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/images/demo.apng --duration 3s --fps 24 --keep-frames --frames ./tmp/demo-frames
-mv ./assets/images/demo.apng ./assets/images/demo.png
+npx --yes svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/apngs/demo.apng --duration 3s --fps 24 --keep-frames --frames ./tmp/demo-frames
+mv ./assets/apngs/demo.apng ./assets/apngs/demo.png
 ```
 
 检查 `./tmp/demo-frames`：

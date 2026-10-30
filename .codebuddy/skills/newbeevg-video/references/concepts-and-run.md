@@ -229,16 +229,16 @@ Clip[名称 prepare fail: 原因]
 public static NBAudioClip AudioFile(string path);
 ```
 
-音频 clip 用 `AsClip("audio")` 登记名称，再用 `LinkTo` 对齐到目标画面 clip：
+每个分镜语音放在 `assets/audios/shotNN.mp3`，用 `AsClip("audio_NN")` 登记名称，再用 `LinkTo` 对齐到同名画面 clip：
 
 ```csharp
-// 音频链接到 clip1 的第 0 帧
-AudioFile("./Assets/audio01.mp3")
-    .AsClip("audio").LinkTo("clip1");
+// 语音从 shot01 的第 0 帧开始
+AudioFile("./assets/audios/shot01.mp3")
+    .AsClip("audio_01").LinkTo("shot01");
 
-// 音频链接到 clip1 的第 10 帧（相对 clip1 的起点）
-AudioFile("./Assets/audio01.mp3")
-    .AsClip("audio").LinkTo("clip1", 10);
+// 语音延后 10 帧（相对 shot01 的起点）
+AudioFile("./assets/audios/shot02.mp3")
+    .AsClip("audio_02").LinkTo("shot02", 10);
 ```
 
 `LinkTo` 有两个重载：
@@ -250,34 +250,33 @@ public static T LinkTo<T>(this T widget, T referenceClip, int startFrame = 0) wh
 
 行为：
 
-- `AsClip("audio")` 使用 `NBClip` 的 `AsClip` 重载：设置 `Name`，并加入 `clips()` 与名称字典；
-- `LinkTo("clip1", 10)` 设置 `ReferenceClip = clip1`、`ReferenceClipStartFrame = 10`；
-- 音频自身的 `StartFrame` 仍为 `null`，track 计算时间线时解析为 `clip1.StartFrame + 10`；
-- 目标 clip 必须**先创建并登记名称**，否则 `Methods.clip("clip1")` 返回 `null`，链接不会生效；
+- `AsClip("audio_01")` 使用 `NBClip` 的 `AsClip` 重载：设置 `Name`，并加入 `clips()` 与名称字典；
+- `LinkTo("shot01", 10)` 设置 `ReferenceClip = shot01`、`ReferenceClipStartFrame = 10`；
+- 音频自身的 `StartFrame` 仍为 `null`，track 计算时间线时解析为 `shot01.StartFrame + 10`；
+- 目标 clip 必须**先创建并登记名称**，否则 `Methods.clip("shot01")` 返回 `null`，链接不会生效；
+- 分镜语音的入点/出点记录在 `assets/audios/audio_timeline.md`，与 `LinkTo` 的偏移保持一致；
 - `Prepare` 时按音频文件真实时长更新 `DurationFrames`：`ceil(秒数 × stage.FrameRate)`，至少 1 帧；
 - 音频 PCM 会混入 `NBTrack.MixedAudioData`，MP4 导出时写入音轨；
 - 文件不存在时打印 `音频文件不存在`，保留默认 1 帧，不中断其他片段。
 
-完整示例：
+完整示例（假设文件头部已声明 `var theme = NBVideoThemes.XXX;` 与 `font(fontName)`）：
 
 ```csharp
 VStack([
-    TextBlock("Clip1").Font(80, SKColors.Orange).Align(0, 0)
-]).Align(0, 0).AsClip(frames: 40, name: "clip1");
+    TextBlock("第一句口播").Font(80, theme.Primary).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 87, name: "shot01");
 
 VStack([
-    TextBlock("Clip2").Font(80, SKColors.Orange).Align(0, 0)
-]).Align(0, 0).AsClip(frames: 40, name: "clip2");
+    TextBlock("第二句口播").Font(80, theme.Primary).Align(0, 0)
+]).Align(0, 0).AsClip(frames: 97, name: "shot02");
 
-// 音频链接到 clip1 的第 0 帧
-AudioFile("./Assets/audio01.mp3")
-    .AsClip("audio").LinkTo("clip1");
+AudioFile("./assets/audios/shot01.mp3")
+    .AsClip("audio_01").LinkTo("shot01");
 
-// 音频链接到 clip1 的第 10 帧
-// AudioFile("./Assets/audio01.mp3")
-//     .AsClip("audio").LinkTo("clip1", 10);
+AudioFile("./assets/audios/shot02.mp3")
+    .AsClip("audio_02").LinkTo("shot02");
 
-run(stage(1920, 1080, bg: SKColors.White), clips());
+run(stage(1920, 1080, bg: theme.Background), clips());
 ```
 
 注意：

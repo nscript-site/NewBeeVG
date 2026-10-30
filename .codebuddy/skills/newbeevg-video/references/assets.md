@@ -6,12 +6,13 @@
 
 ```text
 assets/
-├── audios/      # mp3 / wav
-├── images/      # png / jpg / webp；PngAnim 的 APNG 内容也用 .png 后缀
+├── audios/      # 分镜语音 mp3 / wav + audio_timeline.md
+├── apngs/        # PngAnim 的 APNG 内容，后缀统一为 .png
+├── images/      # 普通静态图片 png / jpg / webp
 ├── videos/      # mp4 / webm 等
 ├── svgs/        # 静态或带动画的 svg
 ├── lottie/      # Lottie JSON（LottieAnim）
-├── typst/       # .typ 及依赖（TypstAnim）
+├── typsts/      # .typ 及依赖（TypstAnim）
 └── README.md    # 资源清单与说明
 ```
 
@@ -65,7 +66,7 @@ static string FindAssetsDir(string startDir)
 ```csharp
 void EnsureAssetDirs(string assets)
 {
-    foreach (var sub in new[] { "audios", "images", "videos", "svgs", "lottie", "typst" })
+    foreach (var sub in new[] { "audios", "apngs", "images", "videos", "svgs", "lottie", "typsts" })
         Directory.CreateDirectory(Path.Combine(assets, sub));
 }
 ```
@@ -90,6 +91,7 @@ void EnsureAssetDirs(string assets)
 | images/bg-night.png | 图片 | 夜景背景 | 1920×1080 | 可裁切 |
 | svgs/icon-chart.svg | SVG | 图表图标 | 64×64 | 单色 |
 | audios/intro.mp3 | 音频 | 片头音乐 | 12s | 淡入淡出 |
+| audios/audio_timeline.md | 时间表 | 分镜语音入点/出点 | 全片 | 与 `shotNN` 对应 |
 ```
 
 新增素材后同步更新 README。
@@ -98,11 +100,12 @@ void EnsureAssetDirs(string assets)
 
 写代码前：
 
-1. **分析稿件**：按镜头/clip 拆分，列出每个 clip 需要的视觉与音频元素；
+1. **读取 Markdown 稿件并产出分镜**：在同目录生成 `xxxx_storyboard.md`，按镜头/clip 列出 `shotNN`、口播、画面和所需视觉/音频元素；
 2. **读取 README 与目录**：标记已有素材，确认尺寸/时长/风格是否匹配；
 3. **列出缺失项**：背景、图标、插画、图表、照片、音效、视频等；
 4. **生成缺失素材**：优先 SVG；简单动画转 APNG，数学/科学排版用 Typst；复杂特效先查 `modules/` 现有 Skia 模板，最后才新建 SkiaAnim；
-5. **保存并登记**：放入对应子目录，更新 README。
+5. **生成并登记语音**：按分镜合成语音到 `assets/audios/shotNN.mp3`，并把入点/出点写入 `assets/audios/audio_timeline.md`；
+6. **保存并登记素材**：放入对应子目录，更新 `assets/README.md`。
 
 ## 5. 用 SVG 生成缺失素材
 
@@ -163,23 +166,23 @@ npx --yes svg-animation-convert --input .\your.svg --output your.apng
 转换器只接受 `.apng` 中间输出，**转换完成后必须重命名为 `.png`**：
 
 ```powershell
-Move-Item .\your.apng .\assets\images\your.png -Force
+Move-Item .\your.apng .\assets\apngs\your.png -Force
 ```
 
 ```bash
-mv ./your.apng ./assets/images/your.png
+mv ./your.apng ./assets/apngs/your.png
 ```
 
 无限循环的 SVG 必须指定时长，否则转换可能无法结束或帧数不确定：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
-mv ./your.apng ./assets/images/your.png
+mv ./your.apng ./assets/apngs/your.png
 ```
 
 - `--duration` 按秒计，覆盖一个完整循环或镜头所需时长；
-- 最终交付后缀必须是 `.png`，不能是 `.apng`；`assets/images/` 下不要残留 `.apng`；
-- 用 `PngAnim("./assets/images/your.png")` 引入；
+- 最终交付后缀必须是 `.png`，不能是 `.apng`；`assets/apngs/` 下不要残留 `.apng`；
+- 用 `PngAnim("./assets/apngs/your.png")` 引入；
 - 转换后检查循环衔接、透明区域、分辨率和文件体积；可用 `inspect_apng.py --require-png` 校验后缀。
 
 ## 6. 引用素材
@@ -217,7 +220,7 @@ Image("../assets/images/bg-night.png");
 
 同一画面可通过 `HGrid` / `HStack` / `Panel` 嵌入多个动画节点；它们共享当前 clip 的帧号，需要独立时间轴时拆成多个 clip 并用 `start` 叠加。
 
-推荐结构：
+推荐结构（示例假设文件头部已声明 `var theme = NBVideoThemes.XXX;` 与 `font(fontName)`）：
 
 ```csharp
 Panel([
@@ -229,13 +232,13 @@ Panel([
         HStack([
             SkiaAnim(new ChartAnimation(600, 800, 90, content)),
             VStack([
-                TextBlock("季度增长").Font(72, SKColors.White),
-                TextBlock("+128%").Font(160, SKColors.Orange),
+                TextBlock("季度增长").Font(72, theme.TextPrimary),
+                TextBlock("+128%").Font(160, theme.Primary),
             ]).Spacing(20),
         ]).Spacing(40),
     ]).Margin(120),
 
-    TextBlock("数据来源：内部统计").Font(32, SKColors.LightGray)
+    TextBlock("数据来源：内部统计").Font(32, theme.TextSecondary)
         .Align(-1, 1).Margin(80),
 ])
 .AsClip(90, name: "chart");

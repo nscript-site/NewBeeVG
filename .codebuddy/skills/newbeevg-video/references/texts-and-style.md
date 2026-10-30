@@ -1,5 +1,23 @@
 # 文字与样式
 
+## 0. 全局主题与字体
+
+完整视频脚本必须在文件头部集中声明主题与字体，后续所有文字复用，不在片段内重复设置：
+
+```csharp
+#!/usr/bin/env dotnet
+
+// ===== 全片主题与字体：只在这里修改 =====
+var theme = NBVideoThemes.Nature;
+var fontName = "阿里巴巴普惠体 2.0";
+font(fontName);
+```
+
+- `font(...)` 要在任何 `TextBlock` / `Text` / `RichText` 之前调用；
+- 文字颜色使用 `theme.TextPrimary` / `theme.TextSecondary` / `theme.Primary` 等主题色；
+- 不要在每个 `TextBlock` 上重复写字体名，也不要在片段内硬编码主题色；
+- 本文件后续短片段为突出 API 可能直接写颜色字面量，完整脚本应改为 `theme.*`。
+
 ## 1. 普通文本：`NBText`
 
 ```csharp
@@ -39,7 +57,7 @@ TextBlock("Hello")
 - `.AddStroke(color, width)`：可叠加多层描边；
 - `.TextAlign(...)` / `.Wrap(...)`；
 - 垂直文本：`.Orientation(Orientation.Vertical)`；
-- 通过 `font("字体名")` 设置全局默认字体。
+- 通过文件头部的 `font(fontName)` 设置全局默认字体，片段内不要重复调用。
 
 ### 多行文字
 

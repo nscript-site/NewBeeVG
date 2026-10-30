@@ -42,7 +42,7 @@ $ x = -1 $
 ```
 
 ```csharp
-var anim = TypstAnim("./assets/typst/steps.typ");
+var anim = TypstAnim("./assets/typsts/steps.typ");
 
 HStack([
     anim.LoopMode(NBAnimateLoopMode.Stop).Align(0, 0),
@@ -80,7 +80,7 @@ CeTZ 函数图通常用循环生成 60 页，每页对应一个时间 `t`：
 完整示例见 `assets/anim_plot.typ`：`y = sin(x - t)`，60 页，包含网格、坐标轴、刻度、参照波形、运动波形和波峰红点。
 
 ```csharp
-var plot = TypstAnim("./assets/typst/anim_plot.typ");
+var plot = TypstAnim("./assets/typsts/anim_plot.typ");
 
 HStack([
     plot.LoopMode(NBAnimateLoopMode.Loop).Align(0, 0),
@@ -173,7 +173,7 @@ typst compile anim_plot.typ "frames/f-{0p}.png" --ppi 200
 NewBeeVG 内：
 
 ```csharp
-var anim = TypstAnim("./assets/typst/anim_plot.typ");
+var anim = TypstAnim("./assets/typsts/anim_plot.typ");
 
 HStack([
     anim.LoopMode(NBAnimateLoopMode.Loop).Align(0, 0),

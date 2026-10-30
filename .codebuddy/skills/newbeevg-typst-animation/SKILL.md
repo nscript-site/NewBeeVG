@@ -52,7 +52,7 @@ public static NBTypstAnimation TypstAnim(string path);
 
 ### 1. 编写 Typst 文档
 
-保存到视频脚本目录的 `assets/typst/`，目录不存在时创建。
+保存到视频脚本目录的 `assets/typsts/`，目录不存在时创建。
 
 硬性要求：
 
@@ -83,7 +83,7 @@ $ x = -1 $
 ### 2. 用 C# 接入
 
 ```csharp
-var anim = TypstAnim("./assets/typst/steps.typ");
+var anim = TypstAnim("./assets/typsts/steps.typ");
 
 HStack([
     anim.LoopMode(NBAnimateLoopMode.Stop).Align(0, 0),
@@ -151,7 +151,7 @@ dotnet run -- output/typst.mp4
 接入 NewBeeVG：
 
 ```csharp
-var plot = TypstAnim("./assets/typst/anim_plot.typ");
+var plot = TypstAnim("./assets/typsts/anim_plot.typ");
 
 HStack([
     plot.LoopMode(NBAnimateLoopMode.Loop).Align(0, 0),
@@ -235,12 +235,12 @@ package requires typst 0.13.0 or newer
 
 ```csharp
 HGrid("*,*", [
-    TypstAnim("./assets/typst/anim_plot.typ")
+    TypstAnim("./assets/typsts/anim_plot.typ")
         .LoopMode(NBAnimateLoopMode.Loop),
 
     VStack([
         TextBlock("函数图像").Font(72, SKColors.White),
-        TypstAnim("./assets/typst/steps.typ")
+        TypstAnim("./assets/typsts/steps.typ")
             .LoopMode(NBAnimateLoopMode.Stop),
     ]).Spacing(20),
 ]).AsClip(60, name: "math");
