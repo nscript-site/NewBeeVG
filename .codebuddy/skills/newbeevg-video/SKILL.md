@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers assets discovery (README + audios/images/videos/svgs), SVG asset generation for missing material, AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers assets discovery (README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim, SVG-to-APNG conversion, AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -9,9 +9,9 @@ description: This skill should be used when building, editing, or debugging a Ne
 
 用 NewBeeVG 的 markup + clip 时间线构建视频：用布局组件描述每一帧画面，用 `AsClip` 把画面变成有起止帧的片段，最后用 `run(...)` 预览或导出。
 
-推荐组合：**布局组件（排版）+ SkiaAnim（动态图形）+ assets 素材（背景/图标/图片/SVG）**。
+推荐组合：**布局组件（排版）+ 动画（SkiaAnim / PngAnim / LottieAnim / TypstAnim）+ assets 素材（背景/图标/图片/SVG）**。
 
-不适用：深入 3D、Typst、TTS 等专项能力时，再查对应专项文档；本技能不覆盖已废弃的 `NBLayer`。
+不适用：深入 3D、TTS 等专项能力时，再查对应专项文档；本技能不覆盖已废弃的 `NBLayer`。
 
 ## 核心模型
 
@@ -48,9 +48,19 @@ clip 的时间规则：
 ```text
 assets/
 ├── audios/
-├── images/
+├── images/      # 含 PngAnim 使用的 APNG
 ├── videos/
 ├── svgs/
+├── lottie/      # LottieAnim 的 JSON
+├── typst/       # TypstAnim 的 .typ 及依赖
+└── README.md
+```
+
+自创的 `SkiaAnim` 源码不放在 `assets`，而是与它同级：
+
+```text
+modules/
+├── MyAnimation.cs
 └── README.md
 ```
 
@@ -75,15 +85,18 @@ assets/
 制作视频前先做素材盘点：
 
 1. **分析稿件/脚本**：拆分镜头，列出每个 clip 需要的背景、图片、图标、图表、SVG、音频、视频素材；
-2. **读取 assets 与 README**：标记已有素材，列出缺失素材；
-3. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；
-4. **保存素材**：
+2. **读取 assets 与 README**：标记已有素材，列出缺失素材；同时检查 `modules/README.md` 是否已有合适的 `SkiaAnim` 特效；
+3. **选择动画实现**：复杂特效/数据图形用 `SkiaAnim`，简单矢量动效用 SVG → APNG（`PngAnim`），数学/科学排版用 `TypstAnim`，Lottie 仅作兜底；
+4. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；简单动画再转成 APNG；
+5. **保存素材**：
    - SVG → `assets/svgs/`
-   - 图片 → `assets/images/`
+   - 图片 / APNG → `assets/images/`
+   - Lottie → `assets/lottie/`
+   - Typst → `assets/typst/`
    - 音频 → `assets/audios/`
    - 视频 → `assets/videos/`
    - 目录不存在时先创建；
-5. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长，方便后续复用。
+6. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长，方便后续复用。
 
 生成 SVG 时：
 
@@ -93,21 +106,105 @@ assets/
 - 颜色尽量与视频主题色一致；
 - 避免外部字体、外链图片和脚本，保证 SVG 自包含。
 
-## 组合原则
+## 动画素材选型
 
-制作每个 clip 时，尽量**组合布局组件、SkiaAnim 和素材**，不要用单一的全屏 SkiaAnim 构成整个 clip：
+`SkiaAnim`、`PngAnim`、`LottieAnim`、`TypstAnim` 都会返回可视节点，可直接放进任意布局容器。按内容特点选择：
+
+| 工厂 | 适用场景 | 素材来源 |
+| --- | --- | --- |
+| `SkiaAnim(ISKAnimation)` | 复杂动画、数据图形、数字滚动、图表、程序化特效 | `modules/` 预制特效；没有则新建 |
+| `PngAnim(path)` | 画面简单、矢量插画、SMIL/CSS 动画 | 大模型生成 SVG，再转成 APNG |
+| `LottieAnim(path)` | Lottie JSON 动画 | 大模型可生成，但质量较差，不推荐 |
+| `TypstAnim(path)` | 数学、科学、矢量图表、复杂排版 | Typst + CeTZ 多页文档 |
+
+### `SkiaAnim`：复杂动画与程序化特效
+
+适合需要逐帧计算、数据驱动或精细控制的动画，例如数字增长、图表生长、粒子、路径描边、转场特效。
+
+1. **先找预制特效**：项目目录的 `modules/` 通常放有现成的 `SkiaAnim` 特效，先读 `modules/README.md`，按介绍选择；找到后用 `#:include modules/Xxx.cs` 引入并直接 `SkiaAnim(new Xxx(...))`；
+2. **没有合适的再新建**：使用 `newbeevg-skia-animation` 技能创建 `SKCustomAnimation` 子类；
+3. **保存位置**：自创特效放在**视频脚本文件所在目录**的 `modules/`，目录不存在时创建；同步在 `modules/README.md` 中补充用途、参数和示例；
+4. 简单静态图形不必新建特效，优先用 SVG；需要简单动效时用 SVG 转 APNG（`PngAnim`）。
+
+### `PngAnim`：简单画面与矢量动画
+
+适合扁平插画、图标位移、路径生长、描边、简单形变等矢量场景。流程：
+
+1. 用大模型生成带 SMIL / CSS 动画的自包含 SVG，保存到 `assets/svgs/`；
+2. 用 `svg-animation-convert` 转成 APNG：
+
+```bash
+npx --yes svg-animation-convert --input .\your.svg --output your.apng
+```
+
+3. 把输出的 APNG 放到 `assets/images/`，脚本中用 `PngAnim("./assets/images/your.apng")` 引入；转换器的输出扩展名必须是 `.apng`，不能写 `.png`。
+
+无限循环的 SVG 动画必须显式指定转换时长，否则转换可能无法结束或帧数不确定：
+
+```bash
+npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
+```
+
+- `--duration` 按秒计，取值覆盖一个完整循环或镜头所需时长；
+- 控制 APNG 的分辨率与帧数，避免文件过大、解码过慢；
+- 转换后先在预览中确认循环衔接与透明区域是否正常；
+- 需要完整的 SVG 动画编写、转换参数、APNG 结构校验与优化流程时，使用 `newbeevg-apng-animation` 技能。
+
+### `LottieAnim`：不推荐作为首选
+
+`LottieAnim` 可以加载 Lottie JSON 并包装成可视节点，但**目前大模型生成 Lottie 的能力较差**，容易出现结构错误、图层错乱或动画不符合预期，因此只作为已有可靠素材时的兜底，不推荐让 AI 从零生成。
 
 ```csharp
-// 推荐：背景素材 + 布局分栏 + SkiaAnim + 文字
+LottieAnim("./assets/lottie/loading.json");
+```
+
+### `TypstAnim`：数学、科学与复杂排版
+
+适合公式推导、科学示意图、复杂表格、矢量图表等 Typst 擅长的内容。用 Typst 编写多页文档，配合 CeTZ 等包绘制矢量图，每个页面会成为一帧：
+
+```csharp
+TypstAnim("./assets/typst/derivation.typ");
+```
+
+- 页面尺寸、边距应与目标布局区域匹配；
+- 多页文档就是时间轴：页数决定动画帧数，重要步骤拆成独立页；
+- 图片、数据和其他依赖放在 `.typ` 同目录或子目录，用相对路径引用；
+- 编译工作区是 `.typ` 文件所在目录，`#include` / `#import` 的相对路径以它为基准；
+- 需要完整的 Typst 页面尺寸、CeTZ 示意图、逐页动画与页数/帧数换算时，使用 `newbeevg-typst-animation` 技能。
+
+### 存放约定
+
+```text
+<视频脚本目录>/
+├── assets/
+│   ├── images/      # PngAnim 的 APNG / PNG
+│   ├── lottie/      # LottieAnim 的 JSON
+│   ├── typst/       # TypstAnim 的 .typ 及其依赖
+│   ├── svgs/        # SVG 源文件
+│   └── README.md
+└── modules/         # 自创 SkiaAnim 的 .cs 与 README.md
+```
+
+- `PngAnim`、`LottieAnim`、`TypstAnim` 的动画素材放在**视频脚本文件所在目录**的 `assets/` 下，目录不存在时创建；
+- 自创的 `SkiaAnim` 放在**视频脚本文件所在目录**的 `modules/` 下，目录不存在时创建；
+- 新增素材或模块后，同步更新对应的 `README.md`，方便后续复用。
+
+## 组合原则
+
+制作每个 clip 时，尽量**组合布局组件、动画组件和素材**，不要用单一的全屏动画构成整个 clip。四种动画可以组合使用，也可以在同一画面中通过布局嵌入多个动画节点：
+
+```csharp
+// 推荐：背景素材 + 布局分栏 + 多个动画 + 文字
 Panel([
     Image("./assets/images/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
 
     HGrid("480,*", [
-        SVG("./assets/svgs/icon-chart.svg").Size(320, 320).Align(0, 0),
+        PngAnim("./assets/images/icon-chart.png").Size(320, 320).Align(0, 0),
 
         HStack([
             SkiaAnim(new ChartAnimation(600, 800, 90, content)),
             VStack([
+                TypstAnim("./assets/typst/formula.typ"),
                 TextBlock("季度增长").Font(72, SKColors.White),
                 TextBlock("+128%").Font(160, SKColors.Orange),
             ]).Spacing(20),
@@ -121,10 +218,12 @@ Panel([
 ```
 
 - **布局组件**负责分栏、留白、对齐与信息层级；
-- **SkiaAnim** 负责数据驱动的图形、数字滚动、图表、程序化动效；
+- **动画组件**负责动态内容：复杂特效与数据图形用 `SkiaAnim`，简单矢量动画用 `PngAnim`，数学/科学排版用 `TypstAnim`，Lottie 仅作兜底；
 - **assets** 提供背景、照片、图标、插画、音视频；
-- 一个 clip 内通常至少包含两类元素（例如 SkiaAnim + 文字，或素材 + 布局 + SkiaAnim）；
-- 片头/片尾可用纯文字布局；正文与数据镜头应避免“整个画面只有一个 SkiaAnim”。
+- 一个 clip 内通常至少包含两类元素（例如动画 + 文字，或素材 + 布局 + 动画）；
+- **同一画面可以嵌入多个动画节点**：把 `SkiaAnim`、`PngAnim`、`TypstAnim` 分别放进 `HGrid` / `HStack` / `Panel` 的不同区域，形成主图 + 辅助图 + 数据卡等组合；
+- 同一 clip 内的动画共享当前帧号；需要各自独立时间轴时，把动画拆成不同 clip，用 `start` 叠加或错开；
+- 片头/片尾可用纯文字布局；正文与数据镜头应避免“整个画面只有一个全屏动画”。
 
 ## 最小视频骨架
 
@@ -338,24 +437,34 @@ Rect(400, 200)
     .AsClip(30, name: "effect");
 ```
 
-## 嵌入 SkiaAnim
+## 嵌入动画组件
 
-`SkiaAnim` 把 `ISKAnimation` 包装成 `NBSkiaAnimation`（可视节点），可直接放进任何布局容器：
+`SkiaAnim`、`PngAnim`、`LottieAnim`、`TypstAnim` 都返回可视节点，可直接放进任何布局容器：
+
+| 工厂 | 示例 |
+| --- | --- |
+| `SkiaAnim` | `SkiaAnim(new MyAnimation(600, 400, 90, content))` |
+| `PngAnim` | `PngAnim("./assets/images/icon-flow.png")` |
+| `LottieAnim` | `LottieAnim("./assets/lottie/loading.json")` |
+| `TypstAnim` | `TypstAnim("./assets/typst/formula.typ")` |
 
 ```csharp
-var anim = new MyAnimation(600, 400, 90, content);
-
+// 组合多个动画：主图 + 公式 + 图标
 HGrid("*,*", [
-    SkiaAnim(anim),
-    SkiaAnim(anim2),
+    SkiaAnim(new MyAnimation(600, 400, 90, content)),
+    VStack([
+        TypstAnim("./assets/typst/formula.typ"),
+        PngAnim("./assets/images/icon-flow.png").Size(240, 240),
+    ]).Spacing(20),
 ]).AsClip(90, name: "clip1");
 ```
 
-- 节点尺寸来自动画的 `Width` / `Height`，布局会把它映射到分配区域；
-- 默认循环播放；需要往复时设置 `LoopMode`；
-- 动画帧号来自当前 clip 的 `NBDrawContext.Current.frame`；
-- 同一个动画实例可被多个节点共享，但建议每个节点用独立实例，避免状态互相影响；
-- 需要透明背景时，动画内用 `canvas.Clear(SKColors.Transparent)`，不要填不透明底色。
+- 节点尺寸：`SkiaAnim` 取自动画 `Width` / `Height`，`PngAnim` 取自 APNG 第一帧，`LottieAnim` 取自 Lottie 画布，`TypstAnim` 取自第一页；布局会把节点映射到分配区域；
+- 四种动画都默认 `LoopMode = Stop`（播放一次并停在最后一帧）；需要循环用 `.LoopMode(NBAnimateLoopMode.Loop)`，往复用 `.AutoReverse`，调速用 `.Speed(...)`；
+- 动画帧号来自当前 clip 的 `NBDrawContext.Current.frame`；同一 clip 内的多个动画共享这个帧号；
+- 需要各自独立时间轴时，把动画拆成不同 clip，用 `start` 叠加或错开；
+- `SkiaAnim` 可共享同一个 `ISKAnimation` 实例，但建议每个节点用独立实例，避免动画内部状态互相影响；
+- `SkiaAnim` 需要透明背景时，动画内用 `canvas.Clear(SKColors.Transparent)`，不要填不透明底色。
 
 ## run：预览与导出
 
@@ -413,14 +522,16 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 3. 布局容器与 `Align` 是否达到预期（居中 / 拉伸 / 靠边）；
 4. 文字字号、颜色、对齐、字体是否适配画幅；
 5. 动效是否使用 `e.p` / `e.pf` / `Easing`，是否误用绝对帧号；
-6. SkiaAnim 实例尺寸与布局区域是否匹配，是否需要透明背景；
-7. 是否避免使用已废弃的 `NBLayer`；
-8. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
-9. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
-10. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称；
-11. 是否按 `./assets` → 父目录 → 项目根目录的顺序找到 assets，并优先阅读 `README.md`；
-12. 缺失素材是否优先用 SVG 生成并保存到脚本目录的 `assets/svgs`（图片/音频/视频放对应子目录），目录是否已创建；
-13. 每个 clip 是否组合了布局组件、SkiaAnim 与素材，而不是只用一个全屏 SkiaAnim。
+6. 动画选型是否匹配内容（复杂特效/数据图形 → `SkiaAnim`，简单矢量 → `PngAnim`，数学/科学排版 → `TypstAnim`；`LottieAnim` 仅在已有可靠素材时使用）；
+7. 动画实例尺寸与布局区域是否匹配，是否需要透明背景（仅 `SkiaAnim`）；
+8. 自创 `SkiaAnim` 是否保存到脚本目录的 `modules/` 并更新 `modules/README.md`；APNG / Lottie / Typst 素材是否保存到脚本目录的 `assets/` 下；
+9. 是否避免使用已废弃的 `NBLayer`；
+10. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
+11. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
+12. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称；
+13. 是否按 `./assets` → 父目录 → 项目根目录的顺序找到 assets，并优先阅读 `README.md`；
+14. 缺失素材是否优先用 SVG 生成并保存到脚本目录的 `assets/svgs`（图片/音频/视频/动画放对应子目录），目录是否已创建；
+15. 每个 clip 是否组合了布局组件、多个动画与素材，而不是只用一个全屏动画。
 
 ## 资源
 
@@ -430,4 +541,4 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 - `references/texts-and-style.md`：`NBText` / `NBRichText` / `TextRun`、`Styles`、逐帧动画与缓动。
 - `references/effects.md`：渲染流程、Shaders、BitmapFilters、FrameMask、Filters、ColorFilters、Opacity/RenderTransform。
 - `references/widgets.md`：布局、内容、形状组件目录（不含 NBLayer）。
-- `assets/video-template.cs`：可直接运行的 SkiaAnim + 布局 + run 模板。
+- `assets/video-template.cs`：可直接运行的 SkiaAnim + 布局 + run 模板；可把其中节点替换为 `PngAnim` / `TypstAnim`。

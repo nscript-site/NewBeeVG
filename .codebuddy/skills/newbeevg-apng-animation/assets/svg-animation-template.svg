@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="512" height="512" viewBox="0 0 512 512"
+     fill="none">
+  <!-- 透明背景：不要添加铺满画布的 rect；底色交给 NewBeeVG 的背景或下层素材。 -->
+
+  <!-- 外圈：6s 旋转一周；虚线偏移 2s 循环一次，6s 内正好 3 次。 -->
+  <g id="ring">
+    <circle cx="256" cy="256" r="176"
+            stroke="#4FA3D1" stroke-opacity="0.18" stroke-width="24"/>
+
+    <circle cx="256" cy="256" r="176"
+            stroke="#4FA3D1" stroke-width="24" stroke-linecap="round"
+            stroke-dasharray="260 846">
+      <animate attributeName="stroke-dashoffset"
+               values="0;-1106"
+               dur="2s" repeatCount="indefinite"/>
+    </circle>
+
+    <animateTransform attributeName="transform" type="rotate"
+                      from="0 256 256" to="360 256 256"
+                      dur="6s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- 中心脉冲点：与虚线同一 2s 周期。 -->
+  <circle cx="256" cy="256" r="9" fill="#F0B429">
+    <animate attributeName="r" values="8;18;8"
+             dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0.55;1"
+             dur="2s" repeatCount="indefinite"/>
+  </circle>
+</svg>

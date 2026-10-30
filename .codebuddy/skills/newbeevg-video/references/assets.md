@@ -7,9 +7,11 @@
 ```text
 assets/
 ├── audios/      # mp3 / wav
-├── images/      # png / jpg / webp
+├── images/      # png / jpg / webp / APNG（PngAnim）
 ├── videos/      # mp4 / webm 等
 ├── svgs/        # 静态或带动画的 svg
+├── lottie/      # Lottie JSON（LottieAnim）
+├── typst/       # .typ 及依赖（TypstAnim）
 └── README.md    # 资源清单与说明
 ```
 
@@ -63,7 +65,7 @@ static string FindAssetsDir(string startDir)
 ```csharp
 void EnsureAssetDirs(string assets)
 {
-    foreach (var sub in new[] { "audios", "images", "videos", "svgs" })
+    foreach (var sub in new[] { "audios", "images", "videos", "svgs", "lottie", "typst" })
         Directory.CreateDirectory(Path.Combine(assets, sub));
 }
 ```
@@ -119,7 +121,7 @@ void EnsureAssetDirs(string assets)
 - 颜色尽量使用主题色，或使用 `currentColor` 便于替换；
 - 图标/插画保持分层与语义化命名（`<g id="...">`）；
 - 动画优先使用简单 SMIL（`animate` / `animateTransform`）或内联 CSS；
-- 动画 SVG 需要实际渲染验证；若 Svg.Skia 不支持某个特性，退回静态 SVG 或改用 SkiaAnim 实现动效。
+- 动画 SVG 需要实际渲染验证；若 Svg.Skia 不支持某个特性，可转成 APNG（`PngAnim`）或改用 `SkiaAnim` 实现动效。
 
 静态 SVG 示例：
 
@@ -150,6 +152,24 @@ void EnsureAssetDirs(string assets)
 
 如果 SVG 动画在预览中不生效，改用 `SkiaAnim` 绘制同一图形，或导出成帧序列/视频。
 
+### 转成 APNG（`PngAnim`）
+
+画面简单或纯矢量的动画，建议把 SVG 转成 APNG 后嵌入，避免依赖 Svg.Skia 对 SMIL/CSS 的支持：
+
+```bash
+npx --yes svg-animation-convert --input .\your.svg --output your.apng
+```
+
+无限循环的 SVG 必须指定时长，否则转换可能无法结束或帧数不确定：
+
+```bash
+npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
+```
+
+- `--duration` 按秒计，覆盖一个完整循环或镜头所需时长；
+- 输出扩展名必须是 `.apng`（不能写 `.png`）；输出放到 `assets/images/`，用 `PngAnim("./assets/images/your.apng")` 引入；
+- 转换后检查循环衔接、透明区域、分辨率和文件体积。
+
 ## 6. 引用素材
 
 路径相对于运行时目录（通常为脚本所在目录）：
@@ -173,13 +193,15 @@ AudioFile("./assets/audios/intro.mp3")
 Image("../assets/images/bg-night.png");
 ```
 
-## 7. 组合原则：布局 + SkiaAnim + 素材
+## 7. 组合原则：布局 + 动画 + 素材
 
-每个 clip 尽量有两类以上元素，不要只用一个全屏 `SkiaAnim`：
+每个 clip 尽量有两类以上元素，不要只用一个全屏动画：
 
 - **布局组件**：分栏、留白、层级、标题区；
-- **SkiaAnim**：数据图形、数字滚动、图表、程序化动效；
+- **动画组件**：复杂特效/数据图形用 `SkiaAnim`，简单矢量用 `PngAnim`，数学/科学排版用 `TypstAnim`，`LottieAnim` 仅作兜底；
 - **素材**：背景图/视频、SVG 图标/插画、音频。
+
+同一画面可通过 `HGrid` / `HStack` / `Panel` 嵌入多个动画节点；它们共享当前 clip 的帧号，需要独立时间轴时拆成多个 clip 并用 `start` 叠加。
 
 推荐结构：
 
@@ -208,9 +230,9 @@ Panel([
 不推荐：
 
 ```csharp
-// 整个 clip 只有一个全屏 SkiaAnim，缺少信息层级与静态装饰
+// 整个 clip 只有一个全屏动画，缺少信息层级与静态装饰
 SkiaAnim(new FullScreenAnimation(1920, 1080, 90, content))
     .AsClip(90, name: "chart");
 ```
 
-例外：片头/片尾若确实只需要一句标题或一个视觉主体，可以用纯文字或单个 SkiaAnim。
+例外：片头/片尾若确实只需要一句标题或一个视觉主体，可以用纯文字或单个动画。

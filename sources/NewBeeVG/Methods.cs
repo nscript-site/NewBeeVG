@@ -702,6 +702,23 @@ public static class Methods
     }
 
     /// <summary>
+    /// 使用绘制回调创建 SK 动画，并直接包装为 NewBeeVG 可视节点。
+    /// </summary>
+    /// <param name="size">单帧画面尺寸（像素），内部会截断为整数宽高。</param>
+    /// <param name="frames">动画总帧数，有效帧号为 0 ~ frames-1。</param>
+    /// <param name="onFrame">逐帧绘制回调：参数依次为画布、画面尺寸、当前帧号。</param>
+    /// <returns>可直接参与布局与渲染的 <see cref="NBSkiaAnimation"/> 节点。</returns>
+    /// <remarks>
+    /// <see cref="SkiaAnim(ISKAnimation)"/> 包装为节点。
+    /// </remarks>
+    public static NBSkiaAnimation SkiaAnim(SKSize size, int frames, Action<SKCanvas, SKSize, int> onFrame)
+    {
+        var skanim = new SKAnimation((int)size.Width, (int)size.Height, frames, onFrame);
+        // 先创建原始动画，再包装为可视节点
+        return new NBSkiaAnimation { Animation = skanim };
+    }
+
+    /// <summary>
     /// 将已有的 <see cref="ISKAnimation"/> 包装为 NewBeeVG 可视节点，便于放入 Grid、Stack、Layer 等布局容器中渲染。
     /// </summary>
     /// <param name="animation">动画实例；节点的尺寸与总帧数均取自该实例。</param>
@@ -718,26 +735,77 @@ public static class Methods
     }
 
     /// <summary>
-    /// 使用绘制回调创建 SK 动画，并直接包装为 NewBeeVG 可视节点。
+    /// 将 APNG（动态 PNG）动画包装为 NewBeeVG 的可视节点。
     /// </summary>
-    /// <param name="size">单帧画面尺寸（像素），内部会截断为整数宽高。</param>
-    /// <param name="frames">动画总帧数，有效帧号为 0 ~ frames-1。</param>
-    /// <param name="onFrame">逐帧绘制回调：参数依次为画布、画面尺寸、当前帧号。</param>
-    /// <returns>可直接参与布局与渲染的 <see cref="NBSkiaAnimation"/> 节点。</returns>
+    /// <param name="filePath">APNG 文件路径；相对路径按当前工作目录解析。</param>
+    /// <returns>可直接放入 Grid、Stack、Layer 等布局容器中渲染的 <see cref="NBPngAnimation"/> 节点。</returns>
     /// <remarks>
-    /// 等价于先用 <see cref="skanim"/> 创建 <see cref="SKAnimation"/>，再调用
-    /// <see cref="SkiaAnim(ISKAnimation)"/> 包装为节点。
+    /// <para>
+    /// 构造时立即把文件读入内存，实际解码延迟到首次布局或绘制；节点以 APNG 第一帧的像素尺寸参与布局，
+    /// 并按 <see cref="NBBaseLoopAnimation.TotalFrames"/> 逐帧播放。
+    /// </para>
+    /// <para>
+    /// 默认 <see cref="NBBaseLoopAnimation.LoopMode"/> 为 <see cref="NBAnimateLoopMode.Stop"/>（播放到最后一帧后停住），
+    /// 可用 <c>LoopMode(NBAnimateLoopMode.Loop)</c> / <c>Speed(...)</c> 链式调整播放方式与速度。
+    /// </para>
+    /// <para>
+    /// 文件不存在或 APNG 解码失败时不会抛出异常，错误记录在 <see cref="NBBaseImage.DecodeException"/>，此时节点不绘制内容。
+    /// </para>
     /// </remarks>
-    public static NBSkiaAnimation SkiaAnim(SKSize size, int frames, Action<SKCanvas, SKSize, int> onFrame)
-    {
-        var skanim = new SKAnimation((int)size.Width, (int)size.Height, frames, onFrame);
-        // 先创建原始动画，再包装为可视节点
-        return new NBSkiaAnimation { Animation = skanim };
-    }
-
     public static NBPngAnimation PngAnim(string filePath)
     {
         return new NBPngAnimation(filePath);
+    }
+
+    /// <summary>
+    /// 将 Lottie（JSON）动画文件包装为 NewBeeVG 的可视节点。
+    /// </summary>
+    /// <param name="path">Lottie JSON 文件路径；相对路径按当前工作目录解析。压缩包内的资源请改用 <c>LottieFile(basePath, fileName)</c>。</param>
+    /// <returns>可直接放入 Grid、Stack、Layer 等布局容器中渲染的 <see cref="NBLottieAnimation"/> 节点。</returns>
+    /// <remarks>
+    /// <para>
+    /// 赋值时立即读取 JSON 文本，真正的 Lottie 解析延迟到首次布局或绘制；解析完成后由动画的 Fps 与时长换算出
+    /// <see cref="NBBaseLoopAnimation.TotalFrames"/>，节点按 Lottie 画布尺寸参与布局。
+    /// </para>
+    /// <para>
+    /// 默认 <see cref="NBBaseLoopAnimation.LoopMode"/> 为 <see cref="NBAnimateLoopMode.Stop"/>（播放到最后一帧后停住），
+    /// 可用 <c>LoopMode(NBAnimateLoopMode.Loop)</c> / <c>Speed(...)</c> 链式调整播放方式与速度。
+    /// </para>
+    /// <para>
+    /// 文件不存在时仅输出控制台提示、节点不绘制内容；解析失败记录在 <see cref="NBBaseImage.DecodeException"/>。
+    /// </para>
+    /// </remarks>
+    public static NBLottieAnimation LottieAnim(string path)
+    {
+        var file = new NBLottieAnimation();
+        file.LottieFile = path;
+        return file;
+    }
+
+    /// <summary>
+    /// 将 Typst 文档包装为按页播放的 NewBeeVG 可视节点。
+    /// </summary>
+    /// <param name="path">Typst（.typ）文件路径；相对路径按当前工作目录解析。</param>
+    /// <returns>可直接放入 Grid、Stack、Layer 等布局容器中渲染的 <see cref="NBTypstAnimation"/> 节点。</returns>
+    /// <remarks>
+    /// <para>
+    /// 赋值时立即读取并编译文档，每一页渲染为 SVG 后转成一张 <see cref="SKPicture"/>，按页顺序组成动画帧；
+    /// <see cref="NBBaseLoopAnimation.TotalFrames"/> 等于成功渲染的页数，节点尺寸取第一页。
+    /// </para>
+    /// <para>
+    /// 编译时以 .typ 文件所在目录为工作区，因此 <c>#include</c> / <c>#import</c> 的相对路径与同目录资源可正常解析；
+    /// 同时会搜索 <c>./fonts</c>、<c>./assets/typography</c> 与系统字体。
+    /// </para>
+    /// <para>
+    /// 默认 <see cref="NBBaseLoopAnimation.LoopMode"/> 为 <see cref="NBAnimateLoopMode.Stop"/>（播放到最后一页后停住）；
+    /// 文件不存在或编译失败记录在 <see cref="NBBaseImage.DecodeException"/>，此时节点不绘制内容。
+    /// </para>
+    /// </remarks>
+    public static NBTypstAnimation TypstAnim(string path)
+    {
+        var file = new NBTypstAnimation();
+        file.TypstFile = path;
+        return file;
     }
 
     public static NBText Text(string text = "", float fontSize = 40, SKColor? color = null, string? fontFamily = null, bool wrap = true, int textAlign = -1)
@@ -1023,20 +1091,6 @@ public static class Methods
         }
 
         return TypstCode(content, pageWidth, "cs", true, fontSize, pageMargin);
-    }
-
-    public static NBLottieAnimation LottieAnim(string path)
-    {
-        var file = new NBLottieAnimation();
-        file.LottieFile = path;
-        return file;
-    }
-
-    public static NBTypstAnimation TypstAnim(string path)
-    {
-        var file = new NBTypstAnimation();
-        file.TypstFile = path;
-        return file;
     }
 
     public static NBLottieAnimation LottieFile(string path, float? width = null, float? height = null, double speed = 1.0, NBAnimateLoopMode loop = NBAnimateLoopMode.Loop)
