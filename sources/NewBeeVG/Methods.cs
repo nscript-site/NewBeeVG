@@ -458,7 +458,7 @@ public static class Methods
 
         try
         {
-            var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true);
+            var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true, stage.AudioFrameRate);
             if (pcm != null)
             {
                 pcm.WriteTo(writer, stage.AudioFrameRate);

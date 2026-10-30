@@ -21,16 +21,35 @@ APNG 是 PNG 的超集，关键块：
 
 普通 PNG 优化器（例如只处理 `IDAT` 的工具）可能删除或破坏 `acTL`/`fcTL`/`fdAT`，导致动画变成静态图。优化后必须重新检查帧数。
 
-## 2. 用脚本校验
+## 2. 后缀规则
+
+`svg-animation-convert` 只允许输出 `.apng`，但 `.apng` 后缀在很多图片查看器中无法预览。最终交付必须重命名为 `.png`：
+
+```powershell
+# PowerShell
+Move-Item .\assets\images\demo.apng .\assets\images\demo.png -Force
+```
 
 ```bash
-python scripts/inspect_apng.py .\assets\images\demo.apng
+# bash / zsh
+mv ./assets/images/demo.apng ./assets/images/demo.png
+```
+
+- APNG 内容与 `.png` 后缀并不冲突；NewBeeVG 的 `PngAnim` 按文件内容解码；
+- 最终 `assets/images/` 下不要保留 `.apng` 文件；
+- 重命名后用 `inspect_apng.py --require-png` 检查。
+
+## 3. 用脚本校验
+
+```bash
+python scripts/inspect_apng.py .\assets\images\demo.png --require-png
 ```
 
 输出示例：
 
 ```text
-File:     .\assets\images\demo.apng
+File:     .\assets\images\demo.png
+Ext:      .png
 APNG:     yes
 Canvas:   512 x 512
 Frames:   72 (fcTL: 72, fdAT: 71)
@@ -43,28 +62,29 @@ Size:     184.2 KB
 机器可读：
 
 ```bash
-python scripts/inspect_apng.py .\assets\images\demo.apng --json
+python scripts/inspect_apng.py .\assets\images\demo.png --json --require-png
 ```
 
 退出码：
 
 | 退出码 | 含义 |
 | --- | --- |
-| `0` | 有效 APNG，至少 2 帧 |
+| `0` | 有效 APNG，至少 2 帧，且后缀为 `.png` |
 | `2` | 是 PNG，但不是动画（缺少 `acTL` 或只有 1 帧） |
 | `1` | 文件不存在、签名错误或结构损坏 |
+| `3` | 有效 APNG，但最终后缀不是 `.png`（`--require-png`） |
 
-## 3. 用 ffprobe 辅助检查
+## 4. 用 ffprobe 辅助检查
 
 ```bash
 ffprobe -v error -select_streams v:0 \
   -show_entries stream=width,height,nb_frames,duration \
-  -of default=noprint_wrappers=1 .\assets\images\demo.apng
+  -of default=noprint_wrappers=1 .\assets\images\demo.png
 ```
 
 ffprobe 对 APNG 的 `nb_frames` 支持因版本而异；以 `inspect_apng.py` 的 `acTL`/`fcTL` 结果为准。
 
-## 4. 视觉验收
+## 5. 视觉验收
 
 - 首帧：不是空白、半透明或未加载状态；
 - 中间帧：动画确实在推进，不是静止画面；
@@ -79,7 +99,7 @@ ffprobe 对 APNG 的 `nb_frames` 支持因版本而异；以 `inspect_apng.py` �
 npx --yes svg-animation-convert --input .\assets\svgs\demo.svg --output .\assets\images\demo.apng --duration 3s --fps 24 --keep-frames --frames .\tmp\demo-frames
 ```
 
-## 5. 体积控制
+## 6. 体积控制
 
 从以下顺序优化：
 
@@ -99,10 +119,10 @@ npx --yes svg-animation-convert --input .\assets\svgs\demo.svg --output .\assets
 
 超过预算时优先降尺寸和时长，而不是继续降帧率。
 
-## 6. NewBeeVG 集成检查
+## 7. NewBeeVG 集成检查
 
 ```csharp
-PngAnim("./assets/images/demo.apng")
+PngAnim("./assets/images/demo.png")
     .Size(320, 320)
     .LoopMode(NBAnimateLoopMode.Loop)
     .Speed(1.0);
@@ -115,11 +135,12 @@ PngAnim("./assets/images/demo.apng")
 - 路径相对于运行目录；素材放在视频脚本目录的 `assets/images/`；
 - 解码失败记录在 `DecodeException`，节点不绘制内容；先检查路径，再用 `inspect_apng.py` 检查文件。
 
-## 7. 故障排查
+## 8. 故障排查
 
 | 现象 | 排查 |
 | --- | --- |
-| 转换器报输出扩展名错误 | 改成 `.apng`；不要用 `.png` |
+| 转换器报输出扩展名错误 | 先用 `.apng` 中间输出；转换为 APNG 后再重命名为 `.png` |
+| 最终文件是 `.apng`，预览器打不开 | 重命名为 `.png`；用 `inspect_apng.py --require-png` 检查 |
 | 转换卡住 | 无限循环或 JS 动画没有终点；传 `--duration` |
 | 时长比预期长/短 | `--duration` 与 SVG 周期不一致；按周期整数倍设置 |
 | 首帧空白 | 字体/图片未加载或 JS 未执行；改为自包含 SVG，文字转路径，显式传时长 |

@@ -7,7 +7,7 @@
 ```text
 assets/
 ├── audios/      # mp3 / wav
-├── images/      # png / jpg / webp / APNG（PngAnim）
+├── images/      # png / jpg / webp；PngAnim 的 APNG 内容也用 .png 后缀
 ├── videos/      # mp4 / webm 等
 ├── svgs/        # 静态或带动画的 svg
 ├── lottie/      # Lottie JSON（LottieAnim）
@@ -101,7 +101,7 @@ void EnsureAssetDirs(string assets)
 1. **分析稿件**：按镜头/clip 拆分，列出每个 clip 需要的视觉与音频元素；
 2. **读取 README 与目录**：标记已有素材，确认尺寸/时长/风格是否匹配；
 3. **列出缺失项**：背景、图标、插画、图表、照片、音效、视频等；
-4. **生成缺失素材**：优先 SVG；需要真实照片/视频/音频时再找其他来源；
+4. **生成缺失素材**：优先 SVG；简单动画转 APNG，数学/科学排版用 Typst；复杂特效先查 `modules/` 现有 Skia 模板，最后才新建 SkiaAnim；
 5. **保存并登记**：放入对应子目录，更新 README。
 
 ## 5. 用 SVG 生成缺失素材
@@ -160,15 +160,27 @@ void EnsureAssetDirs(string assets)
 npx --yes svg-animation-convert --input .\your.svg --output your.apng
 ```
 
+转换器只接受 `.apng` 中间输出，**转换完成后必须重命名为 `.png`**：
+
+```powershell
+Move-Item .\your.apng .\assets\images\your.png -Force
+```
+
+```bash
+mv ./your.apng ./assets/images/your.png
+```
+
 无限循环的 SVG 必须指定时长，否则转换可能无法结束或帧数不确定：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
+mv ./your.apng ./assets/images/your.png
 ```
 
 - `--duration` 按秒计，覆盖一个完整循环或镜头所需时长；
-- 输出扩展名必须是 `.apng`（不能写 `.png`）；输出放到 `assets/images/`，用 `PngAnim("./assets/images/your.apng")` 引入；
-- 转换后检查循环衔接、透明区域、分辨率和文件体积。
+- 最终交付后缀必须是 `.png`，不能是 `.apng`；`assets/images/` 下不要残留 `.apng`；
+- 用 `PngAnim("./assets/images/your.png")` 引入；
+- 转换后检查循环衔接、透明区域、分辨率和文件体积；可用 `inspect_apng.py --require-png` 校验后缀。
 
 ## 6. 引用素材
 
@@ -198,8 +210,10 @@ Image("../assets/images/bg-night.png");
 每个 clip 尽量有两类以上元素，不要只用一个全屏动画：
 
 - **布局组件**：分栏、留白、层级、标题区；
-- **动画组件**：复杂特效/数据图形用 `SkiaAnim`，简单矢量用 `PngAnim`，数学/科学排版用 `TypstAnim`，`LottieAnim` 仅作兜底；
+- **动画组件**：优先 APNG（`PngAnim`）、Typst（`TypstAnim`）或现有 `modules/` 中的 Skia 模板；只有它们无法实现或效果不好时，才新建 `SkiaAnim`；`LottieAnim` 仅作兜底；
 - **素材**：背景图/视频、SVG 图标/插画、音频。
+
+**生成动画素材的优先级**：优先在 APNG、Typst、现有 Skia 模板中选择；只有它们都无法实现或效果不好时，才新建 SkiaAnim。不要一上来就写新的 Skia 动画。
 
 同一画面可通过 `HGrid` / `HStack` / `Panel` 嵌入多个动画节点；它们共享当前 clip 的帧号，需要独立时间轴时拆成多个 clip 并用 `start` 叠加。
 

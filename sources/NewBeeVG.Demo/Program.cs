@@ -14,11 +14,11 @@
 
 //TransparentBgSample.Run();
 
-//AudioSample.Run();
+AudioSample.Run();
 
 //TypstAnimSample.Run();
 
-SKAnimSample.Run();
+//SKAnimSample.Run();
 
 //PngAnimationSample.Run();
 

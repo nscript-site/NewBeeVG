@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Inspect APNG metadata without third-party dependencies.
 
-Reports canvas size, frame count, alpha, total duration, loop count and
-structural warnings. Exit codes: 0 = animated APNG, 2 = static PNG,
-1 = invalid/read error.
+Reports extension, canvas size, frame count, alpha, total duration, loop
+count and structural warnings. Exit codes: 0 = animated APNG, 2 = static PNG,
+1 = invalid/read error, 3 = --require-png failed.
 """
 
 from __future__ import annotations
@@ -45,6 +45,8 @@ def analyze(path: Path) -> dict:
     data = path.read_bytes()
     result = {
         "file": str(path),
+        "extension": path.suffix.lower(),
+        "png_extension": path.suffix.lower() == ".png",
         "size_bytes": len(data),
         "valid_png": False,
         "is_apng": False,
@@ -127,6 +129,12 @@ def analyze(path: Path) -> dict:
     color_type = result["color_type"]
     result["alpha"] = color_type in (4, 6) or (color_type in (0, 2, 3) and seen_trns)
 
+    if not result["png_extension"]:
+        result["warnings"].append(
+            f"file extension is {result['extension']!r}; "
+            "rename the final asset to .png for preview compatibility"
+        )
+
     if result["is_apng"]:
         result["duration_seconds"] = round(sum(delays), 6)
         result["animated"] = result["declared_frames"] >= 2
@@ -149,6 +157,7 @@ def analyze(path: Path) -> dict:
 def print_human(result: dict) -> None:
     size_kb = result["size_bytes"] / 1024
     print(f"File:     {result['file']}")
+    print(f"Ext:      {result['extension'] or '(none)'}")
     print(f"APNG:     {'yes' if result['is_apng'] else 'no'}")
     print(f"Canvas:   {result['width']} x {result['height']}")
     print(f"Frames:   {result['frames']} (fcTL: {result['fctl_count']}, fdAT: {result['fdat_count']})")
@@ -166,8 +175,13 @@ def print_human(result: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Inspect APNG/PNG metadata.")
-    parser.add_argument("file", type=Path, help="APNG or PNG file to inspect")
+    parser.add_argument("file", type=Path, help="APNG/PNG file; final assets should use .png")
     parser.add_argument("--json", action="store_true", help="print JSON instead of text")
+    parser.add_argument(
+        "--require-png",
+        action="store_true",
+        help="fail (exit 3) when the final file does not use the .png extension",
+    )
     args = parser.parse_args()
 
     try:
@@ -184,6 +198,14 @@ def main() -> int:
     else:
         print_human(result)
 
+    if args.require_png and not result["png_extension"]:
+        if not args.json:
+            print(
+                "Error: final APNG asset must use the .png extension "
+                f"(got {result['extension'] or '(none)'})",
+                file=sys.stderr,
+            )
+        return 3
     if not result["valid_png"]:
         return 1
     if not result["is_apng"]:

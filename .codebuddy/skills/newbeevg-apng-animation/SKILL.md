@@ -1,13 +1,15 @@
 ---
 name: newbeevg-apng-animation
-description: This skill should be used when generating, converting, validating, or embedding APNG (animated PNG) assets, especially for NewBeeVG PngAnim in dotnet file-based video projects. It covers authoring self-contained animated SVGs with SMIL/CSS keyframes, converting them with svg-animation-convert (duration, fps, loop, transparency, viewBox), checking APNG frame count/size/duration/alpha, saving under the video script's assets/images, and wiring PngAnim with LoopMode/Speed into layouts.
+description: This skill should be used when generating, converting, validating, or embedding APNG (animated PNG) assets, especially for NewBeeVG PngAnim in dotnet file-based video projects. It covers authoring self-contained animated SVGs with SMIL/CSS keyframes, converting them with svg-animation-convert (duration, fps, loop, transparency, viewBox), renaming the final APNG-content file to a .png extension for preview compatibility, checking APNG frame count/size/duration/alpha, saving under the video script's assets/images, and wiring PngAnim with LoopMode/Speed into layouts.
 ---
 
-# APNG 动画生成
+# APNG 动画生成（最终后缀必须为 `.png`）
 
 ## 用途
 
 把矢量动画做成透明、可循环的 APNG，作为 NewBeeVG 视频中的轻量动画素材，用 `PngAnim(path)` 嵌入布局。
+
+**最终交付文件必须使用 `.png` 后缀。** 很多图片查看器/预览器不能预览 `.apng` 后缀；APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码。`.apng` 只作为 `svg-animation-convert` 的中间输出，转换完成后立即重命名为 `.png`。
 
 适用：扁平插画、图标、进度环、加载动画、路径生长、简单形变等**画面简单、时间短、需要透明背景**的动画。
 
@@ -33,7 +35,8 @@ npx --yes svg-animation-convert --help
 
 ```bash
 npm i -D svg-animation-convert
-npx svg-animation-convert --input .\assets\svgs\demo.svg --output .\assets\images\demo.apng
+npx svg-animation-convert --input ./assets/svgs/demo.svg --output ./assets/images/demo.apng
+mv ./assets/images/demo.apng ./assets/images/demo.png
 ```
 
 ## 工作流
@@ -89,12 +92,21 @@ Windows PowerShell：
 
 ```powershell
 npx --yes svg-animation-convert --input .\assets\svgs\pulse.svg --output .\assets\images\pulse.apng --fps 24 --loop 0 --duration 3s
+Move-Item .\assets\images\pulse.apng .\assets\images\pulse.png -Force
 ```
 
 bash / zsh 把反斜杠换成 `/`：
 
 ```bash
 npx --yes svg-animation-convert --input ./assets/svgs/pulse.svg --output ./assets/images/pulse.apng --fps 24 --loop 0 --duration 3s
+mv ./assets/images/pulse.apng ./assets/images/pulse.png
+```
+
+转换器只接受 `.apng` / `.gif` / `.mov` / `.webm` 作为 `--output`，所以先输出 `.apng`；**转换完成后必须重命名为 `.png`**。最终 `assets/images/` 下不应残留 `.apng` 文件：
+
+```powershell
+Get-ChildItem .\assets\images\*.apng
+# 应无输出
 ```
 
 参数：
@@ -102,7 +114,7 @@ npx --yes svg-animation-convert --input ./assets/svgs/pulse.svg --output ./asset
 | 参数 | 说明 | 默认 |
 | --- | --- | --- |
 | `--input` | 动画 SVG 路径 | 必填 |
-| `--output` | 输出路径，扩展名必须是 `.apng` / `.gif` / `.mov` / `.webm` | 必填 |
+| `--output` | 转换器中间输出，扩展名必须是 `.apng` / `.gif` / `.mov` / `.webm`；APNG 随后重命名为 `.png` | 必填 |
 | `--duration` | 捕获时长：`4000`、`4000ms`、`4s`、`4.5` | 从 SMIL/GSAP 推断 |
 | `--fps` | 帧率 | `24` |
 | `--loop` | `0` 无限循环，`-1` 播放一次，`N` 循环 N 次 | `0` |
@@ -111,7 +123,8 @@ npx --yes svg-animation-convert --input ./assets/svgs/pulse.svg --output ./asset
 
 关键点：
 
-- **输出必须用 `.apng` 扩展名**；转换器不接受 `.png` 作为输出名。NewBeeVG 的 `PngAnim` 同时接受 `.apng` 和 `.png` 文件，但这里按转换器要求命名。
+- **转换器输出用 `.apng`，最终交付用 `.png`**；不要直接交付 `.apng` 文件。
+- 重命名后仍可用 `inspect_apng.py` 校验，因为脚本按 PNG 块识别 APNG，与扩展名无关。
 - 无限循环（`repeatCount="indefinite"`）以及 JS/GSAP 动画，**显式传 `--duration`**，值等于一个完整循环；不要依赖推断。
 - `--duration` 只决定捕获多长，不改变 SVG 内部速度；时长不是周期的整数倍时，首尾会接不上。
 - 需要输出后只播放一次，用 `--loop -1`；需要文件内循环，用 `--loop 0`（默认）。
@@ -121,10 +134,10 @@ npx --yes svg-animation-convert --input ./assets/svgs/pulse.svg --output ./asset
 先做结构校验：
 
 ```bash
-python scripts/inspect_apng.py .\assets\images\pulse.apng
+python scripts/inspect_apng.py .\assets\images\pulse.png --require-png
 ```
 
-在技能根目录执行；在其他目录运行时改用脚本的绝对路径。输出包含帧数、画布尺寸、Alpha、总时长、循环次数。需要机器可读结果时加 `--json`。
+在技能根目录执行；在其他目录运行时改用脚本的绝对路径。输出包含帧数、画布尺寸、Alpha、总时长、循环次数。`--require-png` 会检查最终后缀必须是 `.png`，否则返回退出码 `3`。需要机器可读结果时加 `--json`。
 
 校验标准：
 
@@ -145,7 +158,7 @@ python scripts/inspect_apng.py .\assets\images\pulse.apng
 需要快速看元数据时也可用：
 
 ```bash
-ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames,duration -of default=noprint_wrappers=1 .\assets\images\pulse.apng
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames,duration -of default=noprint_wrappers=1 .\assets\images\pulse.png
 ```
 
 ### 5. 接入 NewBeeVG
@@ -154,7 +167,7 @@ ffprobe -v error -select_streams v:0 -show_entries stream=width,height,nb_frames
 
 ```csharp
 HStack([
-    PngAnim("./assets/images/pulse.apng")
+    PngAnim("./assets/images/pulse.png")
         .Size(320, 320)
         .LoopMode(NBAnimateLoopMode.Loop)
         .Speed(1.0)
@@ -187,7 +200,7 @@ HStack([
 <视频脚本目录>/
 └── assets/
     ├── svgs/      # 动画 SVG 源文件
-    ├── images/    # 生成的 APNG
+    ├── images/    # APNG 内容，但文件名后缀必须是 .png
     └── README.md
 ```
 
@@ -197,7 +210,8 @@ HStack([
 
 | 现象 | 原因与处理 |
 | --- | --- |
-| 转换报输出格式错误 | `--output` 必须用 `.apng`，不要用 `.png` |
+| 转换报输出格式错误 | `--output` 必须先用 `.apng` 中间文件；转换完成后再重命名为 `.png`，不要直接让转换器输出 `.png` |
+| 最终文件是 `.apng` | 立即重命名为 `.png`；用 `inspect_apng.py --require-png` 检查，交付目录不要残留 `.apng` |
 | 转换卡住或时长不对 | 无限循环 / JS 动画没有可推断终点；传 `--duration 3s`（等于一个完整循环） |
 | `ffmpeg not found` | 安装 FFmpeg 并加入 `PATH`，重开终端 |
 | 首次 `npx` 失败或 Chromium 下载失败 | 检查 Node ≥ 18 与网络；改为项目内 `npm i -D svg-animation-convert` 后运行 |
@@ -213,5 +227,5 @@ HStack([
 
 - `references/svg-animation-patterns.md`：SMIL/CSS 动画模式、透明度、时间轴与自包含检查。
 - `references/apng-validation-and-optimization.md`：APNG 结构、循环语义、校验命令、体积优化与故障排查。
-- `scripts/inspect_apng.py`：无第三方依赖的 APNG 检查脚本，输出帧数、尺寸、Alpha、时长、循环次数，支持 `--json`。
+- `scripts/inspect_apng.py`：无第三方依赖的 APNG 检查脚本，输出后缀、帧数、尺寸、Alpha、时长、循环次数，支持 `--json` 与 `--require-png`（强制最终后缀为 `.png`）。
 - `assets/svg-animation-template.svg`：可直接修改的透明循环动画模板（旋转圆环 + 脉冲圆点）。

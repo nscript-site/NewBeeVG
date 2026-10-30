@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers assets discovery (README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim, SVG-to-APNG conversion, AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers assets discovery (README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -48,7 +48,7 @@ clip 的时间规则：
 ```text
 assets/
 ├── audios/
-├── images/      # 含 PngAnim 使用的 APNG
+├── images/      # 含 PngAnim 使用的 APNG 内容，后缀统一为 .png
 ├── videos/
 ├── svgs/
 ├── lottie/      # LottieAnim 的 JSON
@@ -86,7 +86,7 @@ modules/
 
 1. **分析稿件/脚本**：拆分镜头，列出每个 clip 需要的背景、图片、图标、图表、SVG、音频、视频素材；
 2. **读取 assets 与 README**：标记已有素材，列出缺失素材；同时检查 `modules/README.md` 是否已有合适的 `SkiaAnim` 特效；
-3. **选择动画实现**：复杂特效/数据图形用 `SkiaAnim`，简单矢量动效用 SVG → APNG（`PngAnim`），数学/科学排版用 `TypstAnim`，Lottie 仅作兜底；
+3. **按优先级选择动画实现**：先看现有 `modules/` 模板，能用则复用；否则优先生成 APNG（简单矢量）或 Typst（数学/科学/复杂排版）；以上都实现不了或效果不好，才新建 `SkiaAnim`。Lottie 仅作已有可靠素材的兜底；
 4. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；简单动画再转成 APNG；
 5. **保存素材**：
    - SVG → `assets/svgs/`
@@ -108,12 +108,22 @@ modules/
 
 ## 动画素材选型
 
-`SkiaAnim`、`PngAnim`、`LottieAnim`、`TypstAnim` 都会返回可视节点，可直接放进任意布局容器。按内容特点选择：
+`SkiaAnim`、`PngAnim`、`LottieAnim`、`TypstAnim` 都会返回可视节点，可直接放进任意布局容器。
+
+**生成动画素材时，优先使用 APNG、Typst，或直接复用现有 `modules/` 中的 Skia 模板；这三者都无法实现或效果不好时，才编写新的 Skia 动画模板。** 不要一上来就新建 `SkiaAnim`。
+
+优先方案（按素材类型选择，不是硬顺序）：
+
+1. **现有 Skia 模板**：先读 `modules/README.md`，有合适特效直接 `#:include` 复用；
+2. **APNG**：简单矢量、图标、路径、进度、描边、形变，用 SVG → `svg-animation-convert`；
+3. **Typst**：数学公式、科学示意图、函数图、复杂表格与排版，用 Typst 多页文档；
+4. **新建 Skia**：只有上述方案无法实现或效果明显不好时，才用 `newbeevg-skia-animation` 新建；
+5. **Lottie**：仅在已有可靠素材时使用，不让 AI 从零生成。
 
 | 工厂 | 适用场景 | 素材来源 |
 | --- | --- | --- |
-| `SkiaAnim(ISKAnimation)` | 复杂动画、数据图形、数字滚动、图表、程序化特效 | `modules/` 预制特效；没有则新建 |
-| `PngAnim(path)` | 画面简单、矢量插画、SMIL/CSS 动画 | 大模型生成 SVG，再转成 APNG |
+| `SkiaAnim(ISKAnimation)` | 复杂动画、数据图形、数字滚动、图表、程序化特效 | 优先复用 `modules/` 现有模板；没有合适模板且 APNG/Typst 做不了时再新建 |
+| `PngAnim(path)` | 画面简单、矢量插画、SMIL/CSS 动画 | 大模型生成 SVG，再转成 APNG；最终文件后缀用 `.png` |
 | `LottieAnim(path)` | Lottie JSON 动画 | 大模型可生成，但质量较差，不推荐 |
 | `TypstAnim(path)` | 数学、科学、矢量图表、复杂排版 | Typst + CeTZ 多页文档 |
 
@@ -121,8 +131,10 @@ modules/
 
 适合需要逐帧计算、数据驱动或精细控制的动画，例如数字增长、图表生长、粒子、路径描边、转场特效。
 
+**默认先复用现有模板；只有在 APNG、Typst 和现有模板都无法满足时，才新建 `SkiaAnim`。**
+
 1. **先找预制特效**：项目目录的 `modules/` 通常放有现成的 `SkiaAnim` 特效，先读 `modules/README.md`，按介绍选择；找到后用 `#:include modules/Xxx.cs` 引入并直接 `SkiaAnim(new Xxx(...))`；
-2. **没有合适的再新建**：使用 `newbeevg-skia-animation` 技能创建 `SKCustomAnimation` 子类；
+2. **确认是否真的需要新建**：简单矢量动效优先用 APNG（`PngAnim`），数学/科学排版优先用 Typst（`TypstAnim`）；这两者和现有模板都做不了，或效果明显不好时，才使用 `newbeevg-skia-animation` 技能创建 `SKCustomAnimation` 子类；
 3. **保存位置**：自创特效放在**视频脚本文件所在目录**的 `modules/`，目录不存在时创建；同步在 `modules/README.md` 中补充用途、参数和示例；
 4. 简单静态图形不必新建特效，优先用 SVG；需要简单动效时用 SVG 转 APNG（`PngAnim`）。
 
@@ -131,24 +143,37 @@ modules/
 适合扁平插画、图标位移、路径生长、描边、简单形变等矢量场景。流程：
 
 1. 用大模型生成带 SMIL / CSS 动画的自包含 SVG，保存到 `assets/svgs/`；
-2. 用 `svg-animation-convert` 转成 APNG：
+2. 用 `svg-animation-convert` 转成 APNG（转换器只接受 `.apng` 输出）：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng
 ```
 
-3. 把输出的 APNG 放到 `assets/images/`，脚本中用 `PngAnim("./assets/images/your.apng")` 引入；转换器的输出扩展名必须是 `.apng`，不能写 `.png`。
+3. **立即把输出重命名为 `.png`**，再放到 `assets/images/`：
+
+```powershell
+Move-Item .\your.apng .\assets\images\your.png -Force
+```
+
+```bash
+mv ./your.apng ./assets/images/your.png
+```
+
+4. 脚本中用 `PngAnim("./assets/images/your.png")` 引入。
+
+**最终文件后缀必须是 `.png`，不能是 `.apng`**：APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码，但 `.apng` 在很多图片查看器/预览器中无法打开。交付前检查 `assets/images/` 下没有残留 `.apng`。
 
 无限循环的 SVG 动画必须显式指定转换时长，否则转换可能无法结束或帧数不确定：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
+mv ./your.apng ./assets/images/your.png
 ```
 
 - `--duration` 按秒计，取值覆盖一个完整循环或镜头所需时长；
 - 控制 APNG 的分辨率与帧数，避免文件过大、解码过慢；
 - 转换后先在预览中确认循环衔接与透明区域是否正常；
-- 需要完整的 SVG 动画编写、转换参数、APNG 结构校验与优化流程时，使用 `newbeevg-apng-animation` 技能。
+- 需要完整的 SVG 动画编写、转换参数、APNG 结构校验与优化流程时，使用 `newbeevg-apng-animation` 技能；它提供 `inspect_apng.py --require-png` 检查最终后缀。
 
 ### `LottieAnim`：不推荐作为首选
 
@@ -177,7 +202,7 @@ TypstAnim("./assets/typst/derivation.typ");
 ```text
 <视频脚本目录>/
 ├── assets/
-│   ├── images/      # PngAnim 的 APNG / PNG
+│   ├── images/      # PngAnim 的 APNG 内容，后缀统一为 .png
 │   ├── lottie/      # LottieAnim 的 JSON
 │   ├── typst/       # TypstAnim 的 .typ 及其依赖
 │   ├── svgs/        # SVG 源文件
@@ -218,7 +243,7 @@ Panel([
 ```
 
 - **布局组件**负责分栏、留白、对齐与信息层级；
-- **动画组件**负责动态内容：复杂特效与数据图形用 `SkiaAnim`，简单矢量动画用 `PngAnim`，数学/科学排版用 `TypstAnim`，Lottie 仅作兜底；
+- **动画组件**：优先 APNG、Typst 或现有 Skia 模板；复杂数据图形才用 `SkiaAnim`，新建 `SkiaAnim` 仅在前三者无法满足时采用；Lottie 仅作兜底；
 - **assets** 提供背景、照片、图标、插画、音视频；
 - 一个 clip 内通常至少包含两类元素（例如动画 + 文字，或素材 + 布局 + 动画）；
 - **同一画面可以嵌入多个动画节点**：把 `SkiaAnim`、`PngAnim`、`TypstAnim` 分别放进 `HGrid` / `HStack` / `Panel` 的不同区域，形成主图 + 辅助图 + 数据卡等组合；
@@ -522,15 +547,15 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 3. 布局容器与 `Align` 是否达到预期（居中 / 拉伸 / 靠边）；
 4. 文字字号、颜色、对齐、字体是否适配画幅；
 5. 动效是否使用 `e.p` / `e.pf` / `Easing`，是否误用绝对帧号；
-6. 动画选型是否匹配内容（复杂特效/数据图形 → `SkiaAnim`，简单矢量 → `PngAnim`，数学/科学排版 → `TypstAnim`；`LottieAnim` 仅在已有可靠素材时使用）；
+6. 生成动画素材时，是否优先使用 APNG、Typst 或现有 Skia 模板；只有它们都无法实现或效果不好时，才新建 `SkiaAnim`；
 7. 动画实例尺寸与布局区域是否匹配，是否需要透明背景（仅 `SkiaAnim`）；
-8. 自创 `SkiaAnim` 是否保存到脚本目录的 `modules/` 并更新 `modules/README.md`；APNG / Lottie / Typst 素材是否保存到脚本目录的 `assets/` 下；
+8. 自创 `SkiaAnim` 是否保存到脚本目录的 `modules/` 并更新 `modules/README.md`；APNG / Lottie / Typst 素材是否保存到脚本目录的 `assets/` 下；APNG 最终文件后缀是否为 `.png`，`assets/images/` 下是否残留 `.apng`；
 9. 是否避免使用已废弃的 `NBLayer`；
 10. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
 11. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
 12. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称；
 13. 是否按 `./assets` → 父目录 → 项目根目录的顺序找到 assets，并优先阅读 `README.md`；
-14. 缺失素材是否优先用 SVG 生成并保存到脚本目录的 `assets/svgs`（图片/音频/视频/动画放对应子目录），目录是否已创建；
+14. 缺失素材是否优先用 SVG / APNG / Typst 生成；复杂 Skia 特效是否先查 `modules/`，最后才新建；素材是否保存到脚本目录的 `assets/` 对应子目录，目录是否已创建；
 15. 每个 clip 是否组合了布局组件、多个动画与素材，而不是只用一个全屏动画。
 
 ## 资源

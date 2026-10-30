@@ -24,6 +24,6 @@ internal class AudioSample
         //AudioFile("./Assets/audio01.mp3")
         //    .AsClip("audio").LinkTo("clip1", 10);
 
-        run(stage(1920, 1080, bg: SKColors.White), clips());
+        run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["out.mp4"]);
     }
 }
