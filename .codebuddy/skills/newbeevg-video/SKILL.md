@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers the full pipeline from a Markdown script to `*_storyboard.md`, per-shot TTS + `assets/audios/audio_timeline.md`, global theme/font header variables, assets discovery (README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers the full pipeline from a Markdown script to `*_storyboard.md`, per-shot TTS + `assets/audios/audio_timeline.md`, global theme/font header variables, assets discovery (prefer `assets/materials/` non-AIGC prepared assets, then README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -23,7 +23,7 @@ description: This skill should be used when building, editing, or debugging a Ne
 
 - **视频内容**：口播/旁白、标题、字幕、要点、数据、引用；
 - **视频要求**：画幅、时长、帧率、主题、字体、语气、节奏、目标平台；
-- **已有素材**：图片、视频、音频、SVG、`modules/` 中的 Skia 模板及其引用路径。
+- **已有素材**：`assets/materials/` 中非 AIGC 的图片/视频/音频/SVG、其余 assets、`modules/` 中的 Skia 模板及其引用路径。
 
 要求缺失时采用默认值，并在分镜中标注：`1920×1080`、`25fps`、`NBVideoThemes.Nature`、可用中文字体。不要自行改写口播事实或数据。
 
@@ -61,7 +61,7 @@ description: This skill should be used when building, editing, or debugging a Ne
 
 - 每个镜头使用唯一 `shotNN`，与音频文件名、C# clip 名一一对应；
 - 口播按语义断句，一个镜头只表达一个完整意思；
-- 画面写清主体、构图、文字层级、动效、素材路径与背景；
+- 画面写清主体、构图、文字层级、动效、素材路径与背景；优先从 `assets/materials/` 选择已有非 AIGC 素材，缺失再标记生成；
 - 时长先按语速估算，TTS 后按实际音频时长校正；
 - 所有镜头时长之和与稿件总时长一致，误差控制在 1 秒内；
 - 主题、字体、画幅、帧率在总表固定，后续不要逐镜头变化。
@@ -114,7 +114,7 @@ ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 ./assets/au
 2. **先画面、后音频**：每个镜头先创建画面 clip 并登记 `name`，再创建对应音频并 `LinkTo`；
 3. **帧数换算**：`frames = (int)Math.Ceiling((出点 - 入点) * fps)`，建议额外加 2–4 帧尾部留白，避免语音被硬切；
 4. **音频对齐**：顺序镜头直接用 `AudioFile("./assets/audios/shotNN.mp3").AsClip("audio_NN").LinkTo("shotNN")`；非顺序或需要偏移时，按时间表计算 `offset = 入点帧 - clip.StartFrame`；
-5. **素材复用**：先查 `assets/` 和 `modules/README.md`，能用则复用；缺失素材按 SVG → APNG / Typst → 新建 SkiaAnim 的优先级补齐，避免每个镜头各用一套风格；
+5. **素材复用**：先查 `assets/materials/`、其余 `assets/` 和 `modules/README.md`，能用则复用；缺失素材按 SVG → APNG / Typst → 新建 SkiaAnim 的优先级补齐，避免每个镜头各用一套风格；
 6. **设计一致性**：统一栅格、安全边距、字号层级（标题/副标题/正文/注释）、主色与装饰色；每镜头只保留一个视觉中心，转场克制，字幕不遮挡主体；
 7. **收尾**：`run(stage(...), clips(), args: args)`，确保预览、MP4、单帧 PNG 三种模式都能运行。
 
@@ -213,15 +213,20 @@ var textSecondary = theme.TextSecondary;
 
 ```text
 assets/
-├── audios/       # 分镜语音 + audio_timeline.md
+├── materials/    # 事先整理的非 AIGC 素材（图片/视频/音频/SVG 等，保留原目录结构）
+├── audios/       # 本片分镜语音 + audio_timeline.md
 ├── apngs/        # PngAnim 使用的 APNG 内容，后缀统一为 .png
-├── images/      # 普通静态图片
-├── videos/
-├── svgs/
-├── lottie/      # LottieAnim 的 JSON
-├── typsts/      # TypstAnim 的 .typ 及依赖
+├── images/       # AIGC 生成或后处理后的图片
+├── videos/       # AIGC 生成或后处理后的视频
+├── svgs/         # 生成或编辑的 SVG
+├── lottie/       # LottieAnim 的 JSON
+├── typsts/       # TypstAnim 的 .typ 及依赖
 └── README.md
 ```
+
+`assets/materials/` 是**只读优先素材库**：里面是用户或项目事先整理好的非 AIGC 素材，可能按来源、主题或项目分成多层子目录。不要擅自移动、改名或重排；AIGC 生成结果不要写入该目录。
+
+优先读取 `assets/materials/README.md`；没有时再读 `assets/README.md`。
 
 自创的 `SkiaAnim` 源码不放在 `assets`，而是与它同级：
 
@@ -240,11 +245,14 @@ modules/
 
 **优先读取 `assets/README.md`**：该文件通常记录资源清单、用途、尺寸、时长、来源等。先按 README 索引找素材，不要盲目遍历整个目录。
 
+**先扫 `assets/materials/`**：递归查看已有素材，按文件名、目录、README 描述和实际内容匹配镜头需求（背景、人物、产品、图标、音视频、SVG 等）。找到合适的就直接引用其路径，不再生成；只有确实缺失时才走 AIGC 或新建动画。
+
 引用规则：
 
 - 代码中的路径相对于运行时目录（通常是脚本所在目录）；
-- 引用上层 assets 时写相对路径，如 `../assets/images/bg.png`；
-- 新生成的素材优先放到**视频脚本当前目录**的 `assets` 下，目录不存在时创建；
+- 引用上层 assets 时写相对路径，如 `../assets/materials/bg.png`；
+- 新生成的素材优先放到**视频脚本当前目录**的 `assets` 对应类型目录下，目录不存在时创建；
+- AIGC 生成结果不要写入 `assets/materials/`；
 - 命名建议小写、短横线或下划线，并体现用途，如 `svgs/arrow-flow.svg`、`images/bg-night.png`。
 
 ## 素材分析与生成
@@ -252,19 +260,20 @@ modules/
 制作视频前先做素材盘点：
 
 1. **分析稿件/脚本**：拆分镜头，列出每个 clip 需要的背景、图片、图标、图表、SVG、音频、视频素材；
-2. **读取 assets 与 README**：标记已有素材，列出缺失素材；同时检查 `modules/README.md` 是否已有合适的 `SkiaAnim` 特效；
-3. **按优先级选择动画实现**：先看现有 `modules/` 模板，能用则复用；否则优先生成 APNG（简单矢量）或 Typst（数学/科学/复杂排版）；以上都实现不了或效果不好，才新建 `SkiaAnim`。Lottie 仅作已有可靠素材的兜底；
-4. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；简单动画再转成 APNG；
-5. **保存素材**：
-   - SVG → `assets/svgs/`
-   - 普通图片 → `assets/images/`
-   - APNG → `assets/apngs/`
+2. **先查预整理素材**：递归读取 `assets/materials/` 及其 README，标记可直接复用的非 AIGC 素材，记录原路径；
+3. **再查其他 assets 与模板**：读取 `assets/README.md`、`modules/README.md`，标记已有素材和可复用 `SkiaAnim` 模板，列出真正缺失项；
+4. **选择实现方式**：能用 `materials` 或现有模板就不生成；需要生成时优先 APNG（简单矢量）或 Typst（数学/科学/复杂排版）；以上都做不了或效果不好，才新建 `SkiaAnim`。Lottie 仅作已有可靠素材的兜底；
+5. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；简单动画再转成 APNG；
+6. **保存素材**：
+   - AIGC 图片 → `assets/images/`
+   - AIGC APNG → `assets/apngs/`
+   - 生成/编辑的 SVG → `assets/svgs/`
    - Lottie → `assets/lottie/`
    - Typst → `assets/typsts/`
    - 分镜语音 → `assets/audios/`，同时维护 `audio_timeline.md`
-   - 视频 → `assets/videos/`
-   - 目录不存在时先创建；
-6. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长，方便后续复用。
+   - AIGC/后处理视频 → `assets/videos/`
+   - 目录不存在时先创建；不要写入 `assets/materials/`；
+7. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长、来源（非 AIGC / AIGC），方便后续复用。
 
 生成 SVG 时：
 
@@ -278,15 +287,16 @@ modules/
 
 `SkiaAnim`、`PngAnim`、`LottieAnim`、`TypstAnim` 都会返回可视节点，可直接放进任意布局容器。
 
-**生成动画素材时，优先使用 APNG、Typst，或直接复用现有 `modules/` 中的 Skia 模板；这三者都无法实现或效果不好时，才编写新的 Skia 动画模板。** 不要一上来就新建 `SkiaAnim`。
+**生成动画素材时，先查 `assets/materials/` 是否有可直接使用的图形、序列或动画；没有时优先使用 APNG、Typst，或直接复用现有 `modules/` 中的 Skia 模板；这些都无法实现或效果不好时，才编写新的 Skia 动画模板。** 不要一上来就新建 `SkiaAnim`。
 
 优先方案（按素材类型选择，不是硬顺序）：
 
-1. **现有 Skia 模板**：先读 `modules/README.md`，有合适特效直接 `#:include` 复用；
-2. **APNG**：简单矢量、图标、路径、进度、描边、形变，用 SVG → `svg-animation-convert`；
-3. **Typst**：数学公式、科学示意图、函数图、复杂表格与排版，用 Typst 多页文档；
-4. **新建 Skia**：只有上述方案无法实现或效果明显不好时，才用 `newbeevg-skia-animation` 新建；
-5. **Lottie**：仅在已有可靠素材时使用，不让 AI 从零生成。
+1. **预整理素材**：先递归查 `assets/materials/`，有现成图片、序列帧、APNG、SVG、Lottie 或视频就直接用；
+2. **现有 Skia 模板**：读 `modules/README.md`，有合适特效直接 `#:include` 复用；
+3. **APNG**：简单矢量、图标、路径、进度、描边、形变，用 SVG → `svg-animation-convert`；
+4. **Typst**：数学公式、科学示意图、函数图、复杂表格与排版，用 Typst 多页文档；
+5. **新建 Skia**：只有上述方案无法实现或效果明显不好时，才用 `newbeevg-skia-animation` 新建；
+6. **Lottie**：仅在已有可靠素材时使用，不让 AI 从零生成。
 
 | 工厂 | 适用场景 | 素材来源 |
 | --- | --- | --- |
@@ -370,16 +380,18 @@ TypstAnim("./assets/typsts/derivation.typ");
 ```text
 <视频脚本目录>/
 ├── assets/
+│   ├── materials/    # 非 AIGC 预整理素材（只读优先，保留原结构）
 │   ├── apngs/        # PngAnim 的 APNG 内容，后缀统一为 .png
-│   ├── audios/      # 分镜语音 + audio_timeline.md
-│   ├── images/      # 普通静态图片
-│   ├── lottie/      # LottieAnim 的 JSON
-│   ├── typsts/      # TypstAnim 的 .typ 及其依赖
-│   ├── svgs/        # SVG 源文件
+│   ├── audios/       # 分镜语音 + audio_timeline.md
+│   ├── images/       # AIGC 生成或后处理后的图片
+│   ├── lottie/       # LottieAnim 的 JSON
+│   ├── typsts/       # TypstAnim 的 .typ 及其依赖
+│   ├── svgs/         # 生成或编辑的 SVG
 │   └── README.md
-└── modules/         # 自创 SkiaAnim 的 .cs 与 README.md
+└── modules/          # 自创 SkiaAnim 的 .cs 与 README.md
 ```
 
+- `assets/materials/` 是只读优先素材库，找到合适素材直接用；不要把 AIGC 结果写入该目录；
 - `PngAnim` 的 APNG 放 `assets/apngs/`，`LottieAnim` 放 `assets/lottie/`，`TypstAnim` 放 `assets/typsts/`；目录不存在时创建；
 - 自创的 `SkiaAnim` 放在**视频脚本文件所在目录**的 `modules/` 下，目录不存在时创建；
 - 新增素材或模块后，同步更新对应的 `README.md`，方便后续复用。
@@ -390,9 +402,9 @@ TypstAnim("./assets/typsts/derivation.typ");
 
 ```csharp
 // 推荐：背景素材 + 布局分栏 + 多个动画 + 文字
-// 假设文件头部已声明 theme 与 font
+// 假设文件头部已声明 theme 与 font；背景优先取自 materials 预整理素材
 Panel([
-    Image("./assets/images/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
+    Image("./assets/materials/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
 
     HGrid("480,*", [
         PngAnim("./assets/apngs/icon-chart.png").Size(320, 320).Align(0, 0),
@@ -736,7 +748,8 @@ run(stage(1920, 1080, bg: theme.Background), clips(), args: args);
 15. 每个 clip 是否组合了布局组件、多个动画与素材，而不是只用一个全屏动画；
 16. 是否先产出 `xxxx_storyboard.md`，每个镜头都记录了口播、画面、素材、时长和对应 `shotNN`；
 17. 是否逐镜头生成语音到 `assets/audios/`，并在 `audio_timeline.md` 记录入点、出点与总时长；
-18. C# 脚本是否按分镜和音频时间表生成，clip 名与 `shotNN` 对齐，先创建画面 clip 再 `LinkTo` 音频。
+18. C# 脚本是否按分镜和音频时间表生成，clip 名与 `shotNN` 对齐，先创建画面 clip 再 `LinkTo` 音频；
+19. 是否先递归检查 `assets/materials/` 并优先复用非 AIGC 素材；是否保留其原目录结构与文件名；AIGC 结果是否写入 `images/apngs/svgs/videos` 等目录，而没有污染 `materials`。
 
 ## 资源
 

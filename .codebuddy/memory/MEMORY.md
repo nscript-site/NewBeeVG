@@ -18,6 +18,7 @@
 - 后续 clip 只引用 `theme.Primary` / `theme.Background` / `theme.TextPrimary` / `theme.TextSecondary` / `theme.Divider` / `theme.Positive` / `theme.Negative`，不要在片段内重复 `font(...)` 或硬编码主题色。
 - `SkiaAnim` 需要主题时，通过 `ContentTheme.From(theme)` 等主题参数传入全局主题。
 - 视频素材目录：APNG → `assets/apngs/`（最终后缀 `.png`）；Lottie → `assets/lottie/`；Typst → `assets/typsts/`；自创 SkiaAnim → `modules/`。
+- `assets/materials/` 是事先整理的非 AIGC 素材库，优先递归查找复用，保留原目录/文件名，不写入 AIGC 生成结果。
 
 ## Seedream 图片生成
 

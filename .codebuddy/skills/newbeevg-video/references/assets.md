@@ -6,11 +6,12 @@
 
 ```text
 assets/
+├── materials/   # 事先整理的非 AIGC 素材（保留原目录结构）
 ├── audios/      # 分镜语音 mp3 / wav + audio_timeline.md
-├── apngs/        # PngAnim 的 APNG 内容，后缀统一为 .png
-├── images/      # 普通静态图片 png / jpg / webp
-├── videos/      # mp4 / webm 等
-├── svgs/        # 静态或带动画的 svg
+├── apngs/       # PngAnim 的 APNG 内容，后缀统一为 .png
+├── images/      # AIGC 生成或后处理后的图片
+├── videos/      # AIGC 生成或后处理后的视频
+├── svgs/        # 生成或编辑的 svg
 ├── lottie/      # Lottie JSON（LottieAnim）
 ├── typsts/      # .typ 及依赖（TypstAnim）
 └── README.md    # 资源清单与说明
@@ -66,7 +67,7 @@ static string FindAssetsDir(string startDir)
 ```csharp
 void EnsureAssetDirs(string assets)
 {
-    foreach (var sub in new[] { "audios", "apngs", "images", "videos", "svgs", "lottie", "typsts" })
+    foreach (var sub in new[] { "materials", "audios", "apngs", "images", "videos", "svgs", "lottie", "typsts" })
         Directory.CreateDirectory(Path.Combine(assets, sub));
 }
 ```
@@ -88,7 +89,9 @@ void EnsureAssetDirs(string assets)
 
 | 文件 | 类型 | 用途 | 尺寸/时长 | 备注 |
 | --- | --- | --- | --- | --- |
-| images/bg-night.png | 图片 | 夜景背景 | 1920×1080 | 可裁切 |
+| materials/bg-night.jpg | 图片 | 夜景背景（非 AIGC） | 1920×1080 | 可裁切 |
+| materials/logo.svg | SVG | 品牌 Logo（非 AIGC） | 64×64 | 保持原样 |
+| images/bg-ai.png | 图片 | AIGC 生成背景 | 1920×1080 | 可重生成 |
 | svgs/icon-chart.svg | SVG | 图表图标 | 64×64 | 单色 |
 | audios/intro.mp3 | 音频 | 片头音乐 | 12s | 淡入淡出 |
 | audios/audio_timeline.md | 时间表 | 分镜语音入点/出点 | 全片 | 与 `shotNN` 对应 |
@@ -96,16 +99,28 @@ void EnsureAssetDirs(string assets)
 
 新增素材后同步更新 README。
 
+## 3.5 预整理素材 `materials/`
+
+`assets/materials/` 是事先整理好的**非 AIGC 素材库**，可能包含图片、视频、音频、SVG、序列帧等，也可能按来源、主题或项目分成多层子目录。
+
+使用规则：
+
+- **优先复用**：素材盘点时先递归扫描该目录，按目录名、文件名、README 描述和实际内容匹配；
+- **保留原结构**：不要移动、改名、重排或覆盖原文件；代码直接引用原路径；
+- **只读**：AIGC 生成结果、裁剪/调色后的中间产物不要写回 `materials/`，应写入 `images/`、`videos/`、`svgs/` 等类型目录；
+- **先读索引**：优先读 `assets/materials/README.md`，没有时再读 `assets/README.md`；
+- 若素材需要裁切、调色或转码，派生文件另存到类型目录，并在 README 记录与原始素材的对应关系。
+
 ## 4. 素材盘点流程
 
 写代码前：
 
 1. **读取 Markdown 稿件并产出分镜**：在同目录生成 `xxxx_storyboard.md`，按镜头/clip 列出 `shotNN`、口播、画面和所需视觉/音频元素；
-2. **读取 README 与目录**：标记已有素材，确认尺寸/时长/风格是否匹配；
-3. **列出缺失项**：背景、图标、插画、图表、照片、音效、视频等；
+2. **先查 `assets/materials/`**：递归读取并优先复用事先整理的非 AIGC 素材，确认尺寸/时长/风格是否匹配，记录原路径；
+3. **再读 README 与其他目录**：标记其余已有素材，列出真正缺失项；
 4. **生成缺失素材**：优先 SVG；简单动画转 APNG，数学/科学排版用 Typst；复杂特效先查 `modules/` 现有 Skia 模板，最后才新建 SkiaAnim；
 5. **生成并登记语音**：按分镜合成语音到 `assets/audios/shotNN.mp3`，并把入点/出点写入 `assets/audios/audio_timeline.md`；
-6. **保存并登记素材**：放入对应子目录，更新 `assets/README.md`。
+6. **保存并登记素材**：AIGC 结果放入对应类型子目录，更新 `assets/README.md`；不要写入 `materials/`。
 
 ## 5. 用 SVG 生成缺失素材
 
