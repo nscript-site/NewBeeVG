@@ -85,14 +85,6 @@ internal class TransformSample
             v.AsLayoutable()?.Align(0, 0);
         };
 
-        Layer([
-            VGrid($"*", 
-            [
-                Image("./Assets/snows.jpg").Align(0,0).Stretch(Stretch.Fill)
-            ]).Background(SKColors.DeepSkyBlue),
-            Rect(800,1200,cornerRadius:20).Styles(style1,style2)
-        ]).AsClip(out var clip6, 30, name: "alpha shader");
-
-        run(stage(bg: SKColors.Orange), [clip1,clip2,clip3,clip4,clip5,clip6]);
+        run(stage(bg: SKColors.Orange), clips());
     }
 }

@@ -726,32 +726,6 @@ public static class Methods
         return panel;
     }
 
-    public static NBLayer Layer(NBVisual?[]? childs = null)
-    {
-        var layer = new NBLayer();
-        layer.Align(0, 0);
-        if(childs != null)
-        {
-            if(childs.Length > 0)
-            {
-                layer.Source = childs[0];
-            }
-
-            if(childs.Length > 1)
-            {
-                layer.Mask = childs[1];
-            }
-        }
-        return layer;
-    }
-
-    //public static NBLayer Layer(double? width = null, double? height = null, int? hAlign = 0, int? vAlign = 0)
-    //{
-    //    var layer = new NBLayer { Width = width ?? double.NaN, Height = height ?? double.NaN };
-    //    layer.Align(hAlign, vAlign);
-    //    return layer;
-    //}
-
     public static NBGrid Grid(NBVisual[]? childs = null, string? rowDef = null, string? colDef = null)
     {
         var panel = new NBGrid();

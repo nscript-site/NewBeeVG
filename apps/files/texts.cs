@@ -62,15 +62,6 @@ var content2 =  () =>
 
 content2().AsClip(out var clip2, 30, name: "qiuguanzhu 2");
 
-VStack([
-    Layer([
-        TextBlock("求关注").Styles(style).ClearOnFrames().Id("Text"),
-        Rect().Bind("Text")
-            .OnFrame(e=>e.Sender.Shaders(Shaders.AlphaLinearGradient(e.p)))
-    ]).Size(double.NaN,double.NaN),
-]).Spacing(10).Align(0, 0)
-.AsClip(out var clip3, 30, name: "qiuguanzhu 3");
-
 Panel([
     content(),
     Ellipse(2400,2400).Align(0,0)
@@ -103,4 +94,4 @@ Panel([
 TextBlock("Demo").Foreground(SKColors.Orange).Align(1, -1).Margin(20)
     .AsClip(out var logo, -1, 0, "logo");
 
-run(stage(1920, 1080, bg: SKColors.White), [clip1, clip2, clip3, clip4, clip5, logo]);
+run(stage(1920, 1080, bg: SKColors.White), clips());
