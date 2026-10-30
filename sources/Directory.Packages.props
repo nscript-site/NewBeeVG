@@ -26,7 +26,6 @@
     <PackageVersion Include="NewBeeMedia" Version="1.0.0.2" />
     <PackageVersion Include="NewBeeMedia.Encoders.Gif" Version="1.0.1.6" />
     <PackageVersion Include="newbeeui" Version="$(NewBeeUIVersion)" />
-    <PackageVersion Include="pythonnet" Version="3.1.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.Extended" Version="3.0.0" />
     <PackageVersion Include="SkiaSharp.Skottie" Version="3.119.4" />

@@ -45,7 +45,17 @@ public class NBBaseImage : NBLayoutable, INBImage
 
         if (size != null)
         {
-            return Stretch.CalculateSize(availableSize, new Size(size.Value.Width, size.Value.Height), StretchDirection);
+            var measured = Stretch.CalculateSize(
+                availableSize,
+                new Size(size.Value.Width, size.Value.Height),
+                StretchDirection);
+
+            // availableSize 已由 NBLayoutable.MeasureCore 扣除自身 Margin，
+            // 这里把结果限制在内容区域内，避免 Stretch.None 返回原图尺寸后
+            // 期望尺寸突破 Margin 预留的空间。
+            return new Size(
+                Math.Min(measured.Width, availableSize.Width),
+                Math.Min(measured.Height, availableSize.Height));
         }
         else
         {
@@ -54,7 +64,9 @@ public class NBBaseImage : NBLayoutable, INBImage
             if(_exceptionText != null)
             {
                 _exceptionText.Measure(availableSize);
-                return _exceptionText.DesiredSize;
+                return new Size(
+                    Math.Min(_exceptionText.DesiredSize.Width, availableSize.Width),
+                    Math.Min(_exceptionText.DesiredSize.Height, availableSize.Height));
             }
         }
 

@@ -99,30 +99,6 @@ internal class WidgetsSample
             }
         );
 
-        Utils.EmbedPython(filePath);
-        dynamic m = py_module("./Assets/plot.py");
-
-        var clip6 = clip(
-            name: "pyclip",
-            frames: 30,
-            builder: (ctx, clip) =>
-            {
-                SKBitmap bmp;
-                using (py_gil())
-                {
-                    var img = m.plot_3d_data(ctx.progress * 2 * Math.PI);
-                    bmp = py_imdecode(img);
-                }
-
-                return
-                VGrid($"*", [
-                        Image(bmp)
-                            .Align(0,0)
-                        ]).Background(SKColors.DeepSkyBlue);
-            }
-        );
-
-        run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
-        //save("out.mp4", stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, clip6]);
+        run(stage(bg: SKColors.Orange), clips());
     }
 }

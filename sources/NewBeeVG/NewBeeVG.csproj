@@ -37,7 +37,6 @@
     <PackageReference Include="NAudio" />
     <PackageReference Include="NewBeeMedia.Encoders.Gif" />
     <PackageReference Include="newbeeui" />
-    <PackageReference Include="pythonnet" />
     <PackageReference Include="SkiaSharp.Extended" />
     <PackageReference Include="SkiaSharp.Skottie" />
     <PackageReference Include="Svg.Skia" />
