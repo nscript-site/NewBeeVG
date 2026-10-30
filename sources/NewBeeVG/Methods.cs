@@ -143,45 +143,6 @@ public static class Methods
         return new NBDrawingClip(name, builder, mask, blend, frames, start);
     }
 
-    public static NBTTSClip ttsClip(string text, string voice = "Cherry", string lang = "Chinese", string instructions = "", string model = "mlx-tts", string name = "clip", int? start = null)
-    {
-        return new NBTTSClip(text, voice, lang, instructions, model, name, start);
-    }
-
-    public static void scripts(string path, string? output = null)
-    {
-        var fileInfo = new FileInfo(path);
-        if (fileInfo.Exists == false)
-        {
-            Console.WriteLine($"脚本文件不存在:{path}");
-            return;
-        }
-        var ext = fileInfo.Extension.ToLower();
-        if (ext == ".md")
-        {
-            var codes = TTSScriptParser.BuildCode(path);
-            if (output != null)
-            {
-                if(File.Exists(output))
-                {
-                    Console.WriteLine($"输出文件已存在:{output}, 请更换输出路径!");
-                    return;
-                }
-
-                File.WriteAllText(output, codes);
-                Console.WriteLine($"脚本已生成到:{output}");
-            }
-            else
-            {
-                Console.WriteLine(codes);
-            }
-        }
-        else
-        {
-            Console.WriteLine($"不支持的脚本文件类型:{ext}");
-        }
-    }
-
     public static NBTrack track()
     {
         return new NBTrack();

@@ -1,1 +1,0 @@
-print("hello, pythonnet from python")
