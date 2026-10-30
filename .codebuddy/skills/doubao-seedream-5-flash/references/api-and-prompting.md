@@ -86,11 +86,11 @@ data:image/webp;base64,<base64>
 style: 视频口播风格插图
 ---
 
-!(场景简介)[./scene-01.jpg]
+![场景简介](./scene-01.jpg)
 
 第一张图的中文提示词。
 
-!(场景简介)[./scene-02.jpg]
+![场景简介](./scene-02.jpg)
 
 第二张图的中文提示词。
 ```

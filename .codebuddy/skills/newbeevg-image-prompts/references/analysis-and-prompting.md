@@ -166,19 +166,33 @@ style: 金融史口播风格插图
 - 同一份 prompts.md 内不重名；
 - 路径写 `./文件名`，不要写子目录。
 
-## 8. 与 Seedream 对接
+## 8. `prompts.md` 格式
 
-`prompts.md` 生成后，可把每个条目交给 `doubao-seedream-5-flash` 技能：
+使用标准 Markdown 图片语法：`![中文简介](./文件名.jpg)`，下一段写中文提示词。
 
-```bash
-python scripts/generate_image.py \
-  --prompt "<条目提示词>" \
-  --output assets/images/wall.jpg \
-  --size 2K \
-  --ratio 16:9
+```markdown
+---
+style: 视频口播风格插图
+---
+
+![恩克赫伊森的邮差彼得](./postman_pieter.jpg)
+
+17 世纪初荷兰小镇街口，一位中年邮差穿深色粗呢外套、戴皮帽，肩挎皮质邮袋，手里捏着几封信站在门口，身后是砖砌山墙小楼与木桥，傍晚暖光，17 世纪荷兰铜版画，细密交叉排线，无文字无水印
 ```
 
-- `style` 是全局风格，不一定要逐字塞进每条提示词；
-- 生成时按图片用途选择比例：横版口播 16:9，竖版 9:16，方图 1:1；
+不要使用 `!(中文简介)[./文件名.jpg]`。
+
+## 9. 与 Seedream 对接
+
+`prompts.md` 生成后，直接用 `doubao-seedream-5-flash` 的文档模式批量生成：
+
+```bash
+python scripts/generate_image.py --doc assets/images/prompts.md
+```
+
+- 脚本会检查每条引用的图片：已存在则跳过，只生成缺失项；
+- frontmatter 的 `style` 会自动拼接到每条提示词；
+- 文档模式不传 `--ratio`，由模型自动判断长宽比；
+- 可先用 `--dry-run` 预检文件存在情况；
 - 生成后检查文字、手部、时代道具与地图准确性；
-- 需要重做时换文件名，避免覆盖已选素材。
+- 需要重做时先删除对应图片，再重新运行文档模式。

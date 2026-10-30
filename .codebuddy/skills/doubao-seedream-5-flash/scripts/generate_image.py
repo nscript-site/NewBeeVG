@@ -57,10 +57,10 @@ MAX_INPUT_BYTES = 30 * 1024 * 1024
 
 SUPPORTED_RATIOS = ("1:1", "4:3", "3:4", "16:9", "9:16", "21:9")
 SCENE_PATTERNS = (
-    # 文档约定：!(场景简介)[./scene-01.jpg]
-    re.compile(r"^!\s*\((?P<alt>[^)]*)\)\s*\[(?P<path>[^\]]+)\]\s*$"),
-    # 兼容标准 Markdown：![场景简介](./scene-01.jpg)
+    # 标准 Markdown：![场景简介](./scene-01.jpg)
     re.compile(r"^!\s*\[(?P<alt>[^\]]*)\]\s*\((?P<path>[^)]+)\)\s*$"),
+    # 兼容旧格式：!(场景简介)[./scene-01.jpg]
+    re.compile(r"^!\s*\((?P<alt>[^)]*)\)\s*\[(?P<path>[^\]]+)\]\s*$"),
 )
 
 RATIO_SIZES = {
@@ -392,7 +392,7 @@ def run_doc(args: argparse.Namespace) -> int:
 
     style, items = parse_scene_doc(doc_path)
     if not items:
-        die(f"文档中没有找到 !(场景简介)[./scene-01.jpg] 格式的图片条目: {doc_path}")
+        die(f"文档中没有找到 ![场景简介](./scene-01.jpg) 格式的图片条目: {doc_path}")
 
     print(f"文档: {doc_path}")
     print(f"全局风格: {style or '（未设置）'}")

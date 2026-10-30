@@ -22,6 +22,7 @@
 
 ## Seedream 图片生成
 
-- 用户提供 `--- style: ... ---` + `!(场景简介)[./scene-01.jpg]` + 提示词的 Markdown 场景文档时，使用 `generate_image.py --doc <文档>`。
+- 用户提供 `--- style: ... ---` + `![场景简介](./scene-01.jpg)` + 提示词的 Markdown 场景文档时，使用 `generate_image.py --doc <文档>`。
+- `prompts.md` 统一使用标准 Markdown 图片语法 `![中文简介](./文件名.jpg)`，不要用 `!(中文简介)[./文件名.jpg]`。
 - 已存在且非空的文件跳过，只生成缺失项；文档模式不传 `--ratio`，不用 `宽x高`，由模型自动判断比例；`.jpg` 输出 JPEG，`.png` 输出 PNG。
 

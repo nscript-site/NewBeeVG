@@ -7,7 +7,7 @@ Expected format:
     style: 金融史口播风格插图
     ---
 
-    !(古代华尔街的木墙)[./wall.jpg]
+    ![古代华尔街的木墙](./wall.jpg)
 
     1653年新阿姆斯特丹，华尔街原始防御木栅栏...
 
@@ -22,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-ENTRY_RE = re.compile(r"^!\((?P<alt>[^)]+)\)\[(?P<path>[^\]]+)\]\s*$")
+ENTRY_RE = re.compile(r"^!\[(?P<alt>[^\]]+)\]\((?P<path>[^)]+)\)\s*$")
 ALLOWED_SUFFIXES = {".jpg", ".jpeg", ".png"}
 
 
@@ -89,7 +89,7 @@ def validate(entries: list[dict], meta: dict[str, str], check_images: bool, base
         errors.append("frontmatter 缺少非空 style")
 
     if not entries:
-        errors.append("没有找到任何 !(简介)[./文件名.jpg] 条目")
+        errors.append("没有找到任何标准 Markdown 图片条目 ![简介](./文件名.jpg)；不要使用 !(简介)[./文件名]")
         return errors
 
     seen: set[str] = set()
@@ -134,7 +134,7 @@ def main() -> int:
     parser.add_argument(
         "--check-images",
         action="store_true",
-        help="同时检查 !()[./xxx.jpg] 引用的图片是否存在",
+        help="同时检查 ![简介](./xxx.jpg) 引用的图片是否存在",
     )
     args = parser.parse_args()
 
