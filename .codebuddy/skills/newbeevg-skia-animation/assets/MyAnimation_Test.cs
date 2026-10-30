@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.21
+#:package NewBeeVG@1.0.1.24
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -32,6 +32,8 @@ const int Frames = 90;
 {
     var content = new MyAnimation.ContentSetting
     {
+        // 左、上、右、下留白；特效会填满中间的内容矩形
+        Margin = new[] { 60, 40, 60, 40 },
         From = 0,
         To = 12580,
         Format = "N0",

@@ -54,6 +54,7 @@ public class NBSkiaAnimation : NBBaseLoopAnimation
         if (frameIndex < 0 || frameIndex >= TotalFrames) return;
         canvas.Save();
         if (m != null) canvas.Concat(m.Value);
+        canvas.ClipRect(new SKRect(0, 0, anim.Width, anim.Height));
         anim.Draw(canvas, frameIndex);
         canvas.Restore();
     }

@@ -28,7 +28,7 @@ public class NBBaseImage : NBLayoutable, INBImage
         }
     }
 
-    public Stretch Stretch { get; set; } = Stretch.Uniform;
+    public Stretch Stretch { get; set; } = Stretch.None;
 
     public StretchDirection StretchDirection { get; set; } = StretchDirection.Both;
 

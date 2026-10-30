@@ -42,8 +42,21 @@ public class MyAnimation : SKCustomAnimation
     /// <summary>逐帧绘制逻辑。</summary>
     protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
     {
-        // 每帧清空背景；需要透明背景时改用 canvas.Clear(SKColors.Transparent)
-        canvas.Clear(_theme.Background);
+        // 透明背景不要清空画布：每帧位图初始就是透明的
+        // 只有非透明背景才铺底色
+        if (_theme.Background.Alpha > 0)
+            canvas.Clear(_theme.Background);
+
+        // Margin 决定内容区域；特效默认填满该矩形
+        var m = _content.GetMargin();
+        float left = m[0], top = m[1], right = m[2], bottom = m[3];
+        float w = size.Width - left - right;
+        float h = size.Height - top - bottom;
+        if (w <= 0 || h <= 0) return;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(left, top, left + w, top + h));
+        canvas.Translate(left, top);
 
         // 帧号 -> 0..1 进度
         float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
@@ -61,8 +74,7 @@ public class MyAnimation : SKCustomAnimation
 
         // 基础主题色
         using var paint = new SKPaint { IsAntialias = true, Color = _theme.Primary };
-        canvas.DrawText(text, size.Width / 2f, size.Height / 2f,
-            SKTextAlign.Center, font, paint);
+        canvas.DrawText(text, w / 2f, h / 2f, SKTextAlign.Center, font, paint);
 
         // ContentTheme 补充的专用颜色
         using var glow = new SKPaint
@@ -72,14 +84,16 @@ public class MyAnimation : SKCustomAnimation
             Style = SKPaintStyle.Stroke,
             StrokeWidth = 3f
         };
-        canvas.DrawLine(size.Width * 0.2f, size.Height * 0.8f,
-            size.Width * 0.8f, size.Height * 0.8f, glow);
+        canvas.DrawLine(w * 0.2f, h * 0.8f, w * 0.8f, h * 0.8f, glow);
+
+        canvas.Restore();
     }
 
     /// <summary>
     /// 动画内容配置：把可变输入集中在一个内部类中，避免构造函数参数膨胀。
+    /// 必须继承 SKAnimSetting，以支持 Margin 留白。
     /// </summary>
-    public class ContentSetting
+    public class ContentSetting : SKAnimSetting
     {
         /// <summary>起始值。</summary>
         public double From { get; set; } = 0;

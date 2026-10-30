@@ -255,6 +255,46 @@ public class SKAnimation : ISKAnimation
 }
 
 /// <summary>
+/// SK 动画的通用设置。
+/// 目前用于描述画面的边距，后续可扩展其他与具体动画内容无关的布局参数。
+/// </summary>
+public class SKAnimSetting
+{
+    /// <summary>
+    /// 边距数组，支持 0、1、2、4 个元素：
+    /// 空数组表示四边为 0；1 个元素表示四边相同；
+    /// 2 个元素表示（水平, 垂直）；4 个元素表示（左, 上, 右, 下）。
+    /// 3 个元素按 2 个元素处理，第三项会被忽略。
+    /// </summary>
+    public int[] Margin { get; set; } = new int[] { };
+
+    /// <summary>
+    /// 将 <see cref="Margin"/> 归一化为固定 4 个元素：左、上、右、下。
+    /// </summary>
+    /// <returns>
+    /// 长度为 4 的新数组，顺序为 [左, 上, 右, 下]；
+    /// <see cref="Margin"/> 为 null 或空时返回 [0, 0, 0, 0]。
+    /// </returns>
+    /// <remarks>
+    /// 每次调用都会创建新数组，修改返回值不会影响 <see cref="Margin"/>。
+    /// </remarks>
+    public int[] GetMargin()
+    {
+        // 未设置边距：四边均为 0
+        if (Margin == null || Margin.Length == 0) return new int[4] { 0, 0, 0, 0 };
+
+        // 1 个值：四边使用同一边距
+        else if (Margin.Length < 2) return new int[4] { Margin[0], Margin[0], Margin[0], Margin[0] };
+
+        // 2 个值（3 个值时第三项忽略）：水平 / 垂直边距
+        else if (Margin.Length < 4) return new int[4] { Margin[0], Margin[1], Margin[0], Margin[1] };
+
+        // 4 个及以上：左、上、右、下（多余元素忽略）
+        else return new int[4] { Margin[0], Margin[1], Margin[2], Margin[3] };
+    }
+}
+
+/// <summary>
 /// <see cref="SKAnimation"/> 的子类实现：通过重写 <see cref="DrawFrame"/> 提供每帧绘制逻辑，
 /// 适合绘制代码较多、需要拆分为方法的场景。
 /// 类中同时提供主题色 <see cref="Theme"/>，便于子类统一取用背景色、文字色与强调色。

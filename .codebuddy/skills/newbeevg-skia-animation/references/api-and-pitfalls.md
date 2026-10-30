@@ -36,6 +36,28 @@ using var font = new SKFont(typeface, 96);
 - 名称不保证系统已安装，Skia 可能回退到替代字体，建议 `?? SKTypeface.Default` 兜底；
 - `font("...")` 设置后全局生效，之后 `GetDefaultFontName()` 返回新值。
 
+### SKAnimSetting 与 Margin
+
+`ContentSetting` **必须继承 `SKAnimSetting`**：
+
+```csharp
+public class ContentSetting : SKAnimSetting
+{
+    // 标题、字号、数据等
+}
+```
+
+`Margin` 支持：
+
+| 写法 | 含义 |
+| --- | --- |
+| `[]` / `null` | 四边 0 |
+| `[10]` | 四边 10 |
+| `[10, 20]` | 水平 10、垂直 20 |
+| `[10, 20, 30, 40]` | 左 10、上 20、右 30、下 40 |
+
+`GetMargin()` 统一返回 `[left, top, right, bottom]`。`DrawFrame` 应在 `(left, top, Width-left-right, Height-top-bottom)` 内绘制并裁剪，特效默认填满该矩形；背景可继续铺满整张画布。
+
 ## 主题色（NBVideoTheme / NBVideoThemes）
 
 `NBVideoTheme` 描述一套配色，包含以下成员：
@@ -132,7 +154,20 @@ public class MyAnimation : SKCustomAnimation
 
     protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
     {
-        canvas.Clear(_theme.Background);
+        // 透明背景不要清空画布；只有非透明背景才铺底色
+        if (_theme.Background.Alpha > 0)
+            canvas.Clear(_theme.Background);
+
+        // Margin 决定内容区域；特效默认填满该矩形
+        var m = _content.GetMargin();
+        float left = m[0], top = m[1], right = m[2], bottom = m[3];
+        float w = size.Width - left - right;
+        float h = size.Height - top - bottom;
+        if (w <= 0 || h <= 0) return;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(left, top, left + w, top + h));
+        canvas.Translate(left, top);
 
         float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
         double value = _content.From + (_content.To - _content.From) * t;
@@ -146,12 +181,13 @@ public class MyAnimation : SKCustomAnimation
         using var font = new SKFont(typeface, _content.FontSize);
         using var paint = new SKPaint { IsAntialias = true, Color = _theme.Primary };
 
-        canvas.DrawText(text, size.Width / 2f, size.Height / 2f,
-            SKTextAlign.Center, font, paint);
+        canvas.DrawText(text, w / 2f, h / 2f, SKTextAlign.Center, font, paint);
+
+        canvas.Restore();
     }
 
-    /// <summary>动画内容配置。</summary>
-    public class ContentSetting
+    /// <summary>动画内容配置，必须继承 SKAnimSetting。</summary>
+    public class ContentSetting : SKAnimSetting
     {
         public double From { get; set; } = 0;
         public double To { get; set; } = 10000;
@@ -192,7 +228,7 @@ public class MyAnimation : SKCustomAnimation
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.21
+#:package NewBeeVG@1.0.1.24
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
@@ -216,6 +252,8 @@ const int Frames = 90;
 {
     var content = new MyAnimation.ContentSetting
     {
+        // 左、上、右、下留白；特效填满中间内容矩形
+        Margin = new[] { 60, 40, 60, 40 },
         From = 0,
         To = 12580,
         Format = "N0",
@@ -302,7 +340,7 @@ if (debug == false)
 - `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
 - **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
 - 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
-- `#:package NewBeeVG@1.0.1.21` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.24` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
 - `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
 
 ### 循环生成测试用例
@@ -397,12 +435,25 @@ public class ClockAnimation : SKCustomAnimation
 
     protected override void DrawFrame(SKCanvas canvas, SKSize size, int frame)
     {
-        canvas.Clear(_theme.Background);
+        // 透明背景不要清空画布；只有非透明背景才铺底色
+        if (_theme.Background.Alpha > 0)
+            canvas.Clear(_theme.Background);
+
+        // Margin 决定内容区域；所有绘制限制在该矩形内
+        var m = _content.GetMargin();
+        float left = m[0], top = m[1], right = m[2], bottom = m[3];
+        float w = size.Width - left - right;
+        float h = size.Height - top - bottom;
+        if (w <= 0 || h <= 0) return;
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(left, top, left + w, top + h));
+        canvas.Translate(left, top);
 
         float t = Frames <= 1 ? 1f : frame / (float)(Frames - 1);
 
-        float cx = size.Width / 2f;
-        float cy = size.Height / 2f;
+        float cx = w / 2f;
+        float cy = h / 2f;
         float radius = 160f + 60f * MathF.Sin(t * MathF.PI * 2f);
 
         using (var fill = new SKPaint { IsAntialias = true, Color = _theme.Primary })
@@ -445,17 +496,20 @@ public class ClockAnimation : SKCustomAnimation
             canvas.DrawText(
                 $"Frame {frame:000} / {Frames - 1:000}",
                 cx,
-                size.Height - 140f,
+                h - 140f,
                 SKTextAlign.Center,
                 font,
                 textPaint);
         }
+
+        canvas.Restore();
     }
 
     /// <summary>
     /// 动画内容配置：把可变输入集中在一个内部类中，避免构造函数参数膨胀。
+    /// 必须继承 SKAnimSetting 以支持 Margin。
     /// </summary>
-    public class ContentSetting
+    public class ContentSetting : SKAnimSetting
     {
         /// <summary>刻度数量。</summary>
         public int TickCount { get; set; } = 12;
@@ -539,8 +593,8 @@ public class ReportAnimation : SKCustomAnimation
         // 直接读取 _content 中的字段
     }
 
-    /// <summary>动画内容配置（纯数据）。</summary>
-    public class ContentSetting
+    /// <summary>动画内容配置（纯数据），必须继承 SKAnimSetting。</summary>
+    public class ContentSetting : SKAnimSetting
     {
         /// <summary>标题。</summary>
         public string Title { get; set; } = "";
@@ -561,6 +615,8 @@ public class ReportAnimation : SKCustomAnimation
 
 - 构造函数签名保持 `(int width, int height, int frames, ContentSetting content, ContentTheme? contentTheme = null)`；
 - `ContentSetting` 声明为**子类的嵌套类**，访问方式为 `ReportAnimation.ContentSetting`；
+- `ContentSetting` **必须继承 `SKAnimSetting`**，以支持 `Margin`；
+- `DrawFrame` 必须使用 `GetMargin()` 得到 `[left, top, right, bottom]`，在 `(left, top, Width-left-right, Height-top-bottom)` 内绘制并裁剪；背景可铺满整张画布；
 - 内容类只存放数据（POCO），不要持有 `SKBitmap`、`SKPaint`、`SKCanvas` 等原生对象；确需持有时应在文档中写明释放责任；
 - 给字段提供合理默认值，调用方只覆盖需要变化的项；
 - 需要绘制文字时，在 `ContentSetting` 中加 `public string FontFamily { get; set; } = "";`（注释说明：为空时使用 `SKCustomAnimation.GetDefaultFontName()`）；`DrawFrame` 中为空则回退默认字体；
@@ -746,14 +802,18 @@ var bmp = new SKBitmap(info);
 
 导出透明 PNG 的要点：
 
-1. 每帧用透明色清空画布：
+1. **不要清空画布**：`Theme.Background.Alpha == 0` 时跳过 `canvas.Clear(...)`；`BuildFrame` 每帧新建的位图初始就是透明的：
 
 ```csharp
-canvas.Clear(SKColors.Transparent);
+// 正确：透明背景不清空
+if (_theme.Background.Alpha > 0)
+    canvas.Clear(_theme.Background);
 ```
 
 2. 只绘制需要保留的内容，未绘制区域保持透明；
 3. 使用 `SavePNG` 导出 PNG（PNG 支持 Alpha，不要改用 JPEG）。
+
+透明背景下再调用 `canvas.Clear(SKColors.Transparent)` 通常不会导致黑底，但属于多余操作；按约定应直接跳过。
 
 注意：位图为 `Premul`（预乘 Alpha），半透明颜色按预乘规则合成。若外部数据是直通 Alpha（Unpremul）像素，不要直接内存拷贝进该位图，应通过 `SKCanvas.DrawBitmap` 绘制或先做预乘转换。
 
@@ -762,8 +822,8 @@ canvas.Clear(SKColors.Transparent);
 常见原因：
 
 - 误用了 `new SKBitmap(w, h, true)`（第三个参数 `isOpaque` 为 `true` 表示不透明）；
-- 忘记 `canvas.Clear(...)`，位图初始为透明黑或残留上一帧像素；
-- 用不透明颜色清空画布（如 `SKColors.Black`、`new SKColor(0xFF101820)`）。
+- 用不透明颜色清空画布（如 `SKColors.Black`、`new SKColor(0xFF101820)`）；
+- 主题背景本应透明，却使用了非透明颜色铺底。
 
 ### SavePNG 返回 false
 
