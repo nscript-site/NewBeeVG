@@ -22,4 +22,5 @@ AudioFile("./assets/audio01.mp3")
  dotnet .\demo.cs -- clip1 clip1.mp4	// 把 name=clip1 的片段保存为 mp4
  dotnet .\demo.cs -- clip1 3 @dump		// 把 name=clip1 的片段的第3帧转码为 png，以base64输出控制台
 **************************************************************************************************/
-run(stage(1920, 1080, bg: SKColors.White), clips(),args:args);
+run(stage(1920, 1080, bg: SKColors.White), args:args);
+

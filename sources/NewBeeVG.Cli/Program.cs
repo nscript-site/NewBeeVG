@@ -6,13 +6,19 @@ internal class Program
 {
     static void Main(string[] args)
     {
+        //Run(args);
+        Run(["watch", "D:\\Projects\\21_Private_NewBee\\NewBeeVG\\apps\\files\\demo.cs"]);
+    }
+
+    static void Run(string[] args)
+    {
         if (args.Length == 0)
             PrintHelp();
         var cmd = args[0].Trim();
 
         args = ShiftArgs(args);
 
-        if(cmd == "watch")
+        if (cmd == "watch")
         {
             new WatchTool().Run(args);
         }

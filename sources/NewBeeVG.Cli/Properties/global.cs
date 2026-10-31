@@ -1,0 +1,11 @@
+﻿global using Avalonia;
+global using Avalonia.Controls;
+global using Avalonia.Layout;
+global using Avalonia.Markup.Declarative;
+global using Avalonia.Media;
+global using NStyles;
+global using NewBeeUI;
+global using NewBeeVG;
+global using NStyles.MeterialIcons;
+global using System.Collections.Generic;
+global using System;
