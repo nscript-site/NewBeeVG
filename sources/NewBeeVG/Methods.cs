@@ -2,6 +2,7 @@
 using NewBeeVG.Internal;
 using SkiaSharp;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace NewBeeVG;
 
@@ -143,11 +144,6 @@ public static class Methods
         return new NBDrawingClip(name, builder, mask, blend, frames, start);
     }
 
-    public static NBTrack track()
-    {
-        return new NBTrack();
-    }
-
     #region shapes
 
     public static NBRect Rect(double width = 100, double height = 100, SKColor? fill = null, double cornerRadius = 0)
@@ -210,351 +206,8 @@ public static class Methods
 
     #endregion
 
-    internal static void start(string programSubName, string[]? args = null)
-    {
-        App.Start(programSubName, args);
-    }
 
-    public static void run()
-    {
-        run(stage(), []);
-    }
-
-    private static void PrepareClips(IList<NBClip> clips, NBStage stage)
-    {
-        foreach (var clip in clips)
-        {
-            try
-            {
-                clip.Prepare(stage);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Clip[{clip.Name} prepare fail: {ex.Message}]");
-            }
-        }
-    }
-
-    /// <summary>
-    /// 运行一段动画：创建工作区并准备片段，再根据 <paramref name="args"/> 决定是打开预览窗口，
-    /// 还是导出 MP4 视频或单帧 PNG。
-    /// </summary>
-    /// <param name="stage">舞台参数：画幅宽高、帧率、背景色等。</param>
-    /// <param name="clips">主片段列表；会先逐个调用 Prepare，再放入工作区的同一条轨道。</param>
-    /// <param name="clipLists">
-    /// 额外的片段分组。传入后会把每组片段也 Prepare 并合并到同一条轨道，适合把片段构建拆成多段代码；
-    /// 为 null 或空数组时只使用 <paramref name="clips"/>。
-    /// </param>
-    /// <param name="args">
-    /// 运行参数，长度不同用途不同：
-    /// <list type="bullet">
-    /// <item><description>
-    /// <c>null</c> 或空数组：启动 Avalonia 预览窗口，阻塞到窗口关闭，返回 -1。
-    /// </description></item>
-    /// <item><description>
-    /// 1 个元素（MP4 路径）：把所有片段导出为 MP4，例如 <c>args = ["output/demo.mp4"]</c>。
-    /// </description></item>
-    /// <item><description>
-    /// 2 个及以上元素（帧号, PNG 路径）：只渲染指定帧并保存为 PNG，
-    /// 例如 <c>args = ["42", "output/frame_042.png"]</c>；第 3 个及之后的元素会被忽略。
-    /// </description></item>
-    /// </list>
-    /// </param>
-    /// <returns>
-    /// 预览模式返回 -1；没有可导出的内容返回 0；MP4 / PNG 导出模式返回动画总帧数。
-    /// </returns>
-    /// <remarks>
-    /// <para>典型用法：在 file-based app 顶层把命令行参数直接透传进来。</para>
-    /// <code>
-    /// run(stage(1920, 1080, bg: SKColors.Black), [clip1, clip2], null, args);
-    ///
-    /// // dotnet run                      → 打开预览窗口
-    /// // dotnet run -- out.mp4           → 导出 MP4
-    /// // dotnet run -- 42 out.png        → 导出第 42 帧为 PNG
-    /// </code>
-    /// <para>片段分多批构建时，用 <paramref name="clipLists"/> 合并到同一条轨道：</para>
-    /// <code>
-    /// run(stage(1920, 1080), mainClips, [overlayClips, captionClips], args);
-    /// </code>
-    /// <para>注意事项：</para>
-    /// <list type="bullet">
-    /// <item><description>预览模式会启动桌面 UI，必须在主线程调用，并会阻塞到窗口关闭。</description></item>
-    /// <item><description>MP4 导出内部调用 <see cref="save"/>，目标文件已存在时会拒绝覆盖；且依赖 ffmpeg。</description></item>
-    /// <item><description>帧号不是整数时直接返回 -1；帧号越界只打印提示，仍会尝试渲染并保存。</description></item>
-    /// <item><description>PNG 导出使用 <see cref="DrawingHelper.Save"/>，目标目录不存在时会自动创建。</description></item>
-    /// <item><description>片段 Prepare 失败只打印错误、不中断整个流程。</description></item>
-    /// </list>
-    /// </remarks>
-    public static int run(NBStage stage, IList<NBClip> clips, IList<NBClip>[]? clipLists = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
-    {
-        IList<NBClip> matchs = new List<NBClip>();
-        
-        // 检查第一个参数是不是 clip 的 Name，如果是，则只针对对应 clip 操作
-        if(args?.Length > 0)
-        {
-            var key = args[0].Trim();
-            foreach(var item in clips)
-            {
-                if (item.Name == key)
-                    matchs.Add(item);
-            }
-
-            if(matchs.Count > 0)
-            {
-                List<string> newArgs = new List<string>();
-                for (int i = 1; i < args.Length; i++)
-                    newArgs.Add(args[i]);
-
-                clips = matchs;
-                args = newArgs.ToArray();
-            }
-        }
-
-        // 先准备主片段：计算时长、初始化资源等；失败只打印错误，不中断流程
-        PrepareClips(clips, stage);
-        if(clipLists?.Length > 0)
-        {
-            // 有额外分组时，把它们全部合并进同一条轨道
-            var all = new List<NBClip>(clips.Count * 2);
-            all.AddRange(clips);
-            foreach(var list in clipLists)
-            {
-                PrepareClips(list, stage);
-                all.AddRange(list);
-            }
-            NBWorkspace.Current = NBWorkspace.Create(stage, all);
-        }
-        else
-        {
-            NBWorkspace.Current = NBWorkspace.Create(stage, clips);
-        }
-
-        NBWorkspace ws = NBWorkspace.Current;
-        // 无参数：启动预览窗口（阻塞到窗口关闭），返回 -1
-        if(args == null || args.Length == 0)
-        {
-            string subName = String.Empty;
-            if (string.IsNullOrEmpty(callerFilePath) == false)
-            {
-                subName = new FileInfo(callerFilePath).Name;
-            }
-            start(subName);
-            return -1;
-        }
-
-        var work = ws.Works.FirstOrDefault();
-        if (work == null)
-        {
-            Console.WriteLine($"视频总帧数:{0}");
-            return 0;
-        }
-
-        int frames = work.Measure();
-
-        // 1 个参数：导出 MP4 到 args[0]；save 内部会拒绝覆盖已存在文件
-        if (args.Length == 1)
-        {
-            var outMp4Path = args[0].Trim();
-            save(outMp4Path, work.Stage, work);
-        }
-        // 2 个及以上参数：args[0] = 帧号，args[1] = PNG 输出路径
-        else if (args.Length > 1)
-        {
-            var framesStr = args[0].Trim();
-            int frame = -1;
-            bool parseOk = int.TryParse(framesStr, out frame);
-            if (parseOk == false)
-            {
-                Console.WriteLine($"帧 index 格式错误: {framesStr}");
-                return -1;
-            }
-            // 帧号越界只提示，仍继续渲染；调用方可自行检查返回的总帧数
-            if (frame < 0 || frame >= frames)
-            {
-                Console.WriteLine($"帧 index 格式不存在，存在的帧索引为: [0, {frames - 1}]");
-            }
-            var outPngPath = args[1].Trim();
-            var bitmap = work.CreateBitmap();
-            IPlayable? track = work.Tracks.FirstOrDefault();
-            if (track != null)
-            {
-                track.Render(bitmap, work.Stage, frame, true);
-            }
-
-            DrawingHelper.Save(bitmap, outPngPath);
-            Console.WriteLine($"文件已保存: {outPngPath}");
-        }
-
-        Console.WriteLine($"视频总帧数:{frames}");
-
-        return frames;
-    }
-
-    public static void save(string path, NBStage stage, IList<NBClip> clips)
-    {
-        var fileInfo = new FileInfo(path);
-        if(fileInfo.Exists == true)
-        {
-            Console.WriteLine($"文件已存在:{path}, 保存失败!");
-            return;
-        }
-
-        foreach (var clip in clips)
-        {
-            try
-            {
-                clip.Prepare(stage);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Clip[{clip.Name} prepare fail: {ex.Message}]");
-            }
-        }
-
-        var work = NBWorkspace.Create(stage, clips);
-        if(work.Works.Count == 0)
-        {
-            Console.WriteLine($"没有可导出的视频内容!");
-            return;
-        }
-
-        save(path, stage, work.Works[0]);
-    }
-
-    public static void save(string path, NBStage stage, NBWork work)
-    {
-        var fileInfo = new FileInfo(path);
-        if (fileInfo.Exists == true)
-        {
-            Console.WriteLine($"文件已存在:{path}, 保存失败!");
-            return;
-        }
-
-        NBGlobal.CheckOrLoadFFmpeg();
-
-        var frames = work.Measure();
-
-        var fileName = fileInfo.FullName;
-
-        IPlayable Playable = work;
-        var pcm = Playable.MixedAudioData;
-
-        try
-        {
-            var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true, stage.AudioFrameRate);
-            if (pcm != null)
-            {
-                pcm.WriteTo(writer, stage.AudioFrameRate);
-            }
-            for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
-            {
-                using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);
-                if (bmp == null) break;
-
-                writer.WriteFrame(bmp);
-
-                if (CurrentFrame % 10 == 0)
-                {
-                    var msg = $"正在导出视频... {CurrentFrame}/{frames}";
-                    Console.WriteLine(msg);
-                }
-            }
-
-            writer.Close();
-        }
-        finally
-        {
-        }
-    }
-
-    private static Dictionary<string, string> _localConfigData = new Dictionary<string, string>();
-    private static bool _localConfigLoaded = false;
-
-    internal static string GetApiKey(string apiKey)
-    {
-        if (apiKey.StartsWith("@"))
-        {
-            string envVarName = apiKey.Substring(1);
-            string? envVarValue = Environment.GetEnvironmentVariable(envVarName);
-
-            // 优先使用环境变量中的值，如果环境变量不存在或为空，则尝试从本地配置文件中获取
-            if (!string.IsNullOrEmpty(envVarValue))
-            {
-                return envVarValue;
-            }
-            else
-            {
-                var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                if (home != null)
-                {
-                    CheckLoadLocalConfig();
-                    if (_localConfigData.TryGetValue(envVarName, out var localConfigValue))
-                    {
-                        if (string.IsNullOrEmpty(localConfigValue) == false)
-                        {
-                            return localConfigValue;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (apiKey.StartsWith("\"") == true) apiKey = apiKey.Substring(1);
-        else if (apiKey.EndsWith("\"")) apiKey = apiKey.Substring(0, apiKey.Length - 1);
-
-        return apiKey;
-    }
-
-    internal static void CheckLoadLocalConfig()
-    {
-        if (_localConfigLoaded)
-            return;
-
-        lock (_localConfigData)
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            if (home != null)
-            {
-                var configFile = Path.Combine(home, ".nbag", "config.ini");
-                Console.WriteLine($"Checking config file: {configFile}");
-                if (File.Exists(configFile))
-                {
-                    var lines = File.ReadAllLines(configFile);
-                    foreach (var line in lines)
-                    {
-                        var trimmedLine = line.Trim();
-                        if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith("#"))
-                            continue;
-                        var parts = trimmedLine.Split('=', 2);
-                        if (parts.Length == 2)
-                        {
-                            var key = parts[0].Trim();
-                            var value = parts[1].Trim();
-
-                            if (String.IsNullOrEmpty(key) == false)
-                                _localConfigData[key] = value;
-                        }
-                    }
-                }
-            }
-            _localConfigLoaded = true;
-        }
-    }
-
-    public static string GetStringWithMask(string str, int visibleChars = 8)
-    {
-        visibleChars = visibleChars / 2;
-        if (string.IsNullOrEmpty(str))
-            return str;
-        if (str.Length <= visibleChars * 2)
-            return new string('*', str.Length);
-        var prefix = str.Substring(0, visibleChars);
-        str = str.Substring(visibleChars);
-        int maskedChars = str.Length - visibleChars;
-        return prefix + new string('*', maskedChars) + str.Substring(maskedChars);
-    }
-
-    #region Widgets
+    #region fonts
 
     private static string? _globalFontFaminy = null;
 
@@ -585,6 +238,11 @@ public static class Methods
     {
         _globalFontFaminy = name;
     }
+
+    #endregion
+
+    #region Widgets
+
 
     /// <summary>
     /// 使用绘制回调创建 SK 动画，并直接包装为 NewBeeVG 可视节点。
@@ -978,6 +636,328 @@ public static class Methods
     {
         var file = new NBAudioClip(path);
         return file;
+    }
+
+    #endregion
+
+    #region run
+    private static void PrintDumpPrefix()
+    {
+        Console.WriteLine($"@@@@DUMPS@@@@");
+    }
+
+    internal static void start(string programSubName, string[]? args = null)
+    {
+        App.Start(programSubName, args);
+    }
+
+    private static void PrepareClips(IList<NBClip> clips, NBStage stage)
+    {
+        foreach (var clip in clips)
+        {
+            try
+            {
+                clip.Prepare(stage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Clip[{clip.Name} prepare fail: {ex.Message}]");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 运行一段动画：创建工作区并准备片段，再根据 <paramref name="args"/> 决定是打开预览窗口，
+    /// 还是导出 MP4 视频或单帧 PNG。
+    /// </summary>
+    /// <param name="stage">舞台参数：画幅宽高、帧率、背景色等。</param>
+    /// <param name="clips">主片段列表；会先逐个调用 Prepare，再放入工作区的同一条轨道。</param>
+    /// <param name="clipLists">
+    /// 额外的片段分组。传入后会把每组片段也 Prepare 并合并到同一条轨道，适合把片段构建拆成多段代码；
+    /// 为 null 或空数组时只使用 <paramref name="clips"/>。
+    /// </param>
+    /// <param name="args">
+    /// 运行参数，长度不同用途不同：
+    /// <list type="bullet">
+    /// <item><description>
+    /// <c>null</c> 或空数组：启动 Avalonia 预览窗口，阻塞到窗口关闭，返回 -1。
+    /// </description></item>
+    /// <item><description>
+    /// 1 个元素（MP4 路径）：把所有片段导出为 MP4，例如 <c>args = ["output/demo.mp4"]</c>。
+    /// </description></item>
+    /// <item><description>
+    /// 2 个及以上元素（帧号, PNG 路径）：只渲染指定帧并保存为 PNG，
+    /// 例如 <c>args = ["42", "output/frame_042.png"]</c>；第 3 个及之后的元素会被忽略。
+    /// </description></item>
+    /// </list>
+    /// </param>
+    /// <returns>
+    /// 预览模式返回 -1；没有可导出的内容返回 0；MP4 / PNG 导出模式返回动画总帧数。
+    /// </returns>
+    /// <remarks>
+    /// <para>典型用法：在 file-based app 顶层把命令行参数直接透传进来。</para>
+    /// <code>
+    /// run(stage(1920, 1080, bg: SKColors.Black), [clip1, clip2], null, args);
+    ///
+    /// // dotnet run                      → 打开预览窗口
+    /// // dotnet run -- out.mp4           → 导出 MP4
+    /// // dotnet run -- 42 out.png        → 导出第 42 帧为 PNG
+    /// </code>
+    /// <para>片段分多批构建时，用 <paramref name="clipLists"/> 合并到同一条轨道：</para>
+    /// <code>
+    /// run(stage(1920, 1080), mainClips, [overlayClips, captionClips], args);
+    /// </code>
+    /// <para>注意事项：</para>
+    /// <list type="bullet">
+    /// <item><description>预览模式会启动桌面 UI，必须在主线程调用，并会阻塞到窗口关闭。</description></item>
+    /// <item><description>MP4 导出内部调用 <see cref="save"/>，目标文件已存在时会拒绝覆盖；且依赖 ffmpeg。</description></item>
+    /// <item><description>帧号不是整数时直接返回 -1；帧号越界只打印提示，仍会尝试渲染并保存。</description></item>
+    /// <item><description>PNG 导出使用 <see cref="DrawingHelper.Save"/>，目标目录不存在时会自动创建。</description></item>
+    /// <item><description>片段 Prepare 失败只打印错误、不中断整个流程。</description></item>
+    /// </list>
+    /// </remarks>
+    public static int run(NBStage stage, IList<NBClip> clips, IList<NBClip>[]? clipLists = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
+    {
+        IList<NBClip> matchs = new List<NBClip>();
+
+        // 检查第一个参数是不是 clip 的 Name，如果是，则只针对对应 clip 操作
+        if (args?.Length > 0)
+        {
+            var key = args[0].Trim();
+            if(key != "@dump")
+            {
+                foreach (var item in clips)
+                {
+                    if (item.Name == key)
+                        matchs.Add(item);
+                }
+
+                if (matchs.Count > 0)
+                {
+                    List<string> newArgs = new List<string>();
+                    for (int i = 1; i < args.Length; i++)
+                        newArgs.Add(args[i]);
+
+                    clips = matchs;
+                    args = newArgs.ToArray();
+                }
+            }
+        }
+
+        // 先准备主片段：计算时长、初始化资源等；失败只打印错误，不中断流程
+        PrepareClips(clips, stage);
+        if (clipLists?.Length > 0)
+        {
+            // 有额外分组时，把它们全部合并进同一条轨道
+            var all = new List<NBClip>(clips.Count * 2);
+            all.AddRange(clips);
+            foreach (var list in clipLists)
+            {
+                PrepareClips(list, stage);
+                all.AddRange(list);
+            }
+            clips = all;
+        }
+
+        NBWorkspace.Current = NBWorkspace.Create(stage, clips);
+
+        NBWorkspace ws = NBWorkspace.Current;
+        // 无参数：启动预览窗口（阻塞到窗口关闭），返回 -1
+        if (args == null || args.Length == 0)
+        {
+            string subName = String.Empty;
+            if (string.IsNullOrEmpty(callerFilePath) == false)
+            {
+                subName = new FileInfo(callerFilePath).Name;
+            }
+            start(subName);
+            return -1;
+        }
+
+        var work = ws.Works.FirstOrDefault();
+        if (work == null)
+        {
+            Console.WriteLine($"视频总帧数:{0}");
+            return 0;
+        }
+
+        int frames = work.Measure();
+
+        // 1 个参数：@dump 或 导出 MP4 到 args[0]；save 内部会拒绝覆盖已存在文件
+        if (args.Length == 1)
+        {
+            var cmd = args[0].Trim();
+            if(cmd == "@dump")
+            {
+                PrintDumpPrefix();
+                TrackInfo trackInfo = new TrackInfo();
+                trackInfo.Frames = frames;
+                foreach(var clip in clips)
+                {
+                    if (clip.IsVisible == false) continue;
+
+                    var clipInfo = new ClipInfo();
+                    clipInfo.Name = clip.Name;
+                    clipInfo.Frames = clip.DurationFrames;
+                    clipInfo.ContainsVisualContent = clip.ControlBuilder != null;
+                    trackInfo.Clips.Add(clipInfo);
+                }
+
+                // 将 trackInfo 序列化，输出在控制台上
+                Console.WriteLine(JsonSerializer.Serialize(trackInfo));
+                return frames;
+            }
+            else if(cmd.EndsWith(".mp4"))
+            {
+                var outMp4Path = cmd;
+                save(outMp4Path, work.Stage, work);
+            }
+            else
+            {
+                Console.WriteLine($"参数 {cmd} 不是合法的 mp4 文件名");
+                return frames;
+            }
+        }
+        // 2 个及以上参数：args[0] = 帧号，args[1] = PNG 输出路径
+        else if (args.Length > 1)
+        {
+            var idxStr = args[0].Trim();
+            int frame = -1;
+            bool parseOk = int.TryParse(idxStr, out frame);
+            if (parseOk == false)
+            {
+                Console.WriteLine($"帧 index 格式错误: {idxStr}");
+                return -1;
+            }
+            // 帧号越界只提示，仍继续渲染；调用方可自行检查返回的总帧数
+            if (frame < 0 || frame >= frames)
+            {
+                Console.WriteLine($"帧 index 格式不存在，存在的帧索引为: [0, {frames - 1}]");
+                return frames;
+            }
+
+            var cmd = args[1].Trim();
+
+            if (cmd == "@dump")
+            {
+                using var bitmap = work.CreateBitmap();
+                IPlayable? track = work.Tracks.FirstOrDefault();
+                if (track != null)
+                {
+                    track.Render(bitmap, work.Stage, frame, true);
+                }
+
+                // 将 bitmap (SKBitmap) 保存为内存中的 png 数据，再转存为 base64 格式的字符串
+                using var image = SKImage.FromBitmap(bitmap);
+                using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+                if (data == null || data.Size == 0)
+                {
+                    Console.WriteLine("PNG 编码失败");
+                    return frames;
+                }
+
+                Console.WriteLine($"data:image/png;base64,{Convert.ToBase64String(data.ToArray())}");
+                return frames;
+            }
+            else if (cmd.EndsWith(".png") || cmd.EndsWith(".jpg"))
+            {
+                var outPngPath = cmd;
+                var bitmap = work.CreateBitmap();
+                IPlayable? track = work.Tracks.FirstOrDefault();
+                if (track != null)
+                {
+                    track.Render(bitmap, work.Stage, frame, true);
+                }
+
+                DrawingHelper.Save(bitmap, outPngPath);
+                Console.WriteLine($"文件已保存: {outPngPath}");
+            }
+            else
+            {
+                Console.WriteLine($"当前只支持保存为 png 或 jpg 文件");
+            }
+        }
+
+        Console.WriteLine($"视频总帧数:{frames}");
+
+        return frames;
+    }
+
+    public static void save(string path, NBStage stage, IList<NBClip> clips)
+    {
+        var fileInfo = new FileInfo(path);
+        if (fileInfo.Exists == true)
+        {
+            Console.WriteLine($"文件已存在:{path}, 保存失败!");
+            return;
+        }
+
+        foreach (var clip in clips)
+        {
+            try
+            {
+                clip.Prepare(stage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Clip[{clip.Name} prepare fail: {ex.Message}]");
+            }
+        }
+
+        var work = NBWorkspace.Create(stage, clips);
+        if (work.Works.Count == 0)
+        {
+            Console.WriteLine($"没有可导出的视频内容!");
+            return;
+        }
+
+        save(path, stage, work.Works[0]);
+    }
+
+    public static void save(string path, NBStage stage, NBWork work)
+    {
+        var fileInfo = new FileInfo(path);
+        if (fileInfo.Exists == true)
+        {
+            Console.WriteLine($"文件已存在:{path}, 保存失败!");
+            return;
+        }
+
+        NBGlobal.CheckOrLoadFFmpeg();
+
+        var frames = work.Measure();
+
+        var fileName = fileInfo.FullName;
+
+        IPlayable Playable = work;
+        var pcm = Playable.MixedAudioData;
+
+        try
+        {
+            var writer = new MediaWriter(fileName, stage.Width, stage.Height, stage.FrameRate, true, stage.AudioFrameRate);
+            if (pcm != null)
+            {
+                pcm.WriteTo(writer, stage.AudioFrameRate);
+            }
+            for (int CurrentFrame = 0; CurrentFrame < frames; CurrentFrame++)
+            {
+                using var bmp = Playable.RenderBitmap(stage, CurrentFrame, true, false);
+                if (bmp == null) break;
+
+                writer.WriteFrame(bmp);
+
+                if (CurrentFrame % 10 == 0)
+                {
+                    var msg = $"正在导出视频... {CurrentFrame}/{frames}";
+                    Console.WriteLine(msg);
+                }
+            }
+
+            writer.Close();
+        }
+        finally
+        {
+        }
     }
 
     #endregion
