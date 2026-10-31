@@ -287,6 +287,29 @@ public static class Methods
     /// </remarks>
     public static int run(NBStage stage, IList<NBClip> clips, IList<NBClip>[]? clipLists = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
     {
+        IList<NBClip> matchs = new List<NBClip>();
+        
+        // 检查第一个参数是不是 clip 的 Name，如果是，则只针对对应 clip 操作
+        if(args?.Length > 0)
+        {
+            var key = args[0].Trim();
+            foreach(var item in clips)
+            {
+                if (item.Name == key)
+                    matchs.Add(item);
+            }
+
+            if(matchs.Count > 0)
+            {
+                List<string> newArgs = new List<string>();
+                for (int i = 1; i < args.Length; i++)
+                    newArgs.Add(args[i]);
+
+                clips = matchs;
+                args = newArgs.ToArray();
+            }
+        }
+
         // 先准备主片段：计算时长、初始化资源等；失败只打印错误，不中断流程
         PrepareClips(clips, stage);
         if(clipLists?.Length > 0)
@@ -305,6 +328,7 @@ public static class Methods
         {
             NBWorkspace.Current = NBWorkspace.Create(stage, clips);
         }
+
         NBWorkspace ws = NBWorkspace.Current;
         // 无参数：启动预览窗口（阻塞到窗口关闭），返回 -1
         if(args == null || args.Length == 0)

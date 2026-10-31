@@ -7,7 +7,6 @@
     <Using Include="System.Collections.Generic" />
     <Using Include="System.Linq" />
     <Using Include="System.Runtime.CompilerServices" />
-    <Using Include="Python.Runtime" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="NewBeeVG" />

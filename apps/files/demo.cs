@@ -1,122 +1,25 @@
 #!/usr/bin/env dotnet
 
-// 简单的 NewBeeVG 使用例子
-// #:project ../../sources/NewBeeVG/NewBeeVG.csproj
+VStack([
+    TextBlock("Clip1").Font(80, SKColors.Orange).Align(0,0)
+]).Align(0, 0).AsClip(frames: 40, name: "clip1");
 
-var clip1 = clip(
-    name: "clip1",
-    frames: 30,
-    builder: (ctx, clip) =>
-    {
-        var easing = Easing.SineInOut;
-        double v = easing(ctx.progress) * 2 * Math.PI;
-        var r = 900;
-        var x = r * Math.Sin(v);
-        var y = r * Math.Cos(v);
-        return
-        HGrid("*", [
-            TextBlock("Clip1")
-                .Align(0,0)
-                .Margin(x, y, 0,0).FontSize(200)
-            ]);
-    }
-);
+VStack([
+    TextBlock("Clip2").Font(80, SKColors.Orange).Align(0,0)
+]).Align(0, 0).AsClip(frames: 40, name: "clip2");
 
-var clip2 = clip(
-    name: "clip2",
-    frames: 30,
-    builder: (ctx, clip) =>
-    {
-        var easing = Easing.SineInOut;        
-        double v = easing(ctx.progress);
+// 音频链接到 name 为 clip1 的 第0帧（初始帧）
+AudioFile("./assets/audio01.mp3")
+    .AsClip("audio").LinkTo("clip1");
 
-        return
-        HGrid("*", [
-            TextBlock("Clip2")
-                .Align(0,-1)
-                .Margin(0, 100 + (ctx.height - 500) * v, 0,0).FontSize(200)
-            ]);
-    }
-);
-
-var clip3 = drawing(
-    name: "drawing",
-    frames:10,
-    builder: (ctx, clip, canvas) =>
-    {
-        var paint = new SKPaint
-        {
-            Style = SKPaintStyle.Fill,
-            Color = SKColors.Red,
-            IsAntialias = true,
-        };
-        var radius = 100 + 200 * ctx.progress;
-        canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
-    }
-);
-
-var clip4 = drawing(
-    name: "drawing_withmask",
-    frames:10,
-    builder: (ctx, clip, canvas) =>
-    {
-        canvas.Clear(SKColors.Green);
-    },
-    mask: (ctx, clip, canvas) =>
-    {
-        var paint = new SKPaint
-        {
-            Style = SKPaintStyle.Fill,
-            Color = SKColors.Black,
-            IsAntialias = true,
-        };
-        var radius = 100 + 200 * ctx.progress;
-        canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
-    }
-);
-
-var clip5 = drawing(
-    name: "drawing_withmask2",
-    frames: 10,
-    blend: SKBlendMode.SrcOut,
-    builder: (ctx, clip, canvas) =>
-    {
-        canvas.Clear(SKColors.Green);
-    },
-    mask: (ctx, clip, canvas) =>
-    {
-        var paint = new SKPaint
-        {
-            Style = SKPaintStyle.Fill,
-            Color = SKColors.Black,
-            IsAntialias = true,
-        };
-        var radius = 100 + 200 * ctx.progress;
-        canvas.DrawCircle(ctx.width / 2, ctx.height / 2, (float)radius, paint);
-    }
-);
-
-var logo = clip(
-    name: "logo",
-    start: 0,
-    frames: -1,
-    builder: (ctx, clip) =>
-    {
-        return
-            TextBlock("Demo").Align(1, -1).FontSize(40).Margin(20);
-    }
-);
-
-var logo2 = clip(
-    name: "logo2",
-    start: 0,
-    frames: -1,
-    builder: (ctx, clip) =>
-    {
-        return
-            TextBlock("NewBee VG").Align(-1, -1).FontSize(40).Margin(20);
-    }
-);
-
-run(stage(bg: SKColors.Orange), [clip1, clip2, clip3, clip4, clip5, logo, logo2]);
-
+/**************************************************************************************************
+ dotnet .\demo.cs						// 预览视频
+ dotnet .\demo.cs -- @dump				// 将视频的元数据及clip信息输出在控制台
+ dotnet .\demo.cs -- demo.mp4			// 视频保存为 mp4
+ dotnet .\demo.cs -- 3 3.png			// 把视频中第 3 帧保存为 png
+ dotnet .\demo.cs -- 3 @dump			// 把视频中第 3 帧转码为 png，以base64输出控制台
+ dotnet .\demo.cs -- clip1				// 预览 name=clip1 的片段
+ dotnet .\demo.cs -- clip1 clip1.mp4	// 把 name=clip1 的片段保存为 mp4
+ dotnet .\demo.cs -- clip1 3 @dump		// 把 name=clip1 的片段的第3帧转码为 png，以base64输出控制台
+**************************************************************************************************/
+run(stage(1920, 1080, bg: SKColors.White), clips(),args:args);
