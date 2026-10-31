@@ -36,15 +36,17 @@ public static class Methods
             clipDict[key] = clip;
     }
 
+    internal static NBStage? _lastStage;
     public static NBStage stage(int width = 1080, int height = 1920, SKColor? bg = null, double fps = 25.0)
     {
-        return new NBStage
+        _lastStage = new NBStage
         {
             Width = width,
             Height = height,
             Background = bg,
             FrameRate = Math.Max(0.1, fps)
         };
+        return _lastStage;
     }
 
     public static NBWorkspace workspace()
@@ -205,7 +207,6 @@ public static class Methods
     }
 
     #endregion
-
 
     #region fonts
 

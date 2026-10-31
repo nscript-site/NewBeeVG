@@ -1,4 +1,4 @@
-﻿//LayoutSample.Run();
+﻿LayoutSample.Run();
 
 //PySample.Run();
 
@@ -14,7 +14,7 @@
 
 //TransparentBgSample.Run();
 
-AudioSample.Run();
+//AudioSample.Run();
 
 //TypstAnimSample.Run();
 

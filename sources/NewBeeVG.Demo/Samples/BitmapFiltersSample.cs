@@ -12,9 +12,9 @@ internal class BitmapFiltersSample
             TextBlock("Code").Font(80, SKColors.Orange).Align(0,0),
             TypstFile("./Assets/code1.typ")
             .MaxHeight(800).Align(0,0)
-        ]).BitmapFilters(new DemoBitmapFilter()).Align(0, 0).AsClip(out var clip1, frames: 40, name: "code");
+        ]).BitmapFilters(new DemoBitmapFilter()).Align(0, 0).AsClip(frames: 40, name: "code");
 
-        run(stage(1920, 1080, bg: SKColors.White), [clip1]);
+        run(stage(1920, 1080, bg: SKColors.White));
     }
 }
 
