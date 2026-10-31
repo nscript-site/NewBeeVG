@@ -671,11 +671,7 @@ public static class Methods
     /// 还是导出 MP4 视频或单帧 PNG。
     /// </summary>
     /// <param name="stage">舞台参数：画幅宽高、帧率、背景色等。</param>
-    /// <param name="clips">主片段列表；会先逐个调用 Prepare，再放入工作区的同一条轨道。</param>
-    /// <param name="clipLists">
-    /// 额外的片段分组。传入后会把每组片段也 Prepare 并合并到同一条轨道，适合把片段构建拆成多段代码；
-    /// 为 null 或空数组时只使用 <paramref name="clips"/>。
-    /// </param>
+    /// <param name="clips">主片段列表；会先逐个调用 Prepare，再放入工作区的同一条轨道。如果为空，则会自动加载 AsClip 的所有片段</param>
     /// <param name="args">
     /// 运行参数，长度不同用途不同：
     /// <list type="bullet">
@@ -716,8 +712,10 @@ public static class Methods
     /// <item><description>片段 Prepare 失败只打印错误、不中断整个流程。</description></item>
     /// </list>
     /// </remarks>
-    public static int run(NBStage stage, IList<NBClip> clips, IList<NBClip>[]? clipLists = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
+    public static int run(NBStage stage, IList<NBClip>? clips = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
     {
+        if (clips == null) clips = Methods.clips();
+
         IList<NBClip> matchs = new List<NBClip>();
 
         // 检查第一个参数是不是 clip 的 Name，如果是，则只针对对应 clip 操作
@@ -746,18 +744,6 @@ public static class Methods
 
         // 先准备主片段：计算时长、初始化资源等；失败只打印错误，不中断流程
         PrepareClips(clips, stage);
-        if (clipLists?.Length > 0)
-        {
-            // 有额外分组时，把它们全部合并进同一条轨道
-            var all = new List<NBClip>(clips.Count * 2);
-            all.AddRange(clips);
-            foreach (var list in clipLists)
-            {
-                PrepareClips(list, stage);
-                all.AddRange(list);
-            }
-            clips = all;
-        }
 
         NBWorkspace.Current = NBWorkspace.Create(stage, clips);
 
