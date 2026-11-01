@@ -16,4 +16,7 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="newbeeui" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NewBeeVG.Common\NewBeeVG.Common.csproj" />
+  </ItemGroup>
 </Project>

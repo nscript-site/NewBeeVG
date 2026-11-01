@@ -28,7 +28,7 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    public static void Start(string programSubName, FileWatcher watcher, string[]? args = null)
+    internal static void Start(string programSubName, FileWatcher watcher, string[]? args = null)
     {
         MainView.Watcher = watcher;
         if (string.IsNullOrEmpty(programSubName) == false)

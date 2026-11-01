@@ -2,6 +2,7 @@
 using NewBeeVG.Internal;
 using SkiaSharp;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 
 namespace NewBeeVG;
@@ -715,6 +716,14 @@ public static class Methods
     /// </remarks>
     public static int run(NBStage stage, IList<NBClip>? clips = null, string[]? args = null, [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "")
     {
+        if(args?.Length > 0)
+        {
+            var argsSb = new StringBuilder();
+            foreach (var arg in args)
+                argsSb.Append($"{arg} ");
+            Console.WriteLine($"args: {argsSb.ToString().Trim()}");
+        }
+
         if (clips == null) clips = Methods.clips();
 
         IList<NBClip> matchs = new List<NBClip>();
@@ -843,6 +852,7 @@ public static class Methods
                     return frames;
                 }
 
+                PrintDumpPrefix();
                 Console.WriteLine($"data:image/png;base64,{Convert.ToBase64String(data.ToArray())}");
                 return frames;
             }

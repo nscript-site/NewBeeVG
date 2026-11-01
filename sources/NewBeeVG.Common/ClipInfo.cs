@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace NewBeeVG.Internal;
+namespace NewBeeVG.Common;
 
-internal class TrackInfo
+public class ClipInfo
 {
+    public bool ContainsVisualContent { get; set; }
     public int Frames { get; set; }
     public string Name { get; set; } = String.Empty;
-    public List<ClipInfo> Clips { get; set; } = new();
 }

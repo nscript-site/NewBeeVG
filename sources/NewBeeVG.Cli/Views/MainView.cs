@@ -1,4 +1,5 @@
 ﻿using Avalonia.Interactivity;
+using NewBeeVG.Cli.Tools;
 using NewBeeVG.Cli.Tools.Internal;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,8 @@ public class MainView : BaseView, IWindowView
     #region IWindowView
 
     public WindowInfo WindowInfo { get; }
+
+    private string? ClipName = "clip1";
 
     protected List<RoutedViewBuilder>? RoutedViewBuilders = null;
 
@@ -48,6 +51,12 @@ public class MainView : BaseView, IWindowView
         return grid;
     }
 
+    protected override void OnLoaded(RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        Watcher.OnChanged = _ => OnReload();
+    }
+
     #endregion
 
     public MainView() : base()
@@ -59,29 +68,40 @@ public class MainView : BaseView, IWindowView
 
     protected override void Build(out Control content)
     {
-        VGrid("60,*", [
+        VGrid("50,*", [
             HStack([
-                IconButton(FlashIcon.Instance, "重新加载当前片段"),
-                IconButton(ReloadIcon.Instance, "重新加载当前视频"),
-                IconButton(MotionPlayIcon.Instance, "播放当前片段"),
+                IconButton(FlashIcon.Instance, "重新加载当前片段").OnClick(OnReload),
+                IconButton(ReloadIcon.Instance, "重新加载当前视频").OnClick(OnReloadVideo),
+                IconButton(MotionPlayIcon.Instance, "播放当前片段").OnClick(PlayClip),
                 IconButton(VideoVintageIcon.Instance, "播放当前视频").OnClick(PlayVideo),
                 ]).Background(Brushes.LightGray).Spacing(0).Align(0,0),
-            null
-            ]).Margin(10)
+            Panel().Background(Brushes.LightGray)
+            ]).Margin(2)
             .Return(out content);
-    }
-
-    protected override void OnLoaded(RoutedEventArgs e)
-    {
-        base.OnLoaded(e);
-        Watcher.OnChanged = OnFileChange;
     }
 
     #endregion
 
-    private void OnFileChange(string filePath)
+    private void PlayClip()
     {
+        if (String.IsNullOrEmpty(ClipName)) return;
 
+        var fileInfo = new FileInfo(Watcher.FilePath);
+        var dir = fileInfo.Directory;
+        if (dir == null) return;
+
+        Utils.RunCommandDetached("dotnet", $"\"{fileInfo.Name}\" -- \"{ClipName}\"", dir.FullName);
+    }
+
+    private void OnReload()
+    {
+        var png = WatchTool.DumpPNG(Watcher.FilePath, "clip1", 0);
+        Console.WriteLine(png);
+    }
+
+    private void OnReloadVideo()
+    {
+        Watcher.Track = WatchTool.DumpTrackInfo(Watcher.FilePath);
     }
 
     private void PlayVideo()
@@ -90,6 +110,6 @@ public class MainView : BaseView, IWindowView
         var dir = fileInfo.Directory;
         if (dir == null) return;
 
-        Utils.RunCommandDetached("dotnet", fileInfo.Name, dir.FullName);
+        Utils.RunCommandDetached("dotnet", $"\"{fileInfo.Name}\"", dir.FullName);
     }
 }

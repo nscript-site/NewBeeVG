@@ -9,3 +9,4 @@ global using NewBeeVG;
 global using NStyles.MeterialIcons;
 global using System.Collections.Generic;
 global using System;
+global using NewBeeVG.Common;

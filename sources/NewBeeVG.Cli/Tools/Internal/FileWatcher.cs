@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NewBeeVG.Cli.Tools.Internal;
 
-public class FileWatcher
+internal class FileWatcher
 {
     private List<FileSystemWatcher> Watchers = new List<FileSystemWatcher>();
 
@@ -12,8 +12,11 @@ public class FileWatcher
 
     internal Action<String>? OnChanged;
 
-    public FileWatcher(FileInfo fileInfo)
+    internal TrackInfo? Track { get; set; }
+
+    public FileWatcher(FileInfo fileInfo, TrackInfo? track)
     {
+        Track = track;
         FilePath = fileInfo.FullName;
         var w = new FileSystemWatcher(fileInfo.DirectoryName??String.Empty, fileInfo.Name);
         w.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size;

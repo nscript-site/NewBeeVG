@@ -12,3 +12,4 @@ global using System.Collections.Generic;
 global using System;
 global using NewBeeVG.Viewer.Widgets;
 global using NewBeeVG.Viewer;
+global using NewBeeVG.Common;

@@ -26,9 +26,9 @@ internal class AudioSample
 
         //run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["@dump"]);
         //run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["1","@dump"]);
-        //run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["clip1", "0", "@dump"]);
+        run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["clip1", "0", "@dump"]);
 
-        run(stage(1920, 1080, bg: SKColors.White), clips(), args: []);
+        //run(stage(1920, 1080, bg: SKColors.White), clips(), args: []);
         //run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["audio.mp4"]);
         //run(stage(1920, 1080, bg: SKColors.White), clips(), args: ["1", "audio_1.png"]);
 
