@@ -22,6 +22,11 @@ public class MainView : BaseView, IWindowView
     private int CurrentFrame = 0;
     private int Frames = 100;
 
+    private readonly SingleFlight _reloadFlight = new();
+    private readonly SingleFlight _reloadVideoFlight = new();
+    private readonly SingleFlight _playClipFlight = new();
+    private readonly SingleFlight _playVideoFlight = new();
+
     protected List<RoutedViewBuilder>? RoutedViewBuilders = null;
 
     protected WindowInfo CreateWindowInfo()
@@ -180,7 +185,7 @@ public class MainView : BaseView, IWindowView
 
     private void OnReloadAtBackground()
     {
-        Task.Run(() => OnReload());
+        _reloadFlight.Run("重新加载", OnReload);
     }
 
     private void OnReload()
@@ -212,7 +217,7 @@ public class MainView : BaseView, IWindowView
 
     private void OnReloadVideoBackground()
     {
-        Task.Run(() => { OnReloadVideo(); });
+        _reloadVideoFlight.Run("重新加载视频", OnReloadVideo);
     }
 
     private void OnReloadVideo()
@@ -276,7 +281,7 @@ public class MainView : BaseView, IWindowView
 
     private void PlayClipAtBackground()
     {
-        Task.Run(() => { PlayClip(); });
+        _playClipFlight.Run("播放片段", PlayClip);
     }
 
     private void PlayClip()
@@ -292,7 +297,7 @@ public class MainView : BaseView, IWindowView
 
     private void PlayVideoAtBackground()
     {
-        Task.Run(() => { PlayVideo(); });
+        _playVideoFlight.Run("播放视频", PlayVideo);
     }
 
     private void PlayVideo()
@@ -315,5 +320,59 @@ public class MainView : BaseView, IWindowView
     {
         CurrentFrame = Clamp(frame);
         OnReloadAtBackground();
+    }
+
+    /// <summary>
+    /// 同一个实例的 action 不会并发执行；执行期间的新请求只保留一次尾随执行。
+    /// </summary>
+    private sealed class SingleFlight
+    {
+        private readonly object _gate = new();
+        private bool _running;
+        private int _version;
+
+        public void Run(string name, Action action)
+        {
+            var version = Interlocked.Increment(ref _version);
+
+            lock (_gate)
+            {
+                if (_running) return;
+                _running = true;
+            }
+
+            _ = Task.Run(() => Loop(name, action, version));
+        }
+
+        private void Loop(string name, Action action, int version)
+        {
+            try
+            {
+                while (true)
+                {
+                    action();
+
+                    lock (_gate)
+                    {
+                        var latest = Volatile.Read(ref _version);
+                        if (latest == version)
+                        {
+                            _running = false;
+                            return;
+                        }
+
+                        version = latest;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{name}失败: {ex.Message}");
+                lock (_gate)
+                {
+                    _running = false;
+                }
+            }
+        }
     }
 }
