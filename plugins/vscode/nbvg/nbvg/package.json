@@ -2,7 +2,18 @@
   "name": "nbvg",
   "displayName": "nbvg",
   "description": "NewBeeVG Cli Plugin",
-  "version": "0.0.1",
+  "version": "1.0.1",
+  "publisher": "nscript",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nscript-site/NewBeeVG.git",
+    "directory": "plugins/vscode/nbvg/nbvg"
+  },
+  "bugs": {
+    "url": "https://github.com/nscript-site/NewBeeVG/issues"
+  },
+  "homepage": "https://github.com/nscript-site/NewBeeVG#readme",
   "engines": {
     "vscode": "^1.144.0"
   },
@@ -37,17 +48,19 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "vsix": "vsce package --out dist"
   },
   "devDependencies": {
-    "@types/vscode": "^1.144.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "24.x",
-    "typescript-eslint": "^8.61.1",
+    "@types/vscode": "^1.144.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "@vscode/vsce": "^4.1.0",
     "eslint": "^10.5.0",
     "typescript": "^6.0.3",
-    "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.0.0"
+    "typescript-eslint": "^8.61.1"
   },
   "overrides": {
     "diff": "^8.0.4",

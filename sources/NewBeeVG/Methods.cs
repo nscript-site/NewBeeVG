@@ -800,7 +800,7 @@ public static class Methods
                 }
 
                 // 将 trackInfo 序列化，输出在控制台上
-                Console.WriteLine(JsonSerializer.Serialize(trackInfo));
+                Console.WriteLine(trackInfo.ToString());
                 return frames;
             }
             else if(cmd.EndsWith(".mp4"))

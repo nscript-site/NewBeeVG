@@ -119,6 +119,7 @@ internal class WatchTool : BaseTool
         }
         catch (JsonException)
         {
+            Console.WriteLine(str);
             return null;
         }
     }

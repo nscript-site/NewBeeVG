@@ -9,7 +9,8 @@ internal class Program
     static void Main(string[] args)
     {
         //Run(args);
-        Run(["watch", "D:\\Projects\\21_Private_NewBee\\NewBeeVG\\apps\\files\\demo.cs"]);
+        Run(["watch", "d:\\test\\test4.cs"]);
+        //Run(["watch", "D:\\Projects\\21_Private_NewBee\\NewBeeVG\\apps\\files\\demo.cs"]);
     }
 
     static void Run(string[] args)
@@ -27,6 +28,10 @@ internal class Program
         if (cmd == "watch")
         {
             new WatchTool().Run(args);
+        }
+        else if(cmd == "create")
+        {
+            new CreateTool().Run(args);
         }
         else if(cmd == "--version")
         {
@@ -53,17 +58,20 @@ internal class Program
 
             用法:
               nbvg watch <file.cs>    监视并预览 .cs 视频脚本
+              nbvg create <file.cs>   创建新的视频脚本模板
               nbvg --version          显示版本
               nbvg help               显示帮助
 
             示例:
+              nbvg create .\new-video.cs
               nbvg watch .\demo.cs
               nbvg watch "C:\videos\demo.cs"
 
             说明:
-              - 仅支持 .cs 后缀的文件
-              - 文件必须以 #!/usr/bin/env dotnet 开头
-              - 修改脚本后会自动重新加载预览
+              - create 不会覆盖已存在的文件
+              - watch 仅支持 .cs 后缀的文件
+              - watch 的文件必须以 #!/usr/bin/env dotnet 开头
+              - watch 期间修改脚本会自动重新加载预览
             """);
     }
 }

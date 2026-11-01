@@ -18,6 +18,12 @@
     <TrimMode>full</TrimMode>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Templates\demo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\demo.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
