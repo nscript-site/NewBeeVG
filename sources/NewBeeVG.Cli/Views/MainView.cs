@@ -22,6 +22,8 @@ public class MainView : BaseView, IWindowView
     private int CurrentFrame = 0;
     private int Frames = 100;
 
+    private string ErrorMessage = String.Empty;
+
     private readonly SingleFlight _reloadFlight = new();
     private readonly SingleFlight _reloadVideoFlight = new();
     private readonly SingleFlight _playClipFlight = new();
@@ -76,6 +78,13 @@ public class MainView : BaseView, IWindowView
     #region build
     private NBSkiaBitmapView FrameImage = default!;
 
+    private string LoadingText = "加载中 ...";
+
+    private bool IsErrorMsgVisible()
+    {
+        return String.IsNullOrEmpty(ErrorMessage) == false;
+    }
+
     protected override void Build(out Control content)
     {
         FrameImage = new NBSkiaBitmapView();
@@ -87,10 +96,18 @@ public class MainView : BaseView, IWindowView
                 IconButton(MotionPlayIcon.Instance, "播放当前片段").OnClick(PlayClipAtBackground),
                 IconButton(VideoVintageIcon.Instance, "播放当前视频").OnClick(PlayVideoAtBackground),
                 ]).Background(Brushes.LightGray).Spacing(0).Align(0,0),
-            Border(FrameImage)
-                .Background(Brushes.Gray)
-                .BorderBrush(Brushes.LightGray).BorderThickness(1),
-            HGrid("Auto,20,*",[
+            Panel([
+                Border(FrameImage)
+                    .Background(Brushes.Gray)
+                    .BorderBrush(Brushes.LightGray)
+                    .BorderThickness(1).IsVisible(()=>!IsErrorMsgVisible()),
+                Border(TextBlock(()=>ErrorMessage).Foreground(Brushes.Red).Align(0,0))
+                    .Background(Brushes.Gray)
+                    .BorderBrush(Brushes.LightGray)
+                    .BorderThickness(1).Align(null,null)
+                    .IsVisible(()=>IsErrorMsgVisible())
+                ]),
+            HGrid("Auto,*,Auto",[
                 HStack([
                     IconButton(SkipPreviousIcon.Instance,"", scale: 1, iconSize:20).Size(26,26)
                         .OnClick(_=>GotoFrame(0)),
@@ -100,8 +117,7 @@ public class MainView : BaseView, IWindowView
                         .OnClick(_=>GotoFrame(CurrentFrame + 1)),
                     IconButton(SkipNextIcon.Instance,"", scale: 1, iconSize:20).Size(26,26)
                         .OnClick(_=>GotoFrame(Frames)),
-                    ]).Spacing(0),
-                null,
+                    ]).Margin(10,0).Spacing(0),
                 new ProgressBar().Value(()=>CurrentFrame).Maximum(()=>Math.Max(0,Frames-1)).Ref(out var progress)
                     .Align(null,0).Cursor(new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand))
                     .OnPointerPressed(e=>{
@@ -110,7 +126,8 @@ public class MainView : BaseView, IWindowView
                         var w = progress.Bounds.Width;
                         var f = (int)Math.Round(p.X / w * Frames);
                         GotoFrame(f);
-                    })
+                    }),
+                TextBlock(() =>$"{CurrentFrame+1}/{Frames}").Align(1,0).Margin(10,0)
                 ])
             ]).Margin(2)
             .Return(out content);
@@ -183,8 +200,31 @@ public class MainView : BaseView, IWindowView
         this.OnReloadAtBackground();
     }
 
+    private void ShowLoadingText()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            ErrorMessage = "加载中";
+            FrameImage.Bitmap = null;
+            FrameImage.InvalidateVisual();
+            this.UpdateState();
+        });
+    }
+
+    private void ShowErrorMessage(string msg)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            ErrorMessage = msg;
+            FrameImage.Bitmap = null;
+            FrameImage.InvalidateVisual();
+            this.UpdateState();
+        });
+    }
+
     private void OnReloadAtBackground()
     {
+        ShowLoadingText();
         _reloadFlight.Run("重新加载", OnReload);
     }
 
@@ -192,22 +232,41 @@ public class MainView : BaseView, IWindowView
     {
         if(ClipName != null)
         {
-            var bmp = WatchTool.DumpPNG(Watcher.FilePath, ClipName, Clamp(CurrentFrame));
-
-            if (bmp != null)
+            try
             {
-                Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                var bmp = WatchTool.DumpPNG(Watcher.FilePath, ClipName, Clamp(CurrentFrame));
+
+                if (bmp != null)
                 {
-                    FrameImage.Bitmap = bmp;
-                    FrameImage.InvalidateVisual();
-                    this.UpdateState();
-                });
+                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        ErrorMessage = String.Empty;
+                        FrameImage.Bitmap = bmp;
+                        FrameImage.InvalidateVisual();
+                        this.UpdateState();
+                    });
+                }
+                else
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        ErrorMessage = "加载失败: 无法获取对应画面，请检查代码是否存在问题或指定片段是否存在";
+                        FrameImage.Bitmap = null;
+                        FrameImage.InvalidateVisual();
+                        this.UpdateState();
+                    });
+                }
+            }
+            catch(Exception ex)
+            {
+                ShowErrorMessage(ex.Message);
             }
         }
         else
         {
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
+                ErrorMessage = "加载失败: 请选择预览的片段";
                 FrameImage.Bitmap = null;
                 FrameImage.InvalidateVisual();
                 this.UpdateState();
@@ -217,48 +276,56 @@ public class MainView : BaseView, IWindowView
 
     private void OnReloadVideoBackground()
     {
+        ShowLoadingText();
         _reloadVideoFlight.Run("重新加载视频", OnReloadVideo);
     }
 
     private void OnReloadVideo()
     {
-        var track = WatchTool.DumpTrackInfo(Watcher.FilePath);
-        ClipInfo? match = null;
-        if(track != null)
+        try
         {
-            var clips = track.GetVisualClips();
-            foreach(var item in clips)
+            var track = WatchTool.DumpTrackInfo(Watcher.FilePath);
+            ClipInfo? match = null;
+            if (track != null)
             {
-                if(item.Name == ClipName)
+                var clips = track.GetVisualClips();
+                foreach (var item in clips)
                 {
-                    match = item;
-                    break;
+                    if (item.Name == ClipName)
+                    {
+                        match = item;
+                        break;
+                    }
                 }
             }
-        }
-        if(match != null)
-        {
-            Frames = match.Frames;
-            CurrentFrame = Clamp(CurrentFrame);
-        }
-        else
-        {
-            var first = track?.Clips.First();
-            if(first == null)
+            if (match != null)
             {
-                ClipName = null;
-                Frames = 0;
-                CurrentFrame = 0;
+                Frames = match.Frames;
+                CurrentFrame = Clamp(CurrentFrame);
             }
             else
             {
-                ClipName = first.Name;
-                Frames = first.Frames;
-                CurrentFrame = 0;
+                var first = track?.Clips.First();
+                if (first == null)
+                {
+                    ClipName = null;
+                    Frames = 0;
+                    CurrentFrame = 0;
+                }
+                else
+                {
+                    ClipName = first.Name;
+                    Frames = first.Frames;
+                    CurrentFrame = 0;
+                }
             }
+            Watcher.Track = track;
+            this.OnReloadAtBackground();
         }
-        Watcher.Track = track;
-        this.OnReloadAtBackground();
+        catch (Exception ex)
+        {
+            ShowErrorMessage(ex.Message);
+        }
     }
 
     private void UpdateClips()
@@ -281,7 +348,7 @@ public class MainView : BaseView, IWindowView
 
     private void PlayClipAtBackground()
     {
-        _playClipFlight.Run("播放片段", PlayClip);
+        _playClipFlight.Run("播放片段", PlayClip,1);
     }
 
     private void PlayClip()
@@ -297,7 +364,7 @@ public class MainView : BaseView, IWindowView
 
     private void PlayVideoAtBackground()
     {
-        _playVideoFlight.Run("播放视频", PlayVideo);
+        _playVideoFlight.Run("播放视频", PlayVideo,1);
     }
 
     private void PlayVideo()
@@ -331,8 +398,16 @@ public class MainView : BaseView, IWindowView
         private bool _running;
         private int _version;
 
-        public void Run(string name, Action action)
+        private DateTime _last = new DateTime(2000, 1, 1);
+        public void Run(string name, Action action, double minClickInterval = 0)
         {
+            var now = DateTime.Now;
+            var ts = now - _last;
+            if (Math.Abs(ts.TotalSeconds) < minClickInterval)
+                return;
+
+            _last = now;
+
             var version = Interlocked.Increment(ref _version);
 
             lock (_gate)

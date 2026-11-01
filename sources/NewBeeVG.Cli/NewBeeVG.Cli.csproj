@@ -33,4 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NewBeeVG.Common\NewBeeVG.Common.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Projects\" />
+  </ItemGroup>
 </Project>

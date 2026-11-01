@@ -93,8 +93,20 @@ internal class Utils
 
         var process = new Process { StartInfo = psi };
 
-        process.OutputDataReceived += (s, e) => { if (e.Data != null) onOutput?.Invoke(e.Data); };
-        process.ErrorDataReceived += (s, e) => { if (e.Data != null) onError?.Invoke(e.Data); };
+        process.OutputDataReceived += (s, e) => { if (e.Data != null)
+            onOutput?.Invoke(e.Data);
+            var msg = e.Data?.Trim();
+            if(String.IsNullOrEmpty(msg) == false)
+                Console.WriteLine(msg);
+        };
+        process.ErrorDataReceived += (s, e) => { if (e.Data != null) 
+            onError?.Invoke(e.Data);
+            Console.ForegroundColor = ConsoleColor.Red;
+            var msg = e.Data?.Trim();
+            if (String.IsNullOrEmpty(msg) == false)
+                Console.WriteLine(msg);
+            Console.ResetColor();
+        };
 
         // 进程退出时释放资源，避免句柄泄漏
         process.EnableRaisingEvents = true;
