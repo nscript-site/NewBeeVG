@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace NewBeeVG.Common;
+namespace NewBeeVG;
 
 public class ClipInfo
 {

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace NewBeeVG.Common;
+namespace NewBeeVG;
 
 [JsonSerializable(typeof(TrackInfo))]
 public partial class TrackInfoJsonContext : JsonSerializerContext

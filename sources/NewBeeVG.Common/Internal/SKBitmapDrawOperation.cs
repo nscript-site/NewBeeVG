@@ -1,4 +1,6 @@
-﻿using Avalonia.Rendering.SceneGraph;
+﻿using Avalonia;
+using Avalonia.Media;
+using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using SkiaSharp;
 
@@ -63,7 +65,7 @@ public class SKBitmapDrawOperation : ICustomDrawOperation
                 context.FillRectangle(_backgroundBrush.ToImmutable(),
                     new Rect((int)dstRect.Left, (int)dstRect.Top, (int)dstRect.Width, (int)dstRect.Height));
             }
-            
+
             using SKImage image = SKImage.FromBitmap(_frame);
 
             if (scale < 0.2f)

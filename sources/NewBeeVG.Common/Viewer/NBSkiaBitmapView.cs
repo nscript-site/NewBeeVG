@@ -1,4 +1,7 @@
-﻿using Avalonia.Interactivity;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media;
 using NewBeeVG.Internal;
 using SkiaSharp;
 
@@ -22,7 +25,7 @@ public class NBSkiaBitmapView : Control
         base.OnUnloaded(e);
         if (Bitmap != null && Pinned == false)
         {
-            lock(this)
+            lock (this)
             {
                 Bitmap.Dispose();
                 Bitmap = null;
