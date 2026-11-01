@@ -224,3 +224,4 @@ __pycache__
 apps/_lib
 *.lscache
 output
+plugins/vscode/nbvg/nbvg/node_modules

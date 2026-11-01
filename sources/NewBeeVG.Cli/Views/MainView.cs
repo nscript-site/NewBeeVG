@@ -60,7 +60,7 @@ public class MainView : BaseView, IWindowView
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
-        Watcher.OnChanged = _ => OnReload();
+        Watcher.OnChanged = _ => OnReloadAtBackground();
         UpdateClips();
         this.UpdateStateByUIThread();
         OnReloadAtBackground();

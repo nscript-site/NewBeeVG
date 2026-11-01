@@ -1,7 +1,7 @@
 #!/usr/bin/env dotnet
 
 VStack([
-    TextBlock("Clip1").Font(80, SKColors.Orange).Align(0,0)
+    TextBlock("ClipASAA").Font(80, SKColors.Orange).Align(0,0)
 ]).Align(0, 0).AsClip(frames: 40, name: "clip1");
 
 VStack([
