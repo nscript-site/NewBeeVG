@@ -19,4 +19,12 @@ public class TrackInfo
         // 序列化为 json
         return JsonSerializer.Serialize(this, TrackInfoJsonContext.Default.TrackInfo);
     }
+
+    public List<ClipInfo> GetVisualClips()
+    {
+        var list = new List<ClipInfo>();
+        foreach (var item in Clips)
+            if (item.ContainsVisualContent == true) list.Add(item);
+        return list;
+    }
 }
