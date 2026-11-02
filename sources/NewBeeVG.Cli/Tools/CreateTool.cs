@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using System.Text;
 
 namespace NewBeeVG.Cli.Tools;
 
@@ -30,7 +25,7 @@ internal class CreateTool : BaseTool
         var fullPath = Path.GetFullPath(filePath);
         if (File.Exists(fullPath))
         {
-            Console.WriteLine($"文件已存在，未创建: {fullPath}");
+            Console.WriteLine($"文件已存在，创建失败: {fullPath}");
             return;
         }
 
@@ -68,7 +63,7 @@ internal class CreateTool : BaseTool
 
     public override void PrintHelp()
     {
-        Console.WriteLine("用法: nbvg create <file.cs>");
+        Console.WriteLine("用法: nbvg new <file.cs>");
         Console.WriteLine("说明: 创建 NewBeeVG 视频脚本模板；目标文件已存在时不会覆盖。");
     }
 

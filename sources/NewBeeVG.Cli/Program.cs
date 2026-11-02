@@ -4,7 +4,7 @@ namespace NewBeeVG.Cli;
 
 internal class Program
 {
-    const string Version = "1.0.2.0";
+    const string Version = "1.0.2.2";
 
     static void Main(string[] args)
     {
@@ -33,17 +33,13 @@ internal class Program
         {
             new WatchTool().Run(args);
         }
-        else if(cmd == "create")
+        else if(cmd == "new")
         {
-            new CreateTool().Run(args);
+            new NewTool().Run(args);
         }
         else if(cmd == "init")
         {
             new InitTool().Run(args);
-        }
-        else if(cmd == "script")
-        {
-            new ScriptTool().Run(args);
         }
         else if(cmd == "--version")
         {
@@ -69,24 +65,24 @@ internal class Program
             NewBeeVG CLI {Version}
 
             用法:
-              nbvg init <ProjectName>         创建完整项目目录结构
-              nbvg script <ScriptProjectName> 创建单个视频项目
-              nbvg watch <file.cs>            监视并预览 .cs 视频脚本
-              nbvg create <file.cs>           创建新的视频脚本模板
-              nbvg --version                  显示版本
-              nbvg help                       显示帮助
+              nbvg init <ProjectName>        创建完整项目目录结构
+              nbvg new <file.cs>             创建新的视频脚本文件
+              nbvg new <ScriptProjectName>   创建单个视频项目
+              nbvg watch <file.cs>           监视并预览 .cs 视频脚本
+              nbvg --version                 显示版本
+              nbvg help                      显示帮助
 
             示例:
               nbvg init MyVideo
-              nbvg script MyShot
-              nbvg create .\new-video.cs
+              nbvg new .\new-video.cs
+              nbvg new MyShot
               nbvg watch .\demo.cs
               nbvg watch "C:\videos\demo.cs"
 
             说明:
               - init 不会覆盖已存在的项目目录
-              - script 不会覆盖已存在的视频项目目录
-              - create 不会覆盖已存在的文件
+              - new 的参数以 .cs 结尾时创建文件，否则创建视频项目目录
+              - new 不会覆盖已存在的文件或目录
               - watch 仅支持 .cs 后缀的文件
               - watch 的文件必须以 #!/usr/bin/env dotnet 开头
               - watch 期间修改脚本会自动重新加载预览

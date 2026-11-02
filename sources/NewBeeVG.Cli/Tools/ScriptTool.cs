@@ -106,7 +106,7 @@ internal class ScriptTool : BaseTool
 
     public override void PrintHelp()
     {
-        Console.WriteLine("用法: nbvg script <ScriptProjectName>");
+        Console.WriteLine("用法: nbvg new <ScriptProjectName>");
         Console.WriteLine("说明: 在当前目录创建单个视频项目目录结构；同名目录已存在时不会创建。");
     }
 
