@@ -4,7 +4,7 @@ namespace NewBeeVG.Cli;
 
 internal class Program
 {
-    const string Version = "1.0.2.4";
+    const string Version = "1.0.2.6";
 
     static void Main(string[] args)
     {

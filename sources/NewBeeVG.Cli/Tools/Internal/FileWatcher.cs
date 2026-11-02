@@ -26,21 +26,32 @@ internal class FileWatcher
 
         AddWatcher(fileInfo.DirectoryName ?? String.Empty, fileInfo.Name, isMainFile: true);
 
-        // 只解析主脚本直接引用的文件，不递归解析这些文件自身的 #:include。
-        var addedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        // 监测两层：主脚本直接引用的文件，以及这些文件再引用的文件。
+        // 不继续解析第三层。相同路径只创建一次 watcher。
+        const int maxIncludeDepth = 2;
+        var watchedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             _watchedPath,
         };
+        var pending = new Queue<(string Path, int Depth)>();
 
         foreach (var includePath in ParseIncludes(_watchedPath))
+            pending.Enqueue((includePath, 1));
+
+        while (pending.Count > 0)
         {
-            if (addedPaths.Add(includePath) == false) continue;
+            var (includePath, depth) = pending.Dequeue();
+            if (watchedPaths.Add(includePath) == false) continue;
             if (File.Exists(includePath) == false) continue;
 
             var directory = Path.GetDirectoryName(includePath);
-            if (string.IsNullOrEmpty(directory)) continue;
+            if (string.IsNullOrEmpty(directory) == false)
+                AddWatcher(directory, Path.GetFileName(includePath), isMainFile: false);
 
-            AddWatcher(directory, Path.GetFileName(includePath), isMainFile: false);
+            if (depth >= maxIncludeDepth) continue;
+
+            foreach (var childPath in ParseIncludes(includePath))
+                pending.Enqueue((childPath, depth + 1));
         }
     }
 
