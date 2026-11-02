@@ -9,7 +9,8 @@ namespace NewBeeVG.Cli.Tools;
 
 internal class CreateTool : BaseTool
 {
-    private const string TemplateSuffix = "Templates.demo.cs";
+    private const string DefaultTemplateSuffix = "Templates.demo.cs";
+    private const string BuildPropsTemplateSuffix = "Templates.demo2.cs";
 
     public override void Run(string[] args)
     {
@@ -39,10 +40,14 @@ internal class CreateTool : BaseTool
             return;
         }
 
-        var template = ReadTemplate();
+        var targetDirectory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
+        var hasBuildProps = HasDirectoryBuildProps(targetDirectory);
+        var templateFile = hasBuildProps ? "demo2.cs" : "demo.cs";
+        var templateSuffix = hasBuildProps ? BuildPropsTemplateSuffix : DefaultTemplateSuffix;
+        var template = ReadTemplate(templateSuffix);
         if (template == null)
         {
-            Console.WriteLine("未找到内置模板 Templates/demo.cs");
+            Console.WriteLine($"未找到内置模板 Templates/{templateFile}");
             return;
         }
 
@@ -67,12 +72,26 @@ internal class CreateTool : BaseTool
         Console.WriteLine("说明: 创建 NewBeeVG 视频脚本模板；目标文件已存在时不会覆盖。");
     }
 
-    private static string? ReadTemplate()
+    private static bool HasDirectoryBuildProps(string startDirectory)
+    {
+        var directory = new DirectoryInfo(startDirectory);
+
+        // 依次检查 ./、../、../../、../../../、../../../../（共 5 层）
+        for (var level = 0; level <= 4 && directory != null; level++, directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Directory.Build.props")))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static string? ReadTemplate(string templateSuffix)
     {
         var assembly = typeof(CreateTool).Assembly;
         var resourceName = assembly
             .GetManifestResourceNames()
-            .FirstOrDefault(name => name.EndsWith(TemplateSuffix, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(name => name.EndsWith(templateSuffix, StringComparison.OrdinalIgnoreCase));
 
         if (resourceName == null) return null;
 

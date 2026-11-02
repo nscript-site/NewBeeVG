@@ -19,9 +19,36 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Templates\demo.cs" />
+    <Compile Remove="Templates\demo2.cs" />
+    <Compile Remove="Templates\Project\modules\GenRun.cs" />
+    <Compile Remove="Templates\Project\scripts\demo\modules\GlintTextA.cs" />
+    <Compile Remove="Templates\Project\scripts\demo\modules\Test\GlintTextA_Test.cs" />
+    <Compile Remove="Templates\Project\scripts\demo\script.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Templates\Project\Directory.Build.props" />
+    <None Remove="Templates\Project\modules\README.md" />
+    <None Remove="Templates\Project\README.md" />
+    <None Remove="Templates\Project\scripts\demo\README.md" />
+    <None Remove="Templates\Project\scripts\demo\script.md" />
+    <None Remove="Templates\Project\scripts\demo\storyboard.md" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Templates\demo.cs" />
+    <EmbeddedResource Include="Templates\demo2.cs" />
+    <EmbeddedResource Include="Templates\Project\Directory.Build.props" />
+    <EmbeddedResource Include="Templates\Project\modules\GenRun.cs">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Templates\Project\README.md" />
+    <EmbeddedResource Include="Templates\Project\modules\README.md" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\modules\GlintTextA.cs" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\modules\Test\GlintTextA_Test.cs" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\README.md" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\gen\images\prompts.md.template" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\script.cs" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\script.md" />
+    <EmbeddedResource Include="Templates\Project\scripts\demo\storyboard.md" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" />
@@ -31,9 +58,9 @@
     <PackageReference Include="newbeeui" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NewBeeVG.Common\NewBeeVG.Common.csproj" />
+    <Page Include="Templates\Project\scripts\demo\gen\images\prompts.md.template" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Projects\" />
+    <ProjectReference Include="..\NewBeeVG.Common\NewBeeVG.Common.csproj" />
   </ItemGroup>
 </Project>

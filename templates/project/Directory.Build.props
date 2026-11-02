@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <PublishAot>false</PublishAot>
+    <!-- 设置本地 nuget 包源，同时保留官方源以获取其他依赖 -->
+    <!-- <RestoreSources>C:\Lib\nuget_local;https://api.nuget.org/v3/index.json</RestoreSources> -->
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Runtime.CompilerServices" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="NewBeeVG" />
+    <Using Include="SkiaSharp" />
+    <Using Include="NewBeeVG.Methods" Static="True" />
+    <!-- 开启3D功能需要取消下面的注释 -->
+    <!-- <Using Include="NewBeeVG.ThreeD" />
+    <Using Include="NewBeeVG.Methods3D" Static="True" /> -->
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NewBeeVG" Version="1.0.1.30" />
+    <!-- 开启3D功能需要取消下面的注释 -->
+    <!-- <PackageReference Include="NewBeeVG.ThreeD" Version="1.0.1.5" /> -->
+  </ItemGroup>
+</Project>
