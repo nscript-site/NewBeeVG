@@ -75,13 +75,13 @@ style: 视频口播风格插图
 ```
 
 ```bash
-python scripts/generate_image.py --doc assets/images/scenes.md
+python scripts/generate_image.py --doc gen/images/scenes.md
 ```
 
 先预检、不调用 API：
 
 ```bash
-python scripts/generate_image.py --doc assets/images/scenes.md --dry-run
+python scripts/generate_image.py --doc gen/images/scenes.md --dry-run
 ```
 
 处理规则：
@@ -102,7 +102,7 @@ python scripts/generate_image.py --doc assets/images/scenes.md --dry-run
 ```bash
 python scripts/generate_image.py \
   --prompt "星际穿越，黑洞，复古列车冲出黑洞，电影大片，强对比色，广角透视，体积光" \
-  --output assets/images/black-hole.png \
+  --output gen/images/black-hole.png \
   --size 2K \
   --ratio 16:9
 ```
@@ -110,7 +110,7 @@ python scripts/generate_image.py \
 PowerShell 用反引号续行，或写成一行：
 
 ```powershell
-python scripts/generate_image.py --prompt "星际穿越，黑洞，复古列车冲出黑洞，电影大片，强对比色，广角透视，体积光" --output assets/images/black-hole.png --size 2K --ratio 16:9
+python scripts/generate_image.py --prompt "星际穿越，黑洞，复古列车冲出黑洞，电影大片，强对比色，广角透视，体积光" --output gen/images/black-hole.png --size 2K --ratio 16:9
 ```
 
 ### 单图生图
@@ -118,8 +118,8 @@ python scripts/generate_image.py --prompt "星际穿越，黑洞，复古列车�
 ```bash
 python scripts/generate_image.py \
   --prompt "生成狗狗趴在草地上的近景画面，保留原图毛色和项圈" \
-  --image assets/images/dog.png \
-  --output assets/images/dog-grass.png \
+  --image gen/images/dog.png \
+  --output gen/images/dog-grass.png \
   --size 2K \
   --ratio 4:3
 ```
@@ -129,9 +129,9 @@ python scripts/generate_image.py \
 ```bash
 python scripts/generate_image.py \
   --prompt "将图1的服装换为图2的服装，保留图1的人物姿势与背景" \
-  --image assets/images/person.png \
-  --image assets/images/cloth.png \
-  --output assets/images/person-new-outfit.png \
+  --image gen/images/person.png \
+  --image gen/images/cloth.png \
+  --output gen/images/person-new-outfit.png \
   --size 2K \
   --ratio 3:4
 ```
@@ -275,24 +275,24 @@ data:image/webp;base64,<...>
 
 ## 保存到视频素材目录
 
-NewBeeVG 项目的图片素材放在视频脚本目录的 `assets/images/`：
+NewBeeVG 项目的 AIGC 图片放在视频工程 `scripts/<ScriptProjectName>/gen/images/`：
 
 ```bash
 python scripts/generate_image.py \
   --prompt "..." \
-  --output assets/images/scene-01.png \
+  --output gen/images/scene-01.png \
   --size 2K
 ```
 
 批量场景图优先用文档模式，文档和图片可放在同一目录：
 
 ```bash
-python scripts/generate_image.py --doc assets/images/scenes.md
+python scripts/generate_image.py --doc gen/images/scenes.md
 ```
 
 - 目录不存在时脚本会创建；
 - 命名体现用途：`scene-01.png`、`character-hero.png`、`bg-night.png`；
-- 生成后在 `assets/README.md` 记录文件名、用途、尺寸、提示词摘要；
+- 生成后在本片 `scripts/<ScriptProjectName>/README.md` 记录文件名、用途、尺寸、提示词摘要；
 - 下载 URL 返回的图片后不要只保留链接，必须落地成本地文件；
 - 需要透明背景的素材用 PNG，不要用 JPEG。
 

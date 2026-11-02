@@ -1,0 +1,13 @@
+{
+  "name": "豆包语音合成",
+  "installedAt": 1792672495715,
+  "source": "marketplace",
+  "version": "1.1.0",
+  "skillId": "skill_2102594628047867904",
+  "pay_mode": 0,
+  "description_zh": "豆包语音合成：文字转语音 TTS、音频生成（音效/广播剧/有声书）、声音复刻与音色设计、播客、同声传译，内置 444 个官方发音人可离线查询",
+  "description_en": "Doubao text-to-speech and audio generation — TTS, sound-effect/multi-role audio creation, voice cloning and design, podcasts, and real-time speech translation; ships an offline catalog of 444 official voices",
+  "iconSource": "https://openplatform-cdn.codebuddy.cn/public/common/capability_cover/14b15440-0c3d-4818-bb02-eac75c6b035a/7fcd7a65-6bea-41fc-8983-f1f9b4cde560.png",
+  "iconLocalPath": "C:\\Users\\ws\\.workbuddy\\skills\\doubao-voice\\_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.cn/public/common/capability_cover/14b15440-0c3d-4818-bb02-eac75c6b035a/7fcd7a65-6bea-41fc-8983-f1f9b4cde560.png"
+}

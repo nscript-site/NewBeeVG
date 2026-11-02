@@ -1,9 +1,9 @@
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.25
+#:package NewBeeVG@1.0.1.30
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
-// 在仓库 apps/files 内运行时，Directory.Build.props 已提供 NewBeeVG 项目引用；
+// 在视频工程 scripts/<ScriptProjectName> 内运行时，项目根 Directory.Build.props 已提供 NewBeeVG 项目引用；
 // 若出现重复引用或版本冲突，删除上面的 #:package 指令即可。
 
 using NewBeeVG;

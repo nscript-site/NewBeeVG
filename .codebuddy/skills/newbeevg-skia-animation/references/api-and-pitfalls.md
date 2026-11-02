@@ -244,11 +244,11 @@ public class MyAnimation : SKCustomAnimation
 
 ```csharp
 #!/usr/bin/env dotnet
-#:package NewBeeVG@1.0.1.25
+#:package NewBeeVG@1.0.1.30
 // 包含 MyAnimation 所在的源文件路径
 #:include MyAnimation.cs
 
-// 在仓库 apps/files 内运行时，Directory.Build.props 已提供 NewBeeVG 项目引用；
+// 在视频工程 scripts/<ScriptProjectName> 内运行时，项目根 Directory.Build.props 已提供 NewBeeVG 项目引用；
 // 若出现重复引用或版本冲突，删除上面的 #:package 指令即可。
 
 using NewBeeVG;
@@ -358,7 +358,7 @@ if (debug == false)
 - `SkiaAnim(...)` 返回 `NBSkiaAnimation`（可视节点），`.AsClip(frames, start: null, name: "clip")` 会把它登记到 `clips()`；这段是**真实场景代码，不要加 `if (debug == true)`**：`debug = true` 时只编译并注册片段，`debug = false` 时由结尾 `run(...)` 直接出片；
 - **每个场景用 `{ }` 包起来**，`content` / `theme` / `anim` 都是场景局部变量，避免不同场景重名或互相污染；
 - 动画类文件只放类型，测试文件的顶层语句才能作为程序入口；
-- `#:package NewBeeVG@1.0.1.25` 用于仓库外运行；在仓库 `apps/files/` 内已由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
+- `#:package NewBeeVG@1.0.1.30` 用于项目外运行；在视频工程 `scripts/<ScriptProjectName>/` 内已由项目根 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令；
 - `using NewBeeVG;` / `using SkiaSharp;` 只对当前文件生效：类文件里也要写，否则 `SKCanvas` 等类型无法解析。
 
 ### 循环生成测试用例
@@ -393,7 +393,7 @@ foreach (var (name, to) in new (string, double)[] { ("低", 1200), ("中", 6800)
 
 下面把类与测试写在一个文件里，仅用于快速验证；正式交付请使用上面的两文件结构。
 
-在 `apps/files/` 下新建 `.cs` 文件：顶层语句在前，`SKCustomAnimation` 子类声明放在文件末尾。
+在 `scripts/<ScriptProjectName>/` 下新建 `.cs` 文件：顶层语句在前，`SKCustomAnimation` 子类声明放在文件末尾。
 
 生成 90 帧、1080×1920 的动画：中心圆呼吸缩放、外圈刻度旋转、底部显示帧号。
 
@@ -587,7 +587,7 @@ public class ClockAnimation : SKCustomAnimation
 - 类声明必须在顶层语句之后，否则 file-based app 无法编译；
 - `SKCustomAnimation` 构造时已把 `OnFrame` 指向 `DrawFrame`，子类不要再赋值 `OnFrame`；
 - `Draw` 会先校验帧号与尺寸，`DrawFrame` 内无需重复判断；
-- `apps/files/` 已通过 `Directory.Build.props` 全局导入 `NewBeeVG`、`SkiaSharp` 与静态 `Methods`。
+- 视频工程 `scripts/<ScriptProjectName>/` 已通过项目根 `Directory.Build.props` 全局导入 `NewBeeVG`、`SkiaSharp` 与静态 `Methods`。
 
 ### 内容参数封装（ContentSetting）
 

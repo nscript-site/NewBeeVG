@@ -98,8 +98,8 @@ style: 视频口播风格插图
 命令：
 
 ```bash
-python scripts/generate_image.py --doc assets/images/scenes.md
-python scripts/generate_image.py --doc assets/images/scenes.md --dry-run
+python scripts/generate_image.py --doc gen/images/scenes.md
+python scripts/generate_image.py --doc gen/images/scenes.md --dry-run
 ```
 
 处理规则：
@@ -193,7 +193,7 @@ payload = {
 
 # 图生图时追加 image：
 # payload["image"] = "data:image/png;base64," + base64.b64encode(
-#     Path("assets/images/ref.png").read_bytes()
+#     Path("gen/images/ref.png").read_bytes()
 # ).decode("ascii")
 
 response = requests.post(
@@ -215,7 +215,7 @@ item = result["data"][0]
 if item.get("error"):
     raise RuntimeError(item["error"])
 
-output = Path("assets/images/result.png")
+output = Path("gen/images/result.png")
 output.parent.mkdir(parents=True, exist_ok=True)
 
 if item.get("b64_json"):
@@ -232,7 +232,7 @@ print("saved:", output, item.get("size"), result.get("usage"))
 
 ```python
 images = []
-for path in ("assets/images/person.png", "assets/images/cloth.png"):
+for path in ("gen/images/person.png", "gen/images/cloth.png"):
     raw = Path(path).read_bytes()
     images.append("data:image/png;base64," + base64.b64encode(raw).decode("ascii"))
 
@@ -299,8 +299,8 @@ payload["prompt"] = "将图1的服装换为图2的服装，保留图1的人物�
 
 ## 9. 素材落地
 
-- 保存到视频脚本目录的 `assets/images/`；
+- 保存到视频工程 `scripts/<ScriptProjectName>/gen/images/`；
 - 文件命名体现用途与镜头：`scene-01.png`、`character-hero.png`；
-- 在 `assets/README.md` 记录用途、尺寸、提示词摘要；
+- 在本片 `README.md` 记录用途、尺寸、提示词摘要；
 - 需要透明背景时使用 PNG；
 - 生成结果先人工检查，再放入视频。

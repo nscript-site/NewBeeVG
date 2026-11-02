@@ -92,7 +92,7 @@ NextFrame(TotalFrames, LoopMode, Speed)
 示例：
 
 ```csharp
-var anim = TypstAnim("./assets/typsts/anim_plot.typ"); // 60 页
+var anim = TypstAnim("./gen/typsts/anim_plot.typ"); // 60 页
 
 // 60 帧正好播完
 anim.AsClip(anim.TotalFrames, name: "plot");
@@ -155,7 +155,7 @@ new TypstCompilerOptions
 ```csharp
 #!/usr/bin/env dotnet
 
-var anim = TypstAnim("./assets/typsts/steps.typ");
+var anim = TypstAnim("./gen/typsts/steps.typ");
 
 HStack([
     anim.LoopMode(NBAnimateLoopMode.Stop).Align(0, 0),

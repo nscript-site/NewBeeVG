@@ -134,9 +134,9 @@ run(stage(1920, 1080, bg: SKColors.Black), clips(), args: args);
 ```
 
 ```bash
-dotnet myvideo.cs                 # 预览
-dotnet myvideo.cs out.mp4         # 导出 MP4
-dotnet myvideo.cs 42 out.png      # 导出第 42 帧
+dotnet script.cs                          # 预览
+dotnet script.cs -- output/final.mp4      # 导出 MP4
+dotnet script.cs -- 42 output/frame.png   # 导出第 42 帧
 ```
 
 ### 5.3 MP4 导出细节
@@ -229,15 +229,15 @@ Clip[名称 prepare fail: 原因]
 public static NBAudioClip AudioFile(string path);
 ```
 
-每个分镜语音放在 `assets/audios/shotNN.mp3`，用 `AsClip("audio_NN")` 登记名称，再用 `LinkTo` 对齐到同名画面 clip：
+每个分镜语音放在视频工程本片 `gen/audios/shotNN.mp3`，用 `AsClip("audio_NN")` 登记名称，再用 `LinkTo` 对齐到同名画面 clip：
 
 ```csharp
 // 语音从 shot01 的第 0 帧开始
-AudioFile("./assets/audios/shot01.mp3")
+AudioFile("./gen/audios/shot01.mp3")
     .AsClip("audio_01").LinkTo("shot01");
 
 // 语音延后 10 帧（相对 shot01 的起点）
-AudioFile("./assets/audios/shot02.mp3")
+AudioFile("./gen/audios/shot02.mp3")
     .AsClip("audio_02").LinkTo("shot02", 10);
 ```
 
@@ -254,7 +254,7 @@ public static T LinkTo<T>(this T widget, T referenceClip, int startFrame = 0) wh
 - `LinkTo("shot01", 10)` 设置 `ReferenceClip = shot01`、`ReferenceClipStartFrame = 10`；
 - 音频自身的 `StartFrame` 仍为 `null`，track 计算时间线时解析为 `shot01.StartFrame + 10`；
 - 目标 clip 必须**先创建并登记名称**，否则 `Methods.clip("shot01")` 返回 `null`，链接不会生效；
-- 分镜语音的入点/出点记录在 `assets/audios/audio_timeline.md`，与 `LinkTo` 的偏移保持一致；
+- 分镜语音的入点/出点记录在 `gen/audios/audio_timeline.md`，与 `LinkTo` 的偏移保持一致；
 - `Prepare` 时按音频文件真实时长更新 `DurationFrames`：`ceil(秒数 × stage.FrameRate)`，至少 1 帧；
 - 音频 PCM 会混入 `NBTrack.MixedAudioData`，MP4 导出时写入音轨；
 - 文件不存在时打印 `音频文件不存在`，保留默认 1 帧，不中断其他片段。
@@ -270,10 +270,10 @@ VStack([
     TextBlock("第二句口播").Font(80, theme.Primary).Align(0, 0)
 ]).Align(0, 0).AsClip(frames: 97, name: "shot02");
 
-AudioFile("./assets/audios/shot01.mp3")
+AudioFile("./gen/audios/shot01.mp3")
     .AsClip("audio_01").LinkTo("shot01");
 
-AudioFile("./assets/audios/shot02.mp3")
+AudioFile("./gen/audios/shot02.mp3")
     .AsClip("audio_02").LinkTo("shot02");
 
 run(stage(1920, 1080, bg: theme.Background), clips());

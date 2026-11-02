@@ -52,7 +52,7 @@ public static NBTypstAnimation TypstAnim(string path);
 
 ### 1. 编写 Typst 文档
 
-保存到视频脚本目录的 `assets/typsts/`，目录不存在时创建。
+保存到本片 `scripts/<ScriptProjectName>/gen/typsts/`，目录不存在时创建。
 
 硬性要求：
 
@@ -83,7 +83,7 @@ $ x = -1 $
 ### 2. 用 C# 接入
 
 ```csharp
-var anim = TypstAnim("./assets/typsts/steps.typ");
+var anim = TypstAnim("./gen/typsts/steps.typ");
 
 HStack([
     anim.LoopMode(NBAnimateLoopMode.Stop).Align(0, 0),
@@ -151,7 +151,7 @@ dotnet run -- output/typst.mp4
 接入 NewBeeVG：
 
 ```csharp
-var plot = TypstAnim("./assets/typsts/anim_plot.typ");
+var plot = TypstAnim("./gen/typsts/anim_plot.typ");
 
 HStack([
     plot.LoopMode(NBAnimateLoopMode.Loop).Align(0, 0),
@@ -224,7 +224,7 @@ package requires typst 0.13.0 or newer
 
 - `fill: none` 透明；需要底色时由 NewBeeVG 布局提供，或显式设置页面背景；
 - 16:9 常用 `960pt × 540pt`；1:1 常用 `900pt × 900pt`；
-- 自定义字体放在脚本目录的 `fonts/` 或 `assets/typography/`；NewBeeVG 会搜索这两个相对路径和系统字体；
+- 自定义字体放在本片 `fonts/` 或本片 `assets/typography/`；NewBeeVG 会搜索这两个相对路径和系统字体；
 - 字体缺失会回退，公式和中文排版可能变形；关键镜头固定字体并验证；
 - `@preview/...` 包必须存在于 `LocalApplicationData/typst/packages` 缓存中；
 - 已知示例版本：`cetz:0.3.4`；升级版本前先编译验证。
@@ -235,12 +235,12 @@ package requires typst 0.13.0 or newer
 
 ```csharp
 HGrid("*,*", [
-    TypstAnim("./assets/typsts/anim_plot.typ")
+    TypstAnim("./gen/typsts/anim_plot.typ")
         .LoopMode(NBAnimateLoopMode.Loop),
 
     VStack([
         TextBlock("函数图像").Font(72, SKColors.White),
-        TypstAnim("./assets/typsts/steps.typ")
+        TypstAnim("./gen/typsts/steps.typ")
             .LoopMode(NBAnimateLoopMode.Stop),
     ]).Spacing(20),
 ]).AsClip(60, name: "math");
@@ -268,7 +268,7 @@ HGrid("*,*", [
 | 最后一页停留很久 | `LoopMode = Stop`；需要循环改 `.LoopMode(NBAnimateLoopMode.Loop)` |
 | 页面被拉伸/裁切 | 各页尺寸不一致；统一所有页面的 `width/height` |
 | 多出空白页 | 循环末尾的 `#pagebreak()`；用 `#pagebreak(weak: true)` 避免尾部空页 |
-| 字体不对 | 字体未安装或不在 `fonts/`、`assets/typography/`；补字体或换系统字体 |
+| 字体不对 | 字体未安装或不在本片 `fonts/`、`assets/typography/`；补字体或换系统字体 |
 | 包找不到 | `cetz`/`zebraw` 版本未缓存；确认 `LocalApplicationData/typst/packages` |
 | cetz 报版本错误 | `cetz:0.3.4` 需要 Typst 0.13+；升级 CLI 或使用 NewBeeVG 内置编译器 |
 | 透明背景变白/黑 | 页面 `fill` 不是 `none`；检查 `#set page(fill: ...)` |

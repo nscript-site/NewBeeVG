@@ -90,7 +90,7 @@ public class MainView : BaseView, IWindowView
         FrameImage = new NBSkiaBitmapView();
         VGrid("50,*, 50", [
             HStack([
-                FilterButton(()=>$"{ClipName ?? "请选择预览的 Clip"}",BuildClipsFlyout()),
+                FilterButton(()=>$"{ClipName ?? "请选择预览的片段"}",BuildClipsFlyout()),
                 IconButton(FlashIcon.Instance, "重新加载当前片段").OnClick(OnReloadAtBackground),
                 IconButton(ReloadIcon.Instance, "重新加载当前视频").OnClick(OnReloadVideoBackground),
                 IconButton(MotionPlayIcon.Instance, "播放当前片段").OnClick(PlayClipAtBackground),

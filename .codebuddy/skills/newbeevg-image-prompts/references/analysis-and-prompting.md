@@ -187,7 +187,7 @@ style: 视频口播风格插图
 `prompts.md` 生成后，直接用 `doubao-seedream-5-flash` 的文档模式批量生成：
 
 ```bash
-python scripts/generate_image.py --doc assets/images/prompts.md
+python scripts/generate_image.py --doc gen/images/prompts.md
 ```
 
 - 脚本会检查每条引用的图片：已存在则跳过，只生成缺失项；

@@ -2,19 +2,19 @@
 """Generate or edit images with Doubao Seedream 5.0 Flash.
 
 Text-to-image:
-    python generate_image.py --prompt "..." --output assets/images/cover.png
+    python generate_image.py --prompt "..." --output gen/images/cover.png
 
 Image-to-image:
-    python generate_image.py --prompt "..." --image assets/images/ref.png \
-        --output assets/images/edited.png
+    python generate_image.py --prompt "..." --image gen/images/ref.png \
+        --output gen/images/edited.png
 
 Multi-reference:
     python generate_image.py --prompt "把图1的服装换成图2的服装" \
-        --image assets/images/person.png --image assets/images/cloth.png \
-        --output assets/images/result.png
+        --image gen/images/person.png --image gen/images/cloth.png \
+        --output gen/images/result.png
 
 Markdown scene document (skip existing files, generate missing ones):
-    python generate_image.py --doc assets/images/scenes.md
+    python generate_image.py --doc gen/images/scenes.md
 """
 
 from __future__ import annotations

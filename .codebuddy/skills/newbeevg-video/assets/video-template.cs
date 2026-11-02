@@ -1,9 +1,9 @@
 #!/usr/bin/env dotnet
 
-// 需要先准备一个 SKCustomAnimation 子类，放在 modules/MyAnimation.cs
-// 仓库 apps/files 下由 Directory.Build.props 提供 NewBeeVG 引用；
-// 仓库外运行时取消下一行注释并改成当前包版本：
-// #:package NewBeeVG@1.0.1.25
+// 需要先准备一个 SKCustomAnimation 子类，放在本片 modules/MyAnimation.cs
+// 视频工程由项目根 Directory.Build.props 提供 NewBeeVG 引用；
+// 工程外运行时取消下一行注释并改成当前包版本：
+// #:package NewBeeVG@1.0.1.30
 #:include modules/MyAnimation.cs
 
 // ============================================================
@@ -55,14 +55,14 @@ font(fontName);
 }
 
 // ------------------------------------------------------------
-// 音频（可选）：需要 ./assets/audios/shot01.mp3 存在
+// 音频（可选）：需要 ./gen/audios/shot01.mp3 存在
 // 音频起点 = clip1 的起始帧 + offset（默认 0）
-// 分镜语音的入点/出点记录在 ./assets/audios/audio_timeline.md
+// 分镜语音的入点/出点记录在 ./gen/audios/audio_timeline.md
 // ------------------------------------------------------------
-// AudioFile("./assets/audios/shot01.mp3")
+// AudioFile("./gen/audios/shot01.mp3")
 //     .AsClip("audio_01").LinkTo("clip1");
 //
-// AudioFile("./assets/audios/shot01.mp3")
+// AudioFile("./gen/audios/shot01.mp3")
 //     .AsClip("audio_01").LinkTo("clip1", 10);
 
 // ------------------------------------------------------------
@@ -88,8 +88,8 @@ font(fontName);
 
 // ------------------------------------------------------------
 // 运行
-//   dotnet video-template.cs             → 预览
-//   dotnet video-template.cs out.mp4     → 导出 MP4
-//   dotnet video-template.cs 42 out.png  → 导出第 42 帧
+//   dotnet script.cs                         → 预览
+//   dotnet script.cs -- output/final.mp4     → 导出 MP4
+//   dotnet script.cs -- 42 output/frame.png  → 导出第 42 帧
 // ------------------------------------------------------------
 run(stage(1920, 1080, bg: theme.Background), clips(), args: args);

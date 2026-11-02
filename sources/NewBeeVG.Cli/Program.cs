@@ -4,7 +4,7 @@ namespace NewBeeVG.Cli;
 
 internal class Program
 {
-    const string Version = "1.0.2.2";
+    const string Version = "1.0.2.4";
 
     static void Main(string[] args)
     {
@@ -62,6 +62,7 @@ internal class Program
     static void PrintHelp()
     {
         Console.WriteLine($"""
+
             NewBeeVG CLI {Version}
 
             用法:
@@ -73,9 +74,9 @@ internal class Program
               nbvg help                      显示帮助
 
             示例:
-              nbvg init MyVideo
+              nbvg init MyWorkspace
               nbvg new .\new-video.cs
-              nbvg new MyShot
+              nbvg new MyVideo
               nbvg watch .\demo.cs
               nbvg watch "C:\videos\demo.cs"
 
@@ -86,6 +87,7 @@ internal class Program
               - watch 仅支持 .cs 后缀的文件
               - watch 的文件必须以 #!/usr/bin/env dotnet 开头
               - watch 期间修改脚本会自动重新加载预览
+
             """);
     }
 }

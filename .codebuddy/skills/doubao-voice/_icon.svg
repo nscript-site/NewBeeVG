@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- doubao-voice 技能图标：左「文本」→ 右「声波」，与 doubao-asr 图标同规格、互为镜像语义 -->
+  <rect width="1024" height="1024" rx="228" fill="#6E4AFF"/>
+  <!-- 文本：三行圆头横条，末行收短 -->
+  <g fill="#FFFFFF">
+    <rect x="160" y="399" width="370" height="42" rx="21"/>
+    <rect x="160" y="491" width="370" height="42" rx="21"/>
+    <rect x="160" y="583" width="236" height="42" rx="21"/>
+  </g>
+  <!-- 声波：四根圆头竖条，包络由低到高再收 -->
+  <g fill="#FFFFFF">
+    <rect x="566" y="422" width="52" height="180" rx="26"/>
+    <rect x="648" y="342" width="52" height="340" rx="26"/>
+    <rect x="730" y="362" width="52" height="300" rx="26"/>
+    <rect x="812" y="412" width="52" height="200" rx="26"/>
+  </g>
+</svg>

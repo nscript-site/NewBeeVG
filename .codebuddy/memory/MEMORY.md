@@ -1,11 +1,19 @@
 # NewBeeVG 长期记忆
 
+## 视频工程目录
+
+- 项目根：`Directory.Build.props`、`modules/`（公共模板）、`assets/`（共享非 AIGC 素材）、`scripts/<ScriptProjectName>/`、`todo/`。
+- 单个视频工程：`scripts/<ScriptProjectName>/`，固定包含 `README.md`、`script.md`、`storyboard.md`、`script.cs`、`assets/`、`gen/`、`modules/`、`tools/`、`output/`。
+- `assets/` 只放非 AIGC 素材；`gen/` 放全部生成物：`images/`、`apngs/`、`audios/`、`videos/`、`typsts/`、`svgs/`。
+- 本片模板放 `scripts/<name>/modules/`；跨工程公共模板放项目根 `modules/`。
+- 从视频工程引用共享素材/模板用 `../../assets/...`、`../../modules/...`。
+
 ## 视频制作流程
 
-- 输入：Markdown 稿件 `xxxx.md`，记录视频内容与要求。
-- 分镜：同目录生成 `xxxx_storyboard.md`，按 `shotNN` 记录口播、画面、素材/动画、时长、音频。
-- 语音：逐分镜生成 `assets/audios/shotNN.mp3`，并在 `assets/audios/audio_timeline.md` 记录入点/出点/时长。
-- 脚本：同目录生成 `xxxx.cs`（dotnet file-based app），按分镜与音频时间表创建 clip 和音频。
+- 输入：`script.md`，记录视频内容与要求。
+- 分镜：同目录生成 `storyboard.md`，按 `shotNN` 记录口播、画面、素材/动画、时长、音频。
+- 语音：逐分镜生成 `gen/audios/shotNN.mp3`，并在 `gen/audios/audio_timeline.md` 记录入点/出点/时长。
+- 脚本：同目录生成 `script.cs`（dotnet file-based app），按分镜与音频时间表创建 clip 和音频。
 
 ## 视频脚本约定
 
@@ -17,8 +25,8 @@
   ```
 - 后续 clip 只引用 `theme.Primary` / `theme.Background` / `theme.TextPrimary` / `theme.TextSecondary` / `theme.Divider` / `theme.Positive` / `theme.Negative`，不要在片段内重复 `font(...)` 或硬编码主题色。
 - `SkiaAnim` 需要主题时，通过 `ContentTheme.From(theme)` 等主题参数传入全局主题。
-- 视频素材目录：APNG → `assets/apngs/`（最终后缀 `.png`）；Lottie → `assets/lottie/`；Typst → `assets/typsts/`；自创 SkiaAnim → `modules/`。
-- `assets/materials/` 是事先整理的非 AIGC 素材库，优先递归查找复用，保留原目录/文件名，不写入 AIGC 生成结果。
+- 视频生成物目录：APNG → `gen/apngs/`（最终后缀 `.png`）；Typst → `gen/typsts/`；AIGC 图片 → `gen/images/`；语音 → `gen/audios/`；自创 SkiaAnim → 本片 `modules/`。
+- 本片 `assets/` 与项目根 `assets/` 都是非 AIGC 素材库，优先递归查找复用，保留原目录/文件名，不写入 AIGC 生成结果；Lottie 仅复用既有素材时放 `assets/lottie/`。
 
 ## Seedream 图片生成
 

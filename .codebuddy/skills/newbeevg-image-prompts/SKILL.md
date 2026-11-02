@@ -1,6 +1,6 @@
 ---
 name: newbeevg-image-prompts
-description: 本技能用于分析口播稿/文字稿 Markdown，判断需要 AIGC 生成的图像素材，并为每个素材生成中文文生图提示词，输出到视频脚本目录的 assets/images/prompts.md。格式为 frontmatter + 标准 Markdown 图片引用 ![中文简介](./文件名.jpg) + 中文提示词。涵盖素材识别、全局风格、文件名规划、提示词结构、格式校验，以及后续对接 Seedream 生成图片。
+description: 本技能用于分析口播稿/文字稿 Markdown，判断需要 AIGC 生成的图像素材，并为每个素材生成中文文生图提示词，输出到视频工程 `scripts/PROJECT_NAME/gen/images/prompts.md`。格式为 frontmatter + 标准 Markdown 图片引用 ![中文简介](./文件名.jpg) + 中文提示词。涵盖素材识别、全局风格、文件名规划、提示词结构、格式校验，以及后续对接 Seedream 生成图片。
 ---
 
 # NewBeeVG 图像素材提示词生成
@@ -11,7 +11,7 @@ description: 本技能用于分析口播稿/文字稿 Markdown，判断需要 AI
 
 - 每个素材一个中文简介、一个文件名、一个中文提示词；
 - 全局风格写在 YAML frontmatter；
-- 文件固定输出到**视频脚本所在目录**的 `assets/images/prompts.md`；
+- 文件固定输出到**视频工程目录** `scripts/<ScriptProjectName>/gen/images/prompts.md`；
 - 只生成提示词，不直接生成图片。
 
 ## 输入与输出
@@ -20,13 +20,15 @@ description: 本技能用于分析口播稿/文字稿 Markdown，判断需要 AI
 
 - 文字稿/口播稿 `.md` 文件；
 - 可包含标题、章节、段落、旁白、已有图片引用或 frontmatter；
-- 视频脚本目录 = 输入 Markdown 所在目录。
+- 视频工程目录 = `script.md` 和 `prompts.md` 所在的 `scripts/<ScriptProjectName>/`。
 
 ### 输出
 
 ```text
-<视频脚本目录>/
-└── assets/
+scripts/<ScriptProjectName>/
+├── script.md
+├── assets/              # 本片非 AIGC 素材
+└── gen/
     └── images/
         ├── prompts.md       # 本技能生成
         ├── wall.jpg         # 后续生成
@@ -67,7 +69,7 @@ style: 金融史口播风格插图
 - 主题、时代、地点、人物；
 - 章节结构与叙事顺序；
 - 语气与受众（历史科普、财经口播、产品介绍、教程…）；
-- 已有图片、`assets/README.md`、已有 `prompts.md`。
+- 本片 `assets/` 与共享项目根 `assets/` 中已有的非 AIGC 图片、本片 `README.md`、已有 `prompts.md`。
 
 ### 2. 确定全局风格
 
@@ -145,10 +147,10 @@ style: 金融史口播风格插图
 
 ### 6. 写入 prompts.md
 
-输出到输入 Markdown 所在目录的：
+输出到视频工程目录的：
 
 ```text
-<视频脚本目录>/assets/images/prompts.md
+scripts/<ScriptProjectName>/gen/images/prompts.md
 ```
 
 目录不存在时创建。
@@ -166,7 +168,7 @@ style: 金融史口播风格插图
 使用本技能的校验脚本：
 
 ```bash
-python scripts/validate_prompts.py <视频脚本目录>/assets/images/prompts.md
+python scripts/validate_prompts.py scripts/<ScriptProjectName>/gen/images/prompts.md
 ```
 
 检查项：

@@ -1,80 +1,85 @@
-# 资源目录、素材生成与组合
+# 视频工程目录、素材生成与组合
 
 ## 1. 目录结构
 
-`assets` 是资源根目录，固定按类型分目录：
+项目根以 `Templates/Project/README.md` 为准：
 
 ```text
-assets/
-├── materials/   # 事先整理的非 AIGC 素材（保留原目录结构）
-├── audios/      # 分镜语音 mp3 / wav + audio_timeline.md
-├── apngs/       # PngAnim 的 APNG 内容，后缀统一为 .png
-├── images/      # AIGC 生成或后处理后的图片
-├── videos/      # AIGC 生成或后处理后的视频
-├── svgs/        # 生成或编辑的 svg
-├── lottie/      # Lottie JSON（LottieAnim）
-├── typsts/      # .typ 及依赖（TypstAnim）
-└── README.md    # 资源清单与说明
+<project_root>/
+├── Directory.Build.props
+├── README.md
+├── modules/                     # 跨工程公共 SkiaAnim 模板
+│   ├── README.md
+│   └── GenRun.cs
+├── assets/                      # 跨工程共享的非 AIGC 素材
+├── todo/
+└── scripts/
+    └── <ScriptProjectName>/     # 一个子目录 = 一部片
+        ├── README.md
+        ├── script.md            # 剧本/口播稿
+        ├── storyboard.md        # 分镜
+        ├── script.cs            # C# 视频脚本
+        ├── modules/             # 本片自用 SkiaAnim
+        ├── assets/              # 本片非 AIGC 素材（可再分子目录）
+        ├── gen/                 # 全部生成产物
+        │   ├── images/          # AIGC 图像与 prompts.md
+        │   ├── apngs/           # APNG，后缀统一为 .png
+        │   ├── audios/          # TTS 语音 + audio_timeline.md
+        │   ├── videos/          # AIGC/后处理视频
+        │   ├── typsts/          # TypstAnim 的 .typ 及依赖
+        │   └── svgs/            # 生成或编辑的 SVG
+        ├── tools/               # png_frames_to_apng.py 等本片工具
+        └── output/              # mp4、校对帧
 ```
 
-## 2. 查找顺序
+创建视频工程：
 
-视频脚本运行时，按以下顺序找 `assets`：
+```bash
+# 项目根
+nbvg new scripts/<ScriptProjectName>
 
-1. 脚本当前目录：`./assets`；
-2. 当前目录的父目录：`../assets`；
-3. 继续向上：`../../assets`；
-4. 直到项目根目录的 `assets`。
-
-使用**第一个存在**的 `assets` 目录。都没有时，在脚本当前目录创建 `assets`。
-
-项目根判定：从脚本目录向上，最近的包含 `.git`、`Directory.Build.props` 或 `.codebuddy` 的目录。
-
-```csharp
-static string FindAssetsDir(string startDir)
-{
-    var start = new DirectoryInfo(startDir);
-    DirectoryInfo? root = null;
-
-    // 项目根：包含 .git / Directory.Build.props / .codebuddy 的最近目录
-    for (var d = start; d != null; d = d.Parent)
-    {
-        if (Directory.Exists(Path.Combine(d.FullName, ".git")) ||
-            File.Exists(Path.Combine(d.FullName, "Directory.Build.props")) ||
-            Directory.Exists(Path.Combine(d.FullName, ".codebuddy")))
-        {
-            root = d;
-            break;
-        }
-    }
-
-    // 从脚本目录向上找 assets，最多找到项目根
-    for (var d = start; d != null; d = d.Parent)
-    {
-        var assets = Path.Combine(d.FullName, "assets");
-        if (Directory.Exists(assets)) return assets;
-        if (d.FullName == root?.FullName) break;
-    }
-
-    var fallback = Path.Combine(startDir, "assets");
-    Directory.CreateDirectory(fallback);
-    return fallback;
-}
+# 已在 scripts/ 下
+nbvg new <ScriptProjectName>
 ```
 
-创建子目录：
+规则：
 
-```csharp
-void EnsureAssetDirs(string assets)
-{
-    foreach (var sub in new[] { "materials", "audios", "apngs", "images", "videos", "svgs", "lottie", "typsts" })
-        Directory.CreateDirectory(Path.Combine(assets, sub));
-}
-```
+- `script.md`、`storyboard.md`、`script.cs` 固定放在视频工程根目录；
+- `assets/` 只放**非 AIGC** 素材，保留用户原有目录和文件名；
+- 所有 AIGC/生成结果写入 `gen/`，不得写入任何 `assets/`；
+- 本片 `modules/` 放自创动画；可复用的公共模板放项目根 `modules/`；
+- 最终 MP4 和校对帧放本片 `output/`。
+
+## 2. 查找与引用
+
+从 `scripts/<ScriptProjectName>/` 运行 `script.cs`，路径相对于该目录：
+
+| 用途 | 路径 |
+| --- | --- |
+| 本片非 AIGC 素材 | `./assets/...` |
+| 本片 AIGC 图片 | `./gen/images/...` |
+| 本片 APNG | `./gen/apngs/...` |
+| 本片语音/音乐 | `./gen/audios/...` |
+| 本片 AIGC 视频 | `./gen/videos/...` |
+| 本片 Typst | `./gen/typsts/...` |
+| 本片生成 SVG | `./gen/svgs/...` |
+| 本片动画模板 | `./modules/Xxx.cs` |
+| 项目根共享素材 | `../../assets/...` |
+| 项目根公共模板 | `../../modules/Xxx.cs` |
+| 渲染产物 | `./output/...` |
+
+查找顺序：
+
+1. 先递归扫描本片 `./assets/`，按目录名、文件名、README 和实际内容匹配；
+2. 再查本片 `./gen/` 是否已有可复用生成物；
+3. 再查项目根 `../../assets/` 的共享素材；
+4. 最后才生成缺失素材。
+
+不要用“最近一个 assets”代替全部查找：本片 `assets/` 和根 `assets/` 角色不同，二者都可直接引用。
 
 ## 3. 优先读取 `README.md`
 
-找到 `assets` 后，**先读 `README.md`**，再决定是否存在可用素材。README 通常记录：
+先读本片 `README.md`；共享 `assets/` 或 `modules/` 若有 README 也先读，再决定是否存在可用素材。README 通常记录：
 
 - 文件名与路径；
 - 用途（背景、图标、数据图、音效…）；
@@ -82,55 +87,57 @@ void EnsureAssetDirs(string assets)
 - 来源 / 授权；
 - 使用注意事项。
 
-建议格式：
+本片 README 建议格式：
 
 ```markdown
-# Assets
+# <ScriptProjectName>
 
-| 文件 | 类型 | 用途 | 尺寸/时长 | 备注 |
+## 素材
+
+| 文件 | 类型 | 用途 | 尺寸/时长 | 来源 |
 | --- | --- | --- | --- | --- |
-| materials/bg-night.jpg | 图片 | 夜景背景（非 AIGC） | 1920×1080 | 可裁切 |
-| materials/logo.svg | SVG | 品牌 Logo（非 AIGC） | 64×64 | 保持原样 |
-| images/bg-ai.png | 图片 | AIGC 生成背景 | 1920×1080 | 可重生成 |
-| svgs/icon-chart.svg | SVG | 图表图标 | 64×64 | 单色 |
-| audios/intro.mp3 | 音频 | 片头音乐 | 12s | 淡入淡出 |
-| audios/audio_timeline.md | 时间表 | 分镜语音入点/出点 | 全片 | 与 `shotNN` 对应 |
+| assets/bg-night.jpg | 图片 | 夜景背景 | 1920×1080 | 非 AIGC |
+| assets/brand/logo.svg | SVG | 品牌 Logo | 64×64 | 非 AIGC |
+| gen/images/bg-ai.png | 图片 | AIGC 生成背景 | 1920×1080 | Seedream |
+| gen/svgs/icon-chart.svg | SVG | 图表图标 | 64×64 | 生成 |
+| gen/apngs/pulse.png | APNG | 脉冲动画 | 320×320 / 3s | 生成 |
+| gen/audios/shot01.mp3 | 音频 | 第一镜口播 | 3.40s | TTS |
 ```
 
-新增素材后同步更新 README。
+新增本片素材后同步更新该 README；新增公共素材或公共模板时更新根 `assets/README.md`、根 `modules/README.md`。
 
-## 3.5 预整理素材 `materials/`
+## 4. 非 AIGC 素材规则
 
-`assets/materials/` 是事先整理好的**非 AIGC 素材库**，可能包含图片、视频、音频、SVG、序列帧等，也可能按来源、主题或项目分成多层子目录。
+本片 `assets/` 与根 `assets/` 都是**非 AIGC 素材库**，可能包含图片、视频、音频、SVG、序列帧等，也可能按来源、主题或项目分成多层子目录。
 
 使用规则：
 
-- **优先复用**：素材盘点时先递归扫描该目录，按目录名、文件名、README 描述和实际内容匹配；
+- **优先复用**：素材盘点时先递归扫描，按目录名、文件名、README 描述和实际内容匹配；
 - **保留原结构**：不要移动、改名、重排或覆盖原文件；代码直接引用原路径；
-- **只读**：AIGC 生成结果、裁剪/调色后的中间产物不要写回 `materials/`，应写入 `images/`、`videos/`、`svgs/` 等类型目录；
-- **先读索引**：优先读 `assets/materials/README.md`，没有时再读 `assets/README.md`；
-- 若素材需要裁切、调色或转码，派生文件另存到类型目录，并在 README 记录与原始素材的对应关系。
+- **只读**：AIGC 结果、裁剪/调色后的中间产物不要写回 `assets/`，应写入 `gen/images`、`gen/videos`、`gen/svgs` 等目录；
+- **先读索引**：先读本片 `README.md`，再读共享目录的 README（若存在）；
+- 若素材需要裁切、调色或转码，派生文件另存到 `gen/`，并在 README 记录与原始素材的对应关系。
 
-## 4. 素材盘点流程
+## 5. 素材盘点流程
 
 写代码前：
 
-1. **读取 Markdown 稿件并产出分镜**：在同目录生成 `xxxx_storyboard.md`，按镜头/clip 列出 `shotNN`、口播、画面和所需视觉/音频元素；
-2. **先查 `assets/materials/`**：递归读取并优先复用事先整理的非 AIGC 素材，确认尺寸/时长/风格是否匹配，记录原路径；
-3. **再读 README 与其他目录**：标记其余已有素材，列出真正缺失项；
-4. **生成缺失素材**：优先 SVG；简单动画转 APNG，数学/科学排版用 Typst；复杂特效先查 `modules/` 现有 Skia 模板，最后才新建 SkiaAnim；
-5. **生成并登记语音**：按分镜合成语音到 `assets/audios/shotNN.mp3`，并把入点/出点写入 `assets/audios/audio_timeline.md`；
-6. **保存并登记素材**：AIGC 结果放入对应类型子目录，更新 `assets/README.md`；不要写入 `materials/`。
+1. **读取 `script.md` 并产出分镜**：在同目录生成或补全 `storyboard.md`，按镜头/clip 列出 `shotNN`、口播、画面和所需视觉/音频元素；
+2. **先查非 AIGC 素材**：递归读取本片 `assets/` 与根 `../../assets/`，记录可复用路径、尺寸、时长和风格；
+3. **再查生成物与模板**：检查本片 `gen/`、本片 `modules/README.md`、根 `modules/README.md`，列出真正缺失项；
+4. **生成缺失素材**：优先 SVG；简单动画转 APNG，数学/科学排版用 Typst；复杂特效先查现有 Skia 模板，最后才新建 SkiaAnim；
+5. **生成并登记语音**：按分镜合成语音到 `gen/audios/shotNN.mp3`，并把入点/出点写入 `gen/audios/audio_timeline.md`；
+6. **保存并登记素材**：AIGC 结果放入本片 `gen/` 对应子目录，更新本片 `README.md`；不要写入任何 `assets/`。
 
-## 5. 用 SVG 生成缺失素材
+## 6. 用 SVG 生成缺失素材
 
 优先让大模型生成 SVG：可以是静态图，也可以带简单动画。
 
 保存位置：
 
-- 优先：视频脚本当前目录的 `assets/svgs/`；
-- 该目录不存在时创建；
-- 文件名体现用途，例如 `svgs/flow-arrow.svg`、`svgs/chart-bars.svg`。
+- AIGC/编辑后的 SVG：本片 `gen/svgs/`；
+- 目录不存在时创建；
+- 文件名体现用途，例如 `gen/svgs/flow-arrow.svg`、`gen/svgs/chart-bars.svg`。
 
 生成要求：
 
@@ -175,55 +182,65 @@ void EnsureAssetDirs(string assets)
 画面简单或纯矢量的动画，建议把 SVG 转成 APNG 后嵌入，避免依赖 Svg.Skia 对 SMIL/CSS 的支持：
 
 ```bash
-npx --yes svg-animation-convert --input .\your.svg --output your.apng
+npx --yes svg-animation-convert --input ./gen/svgs/your.svg --output your.apng
 ```
 
 转换器只接受 `.apng` 中间输出，**转换完成后必须重命名为 `.png`**：
 
 ```powershell
-Move-Item .\your.apng .\assets\apngs\your.png -Force
+Move-Item .\your.apng .\gen\apngs\your.png -Force
 ```
 
 ```bash
-mv ./your.apng ./assets/apngs/your.png
+mv ./your.apng ./gen/apngs/your.png
 ```
 
 无限循环的 SVG 必须指定时长，否则转换可能无法结束或帧数不确定：
 
 ```bash
-npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
-mv ./your.apng ./assets/apngs/your.png
+npx --yes svg-animation-convert --input ./gen/svgs/your.svg --output your.apng --duration 3
+mv ./your.apng ./gen/apngs/your.png
 ```
 
 - `--duration` 按秒计，覆盖一个完整循环或镜头所需时长；
-- 最终交付后缀必须是 `.png`，不能是 `.apng`；`assets/apngs/` 下不要残留 `.apng`；
-- 用 `PngAnim("./assets/apngs/your.png")` 引入；
-- 转换后检查循环衔接、透明区域、分辨率和文件体积；可用 `inspect_apng.py --require-png` 校验后缀。
+- 最终交付后缀必须是 `.png`，不能是 `.apng`；`gen/apngs/` 下不要残留 `.apng`；
+- 用 `PngAnim("./gen/apngs/your.png")` 引入；
+- 转换后检查循环衔接、透明区域、分辨率和文件体积；可用 `inspect_apng.py --require-png` 校验后缀；
+- 视频工程自带的逐帧工具位于 `tools/png_frames_to_apng.py`，用于把逐帧 PNG 合成全帧 APNG。
 
-## 6. 引用素材
+## 7. 引用素材
 
-路径相对于运行时目录（通常为脚本所在目录）：
+路径相对于 `script.cs` 所在目录：
 
 ```csharp
-// 当前脚本目录下的 assets
-Image("./assets/images/bg-night.png")
+// 本片非 AIGC 素材
+Image("./gen/images/bg-night.png")
     .Size(1920, 1080)
     .Stretch(Stretch.UniformToFill);
 
-SVG("./assets/svgs/icon-chart.svg")
+// 本片生成 SVG
+SVG("./gen/svgs/icon-chart.svg")
     .Size(320, 320);
 
-AudioFile("./assets/audios/intro.mp3")
-    .AsClip("audio").LinkTo("start");
+// 本片语音
+AudioFile("./gen/audios/shot01.mp3")
+    .AsClip("audio_01").LinkTo("shot01");
 ```
 
-引用父目录的 assets：
+引用项目根共享素材：
 
 ```csharp
-Image("../assets/images/bg-night.png");
+Image("../../assets/brand/logo.png");
 ```
 
-## 7. 组合原则：布局 + 动画 + 素材
+引入模板：
+
+```csharp
+#:include modules/MyAnimation.cs
+#:include ../../modules/GlintTextA.cs
+```
+
+## 8. 组合原则：布局 + 动画 + 素材
 
 每个 clip 尽量有两类以上元素，不要只用一个全屏动画：
 
@@ -239,10 +256,10 @@ Image("../assets/images/bg-night.png");
 
 ```csharp
 Panel([
-    Image("./assets/images/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
+    Image("./assets/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
 
     HGrid("480,*", [
-        SVG("./assets/svgs/icon-chart.svg").Size(320, 320).Align(0, 0),
+        SVG("./gen/svgs/icon-chart.svg").Size(320, 320).Align(0, 0),
 
         HStack([
             SkiaAnim(new ChartAnimation(600, 800, 90, content)),

@@ -1,6 +1,6 @@
 ---
 name: newbeevg-video
-description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers the full pipeline from a Markdown script to `*_storyboard.md`, per-shot TTS + `assets/audios/audio_timeline.md`, global theme/font header variables, assets discovery (prefer `assets/materials/` non-AIGC prepared assets, then README + audios/images/videos/svgs), choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
+description: This skill should be used when building, editing, or debugging a NewBeeVG video project with stage/clip/layout/text/effects/export, especially in dotnet file-based apps. It covers the project layout (`scripts/PROJECT_NAME/{script.md,storyboard.md,script.cs,assets,gen,modules,output}`), the pipeline from `script.md` to `storyboard.md`, per-shot TTS + `gen/audios/audio_timeline.md`, global theme/font header variables, discovery of non-AIGC assets in local `assets/` and shared root `assets/`, choosing and composing SkiaAnim/PngAnim/LottieAnim/TypstAnim (prefer APNG, Typst, or existing Skia modules; create new SkiaAnim only as a fallback), SVG-to-APNG conversion (final filename uses .png), AsClip timing, HGrid/VGrid/HStack/VStack/Panel/WrapPanel layout, Align semantics, NBText/NBRichText/styles, Shaders/BitmapFilters/FrameMask/Filters/ColorFilters/Opacity/RenderTransform, the widget catalog except deprecated NBLayer, embedding SKCustomAnimation via SkiaAnim, audio clips via AudioFile/LinkTo, and run(...) modes (preview, MP4 export, single-frame PNG export).
 ---
 
 # NewBeeVG 视频制作
@@ -15,26 +15,26 @@ description: This skill should be used when building, editing, or debugging a Ne
 
 ## 完整视频制作流程
 
-生成视频时按以下四步执行，不要跳步。稿件、分镜和 C# 脚本放在同一目录；语音及时间表放在该目录的 `assets/audios/`。
+视频工程位于项目根 `scripts/<ScriptProjectName>/`。在项目根执行 `nbvg new scripts/<ScriptProjectName>`；如果当前已经在 `scripts/` 下，执行 `nbvg new <ScriptProjectName>`。命令会生成 `README.md`、`script.md`、`storyboard.md`、`script.cs`、`assets/`、`gen/`、`modules/`、`tools/`、`output/`。后续四步都在这个工程目录内完成。
 
 ### 1. 读取 Markdown 稿件
 
-稿件是唯一输入源，文件名形如 `xxxx.md`。先完整读取并提取：
+稿件是唯一输入源，固定为 `script.md`。先完整读取并提取：
 
 - **视频内容**：口播/旁白、标题、字幕、要点、数据、引用；
 - **视频要求**：画幅、时长、帧率、主题、字体、语气、节奏、目标平台；
-- **已有素材**：`assets/materials/` 中非 AIGC 的图片/视频/音频/SVG、其余 assets、`modules/` 中的 Skia 模板及其引用路径。
+- **已有素材**：本片 `assets/` 与项目根共享 `assets/` 中非 AIGC 的图片/视频/音频/SVG，本片 `modules/` 与根 `modules/` 中的 Skia 模板及其引用路径。
 
 要求缺失时采用默认值，并在分镜中标注：`1920×1080`、`25fps`、`NBVideoThemes.Nature`、可用中文字体。不要自行改写口播事实或数据。
 
-### 2. 拆分分镜并保存 `xxxx_storyboard.md`
+### 2. 拆分分镜并保存 `storyboard.md`
 
-在同目录创建 `xxxx_storyboard.md`（`xxxx` 与稿件同名），先写总表，再写每个镜头的详情：
+在同目录创建或补全 `storyboard.md`，先写总表，再写每个镜头的详情：
 
 ```markdown
 # 《视频标题》分镜
 
-- 源稿件：xxxx.md
+- 源稿件：script.md
 - 画幅：1920×1080
 - 帧率：25 fps
 - 主题：NBVideoThemes.Nature
@@ -54,24 +54,24 @@ description: This skill should be used when building, editing, or debugging a Ne
 - 字幕：...
 - 时长：3.4 秒（85 帧）
 - 转场：...
-- 音频：./assets/audios/shot01.mp3
+- 音频：./gen/audios/shot01.mp3
 ```
 
 分镜要求：
 
 - 每个镜头使用唯一 `shotNN`，与音频文件名、C# clip 名一一对应；
 - 口播按语义断句，一个镜头只表达一个完整意思；
-- 画面写清主体、构图、文字层级、动效、素材路径与背景；优先从 `assets/materials/` 选择已有非 AIGC 素材，缺失再标记生成；
+- 画面写清主体、构图、文字层级、动效、素材路径与背景；优先从 `assets/` 选择已有非 AIGC 素材，缺失再标记生成；
 - 时长先按语速估算，TTS 后按实际音频时长校正；
 - 所有镜头时长之和与稿件总时长一致，误差控制在 1 秒内；
 - 主题、字体、画幅、帧率在总表固定，后续不要逐镜头变化。
 
 ### 3. 合成语音并记录入点/出点
 
-按分镜逐条合成语音，保存到 `./assets/audios/`：
+按分镜逐条合成语音，保存到 `./gen/audios/`：
 
 ```text
-assets/audios/
+gen/audios/
 ├── shot01.mp3
 ├── shot02.mp3
 ├── ...
@@ -81,7 +81,7 @@ assets/audios/
 - 音频文件名与分镜 `shotNN` 一致，优先 mp3/wav；
 - 音色、语速、语言从稿件要求读取；缺失时全片统一默认，不逐镜头变化；
 - 生成后用 `ffprobe` 读取实际时长，按分镜顺序累加时间轴；
-- 在 `assets/audios/audio_timeline.md` 记录每条语音的入点/出点：
+- 在 `gen/audios/audio_timeline.md` 记录每条语音的入点/出点：
 
 ```markdown
 | 分镜 | 音频 | 入点(s) | 出点(s) | 时长(s) | 画面 clip |
@@ -98,12 +98,12 @@ assets/audios/
 读取单个音频时长：
 
 ```bash
-ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 ./assets/audios/shot01.mp3
+ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 ./gen/audios/shot01.mp3
 ```
 
 ### 4. 生成 C# 单文件视频脚本
 
-在稿件同目录生成 `xxxx.cs`（与稿件同名），使用 dotnet file-based app。以分镜和 `audio_timeline.md` 为准：
+在同目录生成 `script.cs`，使用 dotnet file-based app。以 `storyboard.md` 和 `gen/audios/audio_timeline.md` 为准：
 
 1. **文件头部**声明全局主题与字体：
    ```csharp
@@ -113,8 +113,8 @@ ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 ./assets/au
    ```
 2. **先画面、后音频**：每个镜头先创建画面 clip 并登记 `name`，再创建对应音频并 `LinkTo`；
 3. **帧数换算**：`frames = (int)Math.Ceiling((出点 - 入点) * fps)`，建议额外加 2–4 帧尾部留白，避免语音被硬切；
-4. **音频对齐**：顺序镜头直接用 `AudioFile("./assets/audios/shotNN.mp3").AsClip("audio_NN").LinkTo("shotNN")`；非顺序或需要偏移时，按时间表计算 `offset = 入点帧 - clip.StartFrame`；
-5. **素材复用**：先查 `assets/materials/`、其余 `assets/` 和 `modules/README.md`，能用则复用；缺失素材按 SVG → APNG / Typst → 新建 SkiaAnim 的优先级补齐，避免每个镜头各用一套风格；
+4. **音频对齐**：顺序镜头直接用 `AudioFile("./gen/audios/shotNN.mp3").AsClip("audio_NN").LinkTo("shotNN")`；非顺序或需要偏移时，按时间表计算 `offset = 入点帧 - clip.StartFrame`；
+5. **素材复用**：先查本片 `assets/`、项目根 `assets/`、本片 `modules/` 与根 `modules/`，能用则复用；缺失素材按 SVG → APNG / Typst → 新建 SkiaAnim 的优先级补齐，避免每个镜头各用一套风格；
 6. **设计一致性**：统一栅格、安全边距、字号层级（标题/副标题/正文/注释）、主色与装饰色；每镜头只保留一个视觉中心，转场克制，字幕不遮挡主体；
 7. **收尾**：`run(stage(...), clips(), args: args)`，确保预览、MP4、单帧 PNG 三种模式都能运行。
 
@@ -139,7 +139,7 @@ const int FPS = 25;
 }
 
 // 再创建音频并链接到已登记的 shot01
-AudioFile("./assets/audios/shot01.mp3")
+AudioFile("./gen/audios/shot01.mp3")
     .AsClip("audio_01").LinkTo("shot01");
 
 // shot02 同理，start 可省略以自动接续
@@ -169,10 +169,11 @@ clip 的时间规则：
 
 ## 工程约定
 
-- 使用 **dotnet file-based app**：文件以 `#!/usr/bin/env dotnet` 开头，`dotnet xxx.cs` 直接运行。
+- 使用 **dotnet file-based app**：`script.cs` 以 `#!/usr/bin/env dotnet` 开头，`dotnet script.cs` 直接运行。
 - 需要引用其他源文件时用 `#:include 相对路径.cs`；类声明放在顶层语句之后。
-- 仓库 `apps/files/` 下已有 `Directory.Build.props`，全局导入 `NewBeeVG`、`SkiaSharp`、静态 `NewBeeVG.Methods`，不用重复 `using`。
-- 仓库外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.25`；仓库内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
+- 项目根目录已有 `Directory.Build.props`，会作用于 `scripts/<ScriptProjectName>/`，全局导入 `NewBeeVG`、`SkiaSharp`、静态 `NewBeeVG.Methods`，不用重复 `using`。
+- 当前 NewBeeVG NuGet 包版本为 **1.0.1.30**。
+- 视频工程外运行需在文件顶部加 `#:package NewBeeVG@1.0.1.30`；视频工程内由 `Directory.Build.props` 提供项目引用，出现重复引用时删除该指令。
 - **首字母大写的方法**是界面/布局/样式方法（`TextBlock`、`HStack`、`Align`、`Background`…）；
 - **首字母小写的方法**是行为方法（`stage`、`run`、`font`、`clips`…）。
 - **全局主题与字体必须写在文件头部**：用 `var theme = NBVideoThemes.XXX;`、`var fontName = "字体名";` 和 `font(fontName);` 各声明一次，后续 clip 只引用 `theme.*` 与全局字体。
@@ -207,73 +208,94 @@ var textSecondary = theme.TextSecondary;
 
 > 后文与参考文档中的短片段为突出 API 结构可能直接写颜色字面量；生成完整视频脚本时必须改成文件头部的 `theme.*` 变量。
 
-## 资源目录
+## 工程与资源目录
 
-`assets` 是资源根目录，按类型组织：
-
-```text
-assets/
-├── materials/    # 事先整理的非 AIGC 素材（图片/视频/音频/SVG 等，保留原目录结构）
-├── audios/       # 本片分镜语音 + audio_timeline.md
-├── apngs/        # PngAnim 使用的 APNG 内容，后缀统一为 .png
-├── images/       # AIGC 生成或后处理后的图片
-├── videos/       # AIGC 生成或后处理后的视频
-├── svgs/         # 生成或编辑的 SVG
-├── lottie/       # LottieAnim 的 JSON
-├── typsts/       # TypstAnim 的 .typ 及依赖
-└── README.md
-```
-
-`assets/materials/` 是**只读优先素材库**：里面是用户或项目事先整理好的非 AIGC 素材，可能按来源、主题或项目分成多层子目录。不要擅自移动、改名或重排；AIGC 生成结果不要写入该目录。
-
-优先读取 `assets/materials/README.md`；没有时再读 `assets/README.md`。
-
-自创的 `SkiaAnim` 源码不放在 `assets`，而是与它同级：
+项目根结构以 `Templates/Project/README.md` 为准：
 
 ```text
-modules/
-├── MyAnimation.cs
-└── README.md
+<project_root>/
+├── Directory.Build.props
+├── README.md
+├── modules/                     # 跨工程公共 SkiaAnim 模板 + README.md
+├── assets/                      # 跨工程共享的非 AIGC 素材
+├── todo/
+└── scripts/
+    └── <ScriptProjectName>/     # 一个子目录 = 一部片
+        ├── README.md
+        ├── script.md            # 剧本/口播稿
+        ├── storyboard.md        # 分镜
+        ├── script.cs            # C# 单文件视频脚本
+        ├── modules/             # 本片自用 SkiaAnim + README.md
+        ├── assets/              # 本片非 AIGC 素材（可再分子目录）
+        ├── gen/                 # 全部生成产物
+        │   ├── images/          # AIGC 图像与 prompts.md
+        │   ├── apngs/           # APNG，后缀统一为 .png
+        │   ├── audios/          # TTS 语音 + audio_timeline.md
+        │   ├── videos/          # AIGC/后处理视频
+        │   ├── typsts/          # TypstAnim 的 .typ 及依赖
+        │   └── svgs/            # 生成或编辑的 SVG
+        ├── tools/               # png_frames_to_apng.py 等本片工具
+        └── output/              # mp4、校对帧
 ```
 
-查找顺序：
+硬性规则：
 
-1. 先看视频脚本当前目录下的 `./assets`；
-2. 不存在则依次向父目录查找；
-3. 一直找到项目根目录下的 `assets`；
-4. 使用最近的一个存在的 `assets` 目录。
+- `assets/` 只放**非 AIGC** 素材，保留用户原有目录结构；不要移动、改名或重排；
+- 所有 AIGC/生成结果写到 `gen/`，不要污染任何 `assets/`；
+- `script.md`、`storyboard.md`、`script.cs` 固定放在 `scripts/<ScriptProjectName>/` 根目录，不使用 `xxxx.md` 这类按标题命名的文件名；
+- 自创 `SkiaAnim` 放本片 `modules/`；可复用模板优先放项目根 `modules/` 并在 `modules/README.md` 登记；
+- 最终渲染产物放本片 `output/`，不要写到 `gen/`。
 
-**优先读取 `assets/README.md`**：该文件通常记录资源清单、用途、尺寸、时长、来源等。先按 README 索引找素材，不要盲目遍历整个目录。
+查找与引用顺序：
 
-**先扫 `assets/materials/`**：递归查看已有素材，按文件名、目录、README 描述和实际内容匹配镜头需求（背景、人物、产品、图标、音视频、SVG 等）。找到合适的就直接引用其路径，不再生成；只有确实缺失时才走 AIGC 或新建动画。
+1. 本片非 AIGC 素材：`./assets/...`，递归按文件名、目录和 README 匹配；
+2. 本片生成产物：`./gen/{images,apngs,audios,videos,typsts,svgs}/...`；
+3. 跨工程共享素材：从 `scripts/<ScriptProjectName>/` 到项目根 `assets/` 是 `../../assets/...`；
+4. 本片动画模板：`./modules/Xxx.cs`；
+5. 公共动画模板：`../../modules/Xxx.cs`。
 
-引用规则：
+引用示例：
 
-- 代码中的路径相对于运行时目录（通常是脚本所在目录）；
-- 引用上层 assets 时写相对路径，如 `../assets/materials/bg.png`；
-- 新生成的素材优先放到**视频脚本当前目录**的 `assets` 对应类型目录下，目录不存在时创建；
-- AIGC 生成结果不要写入 `assets/materials/`；
-- 命名建议小写、短横线或下划线，并体现用途，如 `svgs/arrow-flow.svg`、`images/bg-night.png`。
+```csharp
+Image("./assets/bg.png");                 // 本片非 AIGC 素材
+Image("../../assets/brand/logo.png");     // 项目根共享素材
+Image("./gen/images/scene-01.png");       // 本片 AIGC 图片
+PngAnim("./gen/apngs/icon-flow.png");     // 本片 APNG
+TypstAnim("./gen/typsts/formula.typ");    // 本片 Typst
+AudioFile("./gen/audios/shot01.mp3");     // 本片语音
+```
+
+```csharp
+// 本片模板
+#:include modules/MyAnimation.cs
+
+// 公共模板
+#:include ../../modules/GlintTextA.cs
+```
+
+- 代码路径相对于 `script.cs` 的运行目录（即视频工程目录）；
+- 先读本片 `README.md`；共享 `assets/` 或 `modules/` 若有 `README.md` 也先读索引，不要盲目遍历；
+- 命名用小写、短横线或下划线并体现用途，如 `gen/svgs/arrow-flow.svg`、`gen/images/bg-night.png`。
 
 ## 素材分析与生成
 
 制作视频前先做素材盘点：
 
-1. **分析稿件/脚本**：拆分镜头，列出每个 clip 需要的背景、图片、图标、图表、SVG、音频、视频素材；
-2. **先查预整理素材**：递归读取 `assets/materials/` 及其 README，标记可直接复用的非 AIGC 素材，记录原路径；
-3. **再查其他 assets 与模板**：读取 `assets/README.md`、`modules/README.md`，标记已有素材和可复用 `SkiaAnim` 模板，列出真正缺失项；
-4. **选择实现方式**：能用 `materials` 或现有模板就不生成；需要生成时优先 APNG（简单矢量）或 Typst（数学/科学/复杂排版）；以上都做不了或效果不好，才新建 `SkiaAnim`。Lottie 仅作已有可靠素材的兜底；
+1. **分析 `script.md` / `storyboard.md`**：拆分镜头，列出每个 clip 需要的背景、图片、图标、图表、SVG、音频、视频素材；
+2. **先查本片与共享的非 AIGC 素材**：递归读取 `./assets/` 和 `../../assets/`，记录可直接复用的原路径；
+3. **再查生成产物与模板**：检查 `./gen/`、本片 `modules/README.md`、根 `modules/README.md`，列出真正缺失项；
+4. **选择实现方式**：能用本片/共享素材或现有模板就不生成；需要生成时优先 APNG（简单矢量）或 Typst（数学/科学/复杂排版）；以上都做不了或效果不好，才新建 `SkiaAnim`。Lottie 仅作已有可靠素材的兜底；
 5. **生成缺失素材**：优先使用大模型的 SVG 生成能力，产出静态 SVG 或带 SMIL/CSS 动画的 SVG；简单动画再转成 APNG；
 6. **保存素材**：
-   - AIGC 图片 → `assets/images/`
-   - AIGC APNG → `assets/apngs/`
-   - 生成/编辑的 SVG → `assets/svgs/`
-   - Lottie → `assets/lottie/`
-   - Typst → `assets/typsts/`
-   - 分镜语音 → `assets/audios/`，同时维护 `audio_timeline.md`
-   - AIGC/后处理视频 → `assets/videos/`
-   - 目录不存在时先创建；不要写入 `assets/materials/`；
-7. **登记**：在 `assets/README.md` 中补充文件名、用途、尺寸/时长、来源（非 AIGC / AIGC），方便后续复用。
+   - AIGC 图片 → `gen/images/`
+   - AIGC APNG → `gen/apngs/`，最终后缀 `.png`
+   - 生成/编辑的 SVG → `gen/svgs/`
+   - Typst → `gen/typsts/`
+   - 分镜语音 → `gen/audios/`，同时维护 `audio_timeline.md`
+   - AIGC/后处理视频 → `gen/videos/`
+   - Lottie 只复用已有素材，放 `./assets/lottie/`（非 AIGC）
+   - 目录不存在时先创建；不要写入 `assets/`；
+7. **登记**：在本片 `README.md` 补充文件名、用途、尺寸/时长、来源（非 AIGC / AIGC）；公共素材更新根 `assets/README.md`，公共模板更新根 `modules/README.md`。
 
 生成 SVG 时：
 
@@ -287,12 +309,12 @@ modules/
 
 `SkiaAnim`、`PngAnim`、`LottieAnim`、`TypstAnim` 都会返回可视节点，可直接放进任意布局容器。
 
-**生成动画素材时，先查 `assets/materials/` 是否有可直接使用的图形、序列或动画；没有时优先使用 APNG、Typst，或直接复用现有 `modules/` 中的 Skia 模板；这些都无法实现或效果不好时，才编写新的 Skia 动画模板。** 不要一上来就新建 `SkiaAnim`。
+**生成动画素材时，先查本片 `assets/` 和根 `assets/` 是否有可直接使用的图形、序列或动画；没有时优先使用 APNG、Typst，或直接复用本片 `modules/` 与根 `../../modules/` 中的 Skia 模板；这些都无法实现或效果不好时，才编写新的 Skia 动画模板。** 不要一上来就新建 `SkiaAnim`。
 
 优先方案（按素材类型选择，不是硬顺序）：
 
-1. **预整理素材**：先递归查 `assets/materials/`，有现成图片、序列帧、APNG、SVG、Lottie 或视频就直接用；
-2. **现有 Skia 模板**：读 `modules/README.md`，有合适特效直接 `#:include` 复用；
+1. **预整理素材**：先递归查 `./assets/` 和 `../../assets/`，有现成图片、序列帧、APNG、SVG、Lottie 或视频就直接用；
+2. **现有 Skia 模板**：读本片 `modules/README.md` 与根 `../../modules/README.md`，有合适特效直接 `#:include` 复用；
 3. **APNG**：简单矢量、图标、路径、进度、描边、形变，用 SVG → `svg-animation-convert`；
 4. **Typst**：数学公式、科学示意图、函数图、复杂表格与排版，用 Typst 多页文档；
 5. **新建 Skia**：只有上述方案无法实现或效果明显不好时，才用 `newbeevg-skia-animation` 新建；
@@ -300,7 +322,7 @@ modules/
 
 | 工厂 | 适用场景 | 素材来源 |
 | --- | --- | --- |
-| `SkiaAnim(ISKAnimation)` | 复杂动画、数据图形、数字滚动、图表、程序化特效 | 优先复用 `modules/` 现有模板；没有合适模板且 APNG/Typst 做不了时再新建 |
+| `SkiaAnim(ISKAnimation)` | 复杂动画、数据图形、数字滚动、图表、程序化特效 | 优先复用本片或根 `modules/` 现有模板；没有合适模板且 APNG/Typst 做不了时再新建 |
 | `PngAnim(path)` | 画面简单、矢量插画、SMIL/CSS 动画 | 大模型生成 SVG，再转成 APNG；最终文件后缀用 `.png` |
 | `LottieAnim(path)` | Lottie JSON 动画 | 大模型可生成，但质量较差，不推荐 |
 | `TypstAnim(path)` | 数学、科学、矢量图表、复杂排版 | Typst + CeTZ 多页文档 |
@@ -311,41 +333,41 @@ modules/
 
 **默认先复用现有模板；只有在 APNG、Typst 和现有模板都无法满足时，才新建 `SkiaAnim`。**
 
-1. **先找预制特效**：项目目录的 `modules/` 通常放有现成的 `SkiaAnim` 特效，先读 `modules/README.md`，按介绍选择；找到后用 `#:include modules/Xxx.cs` 引入并直接 `SkiaAnim(new Xxx(...))`；
+1. **先找预制特效**：本片 `modules/` 与项目根 `modules/` 通常放有现成的 `SkiaAnim` 特效，先读对应 `README.md`，按介绍选择；本片模板用 `#:include modules/Xxx.cs`，公共模板用 `#:include ../../modules/Xxx.cs`，然后直接 `SkiaAnim(new Xxx(...))`；
 2. **确认是否真的需要新建**：简单矢量动效优先用 APNG（`PngAnim`），数学/科学排版优先用 Typst（`TypstAnim`）；这两者和现有模板都做不了，或效果明显不好时，才使用 `newbeevg-skia-animation` 技能创建 `SKCustomAnimation` 子类；
-3. **保存位置**：自创特效放在**视频脚本文件所在目录**的 `modules/`，目录不存在时创建；同步在 `modules/README.md` 中补充用途、参数和示例；
+3. **保存位置**：本片自创特效放 `scripts/<ScriptProjectName>/modules/`；可复用的通用模板放项目根 `modules/`；同步更新对应 `README.md`；
 4. 简单静态图形不必新建特效，优先用 SVG；需要简单动效时用 SVG 转 APNG（`PngAnim`）。
 
 ### `PngAnim`：简单画面与矢量动画
 
 适合扁平插画、图标位移、路径生长、描边、简单形变等矢量场景。流程：
 
-1. 用大模型生成带 SMIL / CSS 动画的自包含 SVG，保存到 `assets/svgs/`；
+1. 用大模型生成带 SMIL / CSS 动画的自包含 SVG，保存到 `gen/svgs/`；
 2. 用 `svg-animation-convert` 转成 APNG（转换器只接受 `.apng` 输出）：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng
 ```
 
-3. **立即把输出重命名为 `.png`**，再放到 `assets/apngs/`：
+3. **立即把输出重命名为 `.png`**，再放到 `gen/apngs/`：
 
 ```powershell
-Move-Item .\your.apng .\assets\apngs\your.png -Force
+Move-Item .\your.apng .\gen\apngs\your.png -Force
 ```
 
 ```bash
-mv ./your.apng ./assets/apngs/your.png
+mv ./your.apng ./gen/apngs/your.png
 ```
 
-4. 脚本中用 `PngAnim("./assets/apngs/your.png")` 引入。
+4. 脚本中用 `PngAnim("./gen/apngs/your.png")` 引入。
 
-**最终文件后缀必须是 `.png`，不能是 `.apng`**：APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码，但 `.apng` 在很多图片查看器/预览器中无法打开。交付前检查 `assets/apngs/` 下没有残留 `.apng`。
+**最终文件后缀必须是 `.png`，不能是 `.apng`**：APNG 内容放在 `.png` 文件中不影响 NewBeeVG 解码，但 `.apng` 在很多图片查看器/预览器中无法打开。交付前检查 `gen/apngs/` 下没有残留 `.apng`。
 
 无限循环的 SVG 动画必须显式指定转换时长，否则转换可能无法结束或帧数不确定：
 
 ```bash
 npx --yes svg-animation-convert --input .\your.svg --output your.apng --duration 3
-mv ./your.apng ./assets/apngs/your.png
+mv ./your.apng ./gen/apngs/your.png
 ```
 
 - `--duration` 按秒计，取值覆盖一个完整循环或镜头所需时长；
@@ -366,7 +388,7 @@ LottieAnim("./assets/lottie/loading.json");
 适合公式推导、科学示意图、复杂表格、矢量图表等 Typst 擅长的内容。用 Typst 编写多页文档，配合 CeTZ 等包绘制矢量图，每个页面会成为一帧：
 
 ```csharp
-TypstAnim("./assets/typsts/derivation.typ");
+TypstAnim("./gen/typsts/derivation.typ");
 ```
 
 - 页面尺寸、边距应与目标布局区域匹配；
@@ -378,23 +400,24 @@ TypstAnim("./assets/typsts/derivation.typ");
 ### 存放约定
 
 ```text
-<视频脚本目录>/
-├── assets/
-│   ├── materials/    # 非 AIGC 预整理素材（只读优先，保留原结构）
-│   ├── apngs/        # PngAnim 的 APNG 内容，后缀统一为 .png
+scripts/<ScriptProjectName>/
+├── assets/           # 本片非 AIGC 素材，保留原目录结构
+├── gen/
+│   ├── images/       # AIGC 图片 + prompts.md
+│   ├── apngs/        # PngAnim 的 APNG，后缀统一为 .png
 │   ├── audios/       # 分镜语音 + audio_timeline.md
-│   ├── images/       # AIGC 生成或后处理后的图片
-│   ├── lottie/       # LottieAnim 的 JSON
-│   ├── typsts/       # TypstAnim 的 .typ 及其依赖
-│   ├── svgs/         # 生成或编辑的 SVG
-│   └── README.md
-└── modules/          # 自创 SkiaAnim 的 .cs 与 README.md
+│   ├── videos/       # AIGC/后处理视频
+│   ├── typsts/       # TypstAnim 的 .typ 及依赖
+│   └── svgs/         # 生成或编辑的 SVG
+├── modules/          # 本片自创 SkiaAnim 的 .cs 与 README.md
+├── tools/            # png_frames_to_apng.py 等本片工具
+└── output/           # mp4、校对帧
 ```
 
-- `assets/materials/` 是只读优先素材库，找到合适素材直接用；不要把 AIGC 结果写入该目录；
-- `PngAnim` 的 APNG 放 `assets/apngs/`，`LottieAnim` 放 `assets/lottie/`，`TypstAnim` 放 `assets/typsts/`；目录不存在时创建；
-- 自创的 `SkiaAnim` 放在**视频脚本文件所在目录**的 `modules/` 下，目录不存在时创建；
-- 新增素材或模块后，同步更新对应的 `README.md`，方便后续复用。
+- 本片非 AIGC 素材放 `assets/`；项目根 `../../assets/` 是跨工程共享素材；
+- `PngAnim` 的 APNG 放 `gen/apngs/`，`TypstAnim` 放 `gen/typsts/`，`LottieAnim` 仅在复用既有素材时放 `assets/lottie/`；
+- 自创的 `SkiaAnim` 放在本片 `modules/`；可复用模板放项目根 `../../modules/`；
+- 新增素材或模块后，同步更新本片 `README.md`；公共资源更新根 `assets/README.md` 或根 `modules/README.md`。
 
 ## 组合原则
 
@@ -402,17 +425,17 @@ TypstAnim("./assets/typsts/derivation.typ");
 
 ```csharp
 // 推荐：背景素材 + 布局分栏 + 多个动画 + 文字
-// 假设文件头部已声明 theme 与 font；背景优先取自 materials 预整理素材
+// 假设文件头部已声明 theme 与 font；背景优先取自本片 assets 或根 assets 的非 AIGC 素材
 Panel([
-    Image("./assets/materials/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
+    Image("./assets/bg.png").Size(1920, 1080).Stretch(Stretch.UniformToFill),
 
     HGrid("480,*", [
-        PngAnim("./assets/apngs/icon-chart.png").Size(320, 320).Align(0, 0),
+        PngAnim("./gen/apngs/icon-chart.png").Size(320, 320).Align(0, 0),
 
         HStack([
             SkiaAnim(new ChartAnimation(600, 800, 90, content)),
             VStack([
-                TypstAnim("./assets/typsts/formula.typ"),
+                TypstAnim("./gen/typsts/formula.typ"),
                 TextBlock("季度增长").Font(72, theme.TextPrimary),
                 TextBlock("+128%").Font(160, theme.Primary),
             ]).Spacing(20),
@@ -512,19 +535,19 @@ HStack([...]).AsClip(90, 30, name: "body");
 
 ```csharp
 // 语音从 shot01 的起始帧开始
-AudioFile("./assets/audios/shot01.mp3")
+AudioFile("./gen/audios/shot01.mp3")
     .AsClip("audio_01").LinkTo("shot01");
 
 // 需要延后 10 帧时，offset 为相对 shot01 起点的帧数
-AudioFile("./assets/audios/shot02.mp3")
+AudioFile("./gen/audios/shot02.mp3")
     .AsClip("audio_02").LinkTo("shot02", 10);
 ```
 
-- `AudioFile(path)` 创建音频 clip，分镜语音统一放在 `./assets/audios/`；
+- `AudioFile(path)` 创建音频 clip，分镜语音统一放在 `./gen/audios/`；
 - `.AsClip("audio_NN")` 登记音频并命名（音频 clip 不需要 `frames`）；
 - `.LinkTo("shotNN", offset)`：音频起点 = 目标 clip 的 `StartFrame + offset`，`offset` 默认 `0`；
 - 目标画面 clip 必须**先创建并登记名称**，否则 `LinkTo` 找不到目标，链接会静默失败；
-- 每个镜头的入点/出点记录在 `assets/audios/audio_timeline.md`，`LinkTo` 的偏移要与其一致；
+- 每个镜头的入点/出点记录在 `gen/audios/audio_timeline.md`，`LinkTo` 的偏移要与其一致；
 - 画面 clip 的 `frames` 应覆盖实际语音时长；通常按 `ceil(音频秒数 * fps) + 2~4 帧` 设置；
 - 音频时长在 `Prepare` 阶段按文件自动计算，`DurationFrames` 会被更新；
 - 音频与画面进入同一 track 混音，预览和 MP4 导出都会带音频；
@@ -541,10 +564,10 @@ VStack([
     TextBlock("第二句口播").Font(80, theme.Primary).Align(0, 0)
 ]).Align(0, 0).AsClip(frames: 97, name: "shot02");
 
-AudioFile("./assets/audios/shot01.mp3")
+AudioFile("./gen/audios/shot01.mp3")
     .AsClip("audio_01").LinkTo("shot01");
 
-AudioFile("./assets/audios/shot02.mp3")
+AudioFile("./gen/audios/shot02.mp3")
     .AsClip("audio_02").LinkTo("shot02");
 
 run(stage(1920, 1080, bg: theme.Background), clips());
@@ -658,17 +681,17 @@ Rect(400, 200)
 | 工厂 | 示例 |
 | --- | --- |
 | `SkiaAnim` | `SkiaAnim(new MyAnimation(600, 400, 90, content))` |
-| `PngAnim` | `PngAnim("./assets/apngs/icon-flow.png")` |
+| `PngAnim` | `PngAnim("./gen/apngs/icon-flow.png")` |
 | `LottieAnim` | `LottieAnim("./assets/lottie/loading.json")` |
-| `TypstAnim` | `TypstAnim("./assets/typsts/formula.typ")` |
+| `TypstAnim` | `TypstAnim("./gen/typsts/formula.typ")` |
 
 ```csharp
 // 组合多个动画：主图 + 公式 + 图标
 HGrid("*,*", [
     SkiaAnim(new MyAnimation(600, 400, 90, content)),
     VStack([
-        TypstAnim("./assets/typsts/formula.typ"),
-        PngAnim("./assets/apngs/icon-flow.png").Size(240, 240),
+        TypstAnim("./gen/typsts/formula.typ"),
+        PngAnim("./gen/apngs/icon-flow.png").Size(240, 240),
     ]).Spacing(20),
 ]).AsClip(90, name: "clip1");
 ```
@@ -705,9 +728,9 @@ public static int run(
 // file-based app 顶层：透传命令行参数
 run(stage(1920, 1080, bg: theme.Background), clips(), args: args);
 
-// dotnet run                      → 预览
-// dotnet run -- out.mp4           → 导出 MP4
-// dotnet run -- 42 out.png        → 导出第 42 帧 PNG
+// dotnet script.cs                        → 预览
+// dotnet script.cs -- output/final.mp4    → 导出 MP4
+// dotnet script.cs -- 42 output/frame.png → 导出第 42 帧 PNG
 ```
 
 补充：
@@ -738,22 +761,22 @@ run(stage(1920, 1080, bg: theme.Background), clips(), args: args);
 5. 动效是否使用 `e.p` / `e.pf` / `Easing`，是否误用绝对帧号；
 6. 生成动画素材时，是否优先使用 APNG、Typst 或现有 Skia 模板；只有它们都无法实现或效果不好时，才新建 `SkiaAnim`；
 7. 动画实例尺寸与布局区域是否匹配，是否需要透明背景（仅 `SkiaAnim`）；
-8. 自创 `SkiaAnim` 是否保存到脚本目录的 `modules/` 并更新 `modules/README.md`；APNG / Lottie / Typst 素材是否保存到脚本目录的 `assets/` 下；APNG 是否放在 `assets/apngs/` 且最终后缀为 `.png`，目录下是否残留 `.apng`；
+8. 自创 `SkiaAnim` 是否保存到本片 `modules/` 并更新其 `README.md`；生成素材是否写入本片 `gen/` 对应子目录，而没有写入任何 `assets/`；APNG 是否放在 `gen/apngs/` 且最终后缀为 `.png`，目录下是否残留 `.apng`；
 9. 是否避免使用已废弃的 `NBLayer`；
 10. `run(...)` 的 `args` 模式是否与当前需求一致（预览 / MP4 / PNG）；
 11. 文件顶部是否有 `#!`，`#:include` 路径是否正确，类声明是否在顶层语句之后；
 12. 音频是否用 `AudioFile(...).AsClip("audio").LinkTo("目标clip", offset)`，目标 clip 是否已先创建并登记名称；
-13. 是否按 `./assets` → 父目录 → 项目根目录的顺序找到 assets，并优先阅读 `README.md`；
-14. 缺失素材是否优先用 SVG / APNG / Typst 生成；复杂 Skia 特效是否先查 `modules/`，最后才新建；素材是否保存到脚本目录的 `assets/` 对应子目录，目录是否已创建；
+13. 是否区分本片 `./assets`、本片 `./gen`、共享 `../../assets`，并优先读取对应 `README.md`；
+14. 缺失素材是否优先用 SVG / APNG / Typst 生成；复杂 Skia 特效是否先查本片 `modules/` 与根 `../../modules/`，最后才新建；生成素材是否保存到本片 `gen/` 对应子目录；
 15. 每个 clip 是否组合了布局组件、多个动画与素材，而不是只用一个全屏动画；
-16. 是否先产出 `xxxx_storyboard.md`，每个镜头都记录了口播、画面、素材、时长和对应 `shotNN`；
-17. 是否逐镜头生成语音到 `assets/audios/`，并在 `audio_timeline.md` 记录入点、出点与总时长；
+16. 是否先产出 `storyboard.md`，每个镜头都记录了口播、画面、素材、时长和对应 `shotNN`；
+17. 是否逐镜头生成语音到 `gen/audios/`，并在 `audio_timeline.md` 记录入点、出点与总时长；
 18. C# 脚本是否按分镜和音频时间表生成，clip 名与 `shotNN` 对齐，先创建画面 clip 再 `LinkTo` 音频；
-19. 是否先递归检查 `assets/materials/` 并优先复用非 AIGC 素材；是否保留其原目录结构与文件名；AIGC 结果是否写入 `images/apngs/svgs/videos` 等目录，而没有污染 `materials`。
+19. 是否先递归检查本片 `assets/` 和根 `assets/` 并优先复用非 AIGC 素材；是否保留其原目录结构与文件名；AIGC 结果是否写入 `gen/images`、`gen/apngs`、`gen/svgs`、`gen/videos` 等目录，而没有污染任何 `assets/`。
 
 ## 资源
 
-- `references/assets.md`：assets 查找顺序、README 约定、素材盘点与 SVG 生成流程、资源引用代码。
+- `references/assets.md`：视频工程目录、素材查找顺序、README 约定、素材盘点与 SVG 生成流程、资源引用代码。
 - `references/concepts-and-run.md`：概念、clip 时间规则、`AsClip`、音频 `LinkTo`、`clips()`、`run` 参数与返回值细节。
 - `references/layout.md`：六种布局容器、Grid 尺寸语法、`Align` 全取值与排版示例。
 - `references/texts-and-style.md`：`NBText` / `NBRichText` / `TextRun`、`Styles`、逐帧动画与缓动。

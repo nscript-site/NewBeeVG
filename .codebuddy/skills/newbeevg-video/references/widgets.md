@@ -89,8 +89,8 @@ Image("./assets/photo.jpg")
 ```
 
 - `.Size(w, h)` / `.Stretch(...)` 控制尺寸与拉伸方式；
-- 路径相对当前工作目录；图片通常放在 `assets/images/`；
-- assets 查找顺序与 README 约定见 `assets.md`。
+- 路径相对 `script.cs` 所在目录；本片非 AIGC 图片放 `assets/`，AIGC 图片放 `gen/images/`；
+- 目录与引用约定见 `assets.md`。
 
 ### SVG
 
@@ -108,7 +108,7 @@ SVG("""
 """).Size(200, 200).Align(0, 0);
 ```
 
-- 文件形式通常放在 `assets/svgs/`；
+- 生成/编辑的 SVG 通常放在本片 `gen/svgs/`，非 AIGC SVG 可放 `assets/`；
 - SMIL / CSS 动画的支持取决于 Svg.Skia，使用前先渲染验证；不支持时改用 `SkiaAnim`；
 - 素材生成与查找约定见 `assets.md`。
 
@@ -120,16 +120,16 @@ public static NBAudioClip AudioFile(string path);
 
 ```csharp
 // 链接到 shot01 的第 0 帧
-AudioFile("./assets/audios/shot01.mp3")
+AudioFile("./gen/audios/shot01.mp3")
     .AsClip("audio_01").LinkTo("shot01");
 
 // 链接到 shot01 的第 10 帧
-AudioFile("./assets/audios/shot02.mp3")
+AudioFile("./gen/audios/shot02.mp3")
     .AsClip("audio_02").LinkTo("shot02", 10);
 ```
 
 - 音频片段不绘制画面，只提供音轨；
-- 分镜语音统一放在 `assets/audios/`，入点/出点记录在 `audio_timeline.md`；
+- 分镜语音统一放在本片 `gen/audios/`，入点/出点记录在同目录 `audio_timeline.md`；
 - `.AsClip("audio_NN")` 负责登记名称；
 - `.LinkTo("shotNN", offset)` 让音频起点跟随分镜 clip 的起点并加上偏移；
 - 目标 clip 必须已创建并登记名称；
